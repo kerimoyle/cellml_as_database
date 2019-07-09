@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.idea/**
+bower_components/**
 
 # C extensions
 *.so
