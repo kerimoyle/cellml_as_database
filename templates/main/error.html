@@ -1,0 +1,18 @@
+{% extends 'main/base.html' %}
+
+{% block title %}<b>Oops ... </b>{% endblock title %}
+{% block todo %}{% endblock todo %}
+
+{% block content %}
+    <div class="row">
+        While trying to load the previous page we encountered these errors:<br><br>
+
+            {% if messages %}
+                {% for message in messages %}
+                    &nbsp; &nbsp; &nbsp;- {{ message }}<br><br>
+                {% endfor %}
+            {% endif %}
+
+        The page you were trying to load was: {{ request.META.HTTP_REFERER }}
+    </div>
+{% endblock content %}

@@ -1,0 +1,112 @@
+body {
+    color: #666666;
+    font-family: Arial;
+}
+
+h1, h2, h3, h4 {
+    color: #2f557b;
+}
+
+
+.todo {
+    background: #bcc2c8;
+    color: #2f557b;
+    padding: 7px;
+}
+
+.todo::before {
+    float: left;
+    content: "TODO: ";
+    font-weight: bold;
+}
+
+.container-fluid:empty {
+    display: none;
+}
+
+.info {
+    background-color: #e2e8ee;
+    color: #7c95b4;
+    font-style: italic;
+    padding:7px;
+    radius:2px;
+    display:none;
+}
+
+.button_bar {
+    padding-top:15px;
+    text-align: right;
+}
+
+.empty {
+    font-style: italic;
+    color: #cccccc;
+}
+
+.error_messages {
+    color:darkred;
+    background-color: #957883;
+    list-style-image: none;
+}
+
+/* ----------------- NAVIGATION BAR STUFF -------------------- */
+
+.nav-style {
+    background-color: #2f557b;
+
+}
+.navbar-default {
+    background-color: #2f557b;
+    border: 0;
+    padding-right:15px;
+}
+/* Title */
+.navbar-default .navbar-brand {
+    color: #bcc2c8;
+    height: 51px;
+    padding: 3px 10px;
+}
+
+.navbar-default .navbar-brand:hover,
+.navbar-default .navbar-brand:focus {
+    color: #bcc2c8;
+}
+/* Link */
+.navbar-default .navbar-nav > li > a {
+    color: #bcc2c8;
+}
+
+.navbar-default .dropdown-menu {
+    color: #146080;
+    padding-top:10px;
+    padding-bottom:10px;
+}
+
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > li > a:focus {
+    color: #fff;
+}
+.navbar-default .navbar-nav > .active > a,
+.navbar-default .navbar-nav > .active > a:hover,
+.navbar-default .navbar-nav > .active > a:focus {
+    color: #ccc;
+    background-color: #000;
+}
+.navbar-default .navbar-nav > .open > a,
+.navbar-default .navbar-nav > .open > a:hover,
+.navbar-default .navbar-nav > .open > a:focus {
+    color: #555;
+    background-color: #D5D5D5;
+}
+
+/* ---------------------- DATATABLES STYLING ---------------------- */
+td.details-control {
+    text-align: center;
+    color: #2f557b;
+    cursor: pointer;
+}
+
+tr.shown td.details-control {
+    text-align: center;
+    color: #094914;
+}

@@ -1,0 +1,137 @@
+{% extends 'main/base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block head_includes %}
+    {{ block.super }}
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
+    <script src="{% static 'js/bootstrap-treeview.js' %}"></script>
+{% endblock head_includes %}
+
+{% block title %}Importing CellML model: {{ model_name }}{% endblock title %}
+
+{% block todo %}
+    <br>
+    - Make the selection/deselection of a parent propagate to all generations of children<br>
+    - Change to checkboxes instead of glyphicon stuff
+{% endblock todo %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-6">
+            <h2>Search</h2>
+            <!-- <form> -->
+            <div class="form-group">
+                <label for="input-search" class="sr-only">Search Tree:</label>
+                <input type="input" class="form-control" id="input-search" placeholder="Type to search..."
+                       value="">
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" class="checkbox" id="chk-ignore-case" value="false" checked>
+                    Ignore Case
+                </label>
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" class="checkbox" id="chk-exact-match" value="false">
+                    Exact Match
+                </label>
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" class="checkbox" id="chk-reveal-results" value="false" checked>
+                    Reveal Results
+                </label>
+            </div>
+            <button type="button" class="btn btn-primary" id="btn-search">Search</button>
+            <button type="button" class="btn btn-default" id="btn-clear-search">Clear search</button>
+            <!-- </form> -->
+
+            <h2>Search results</h2>
+            <div id="search-output"><p class="empty">None</p></div>
+        </div>
+        <div class="col-md-6">
+            <h2>Data</h2>
+            <button type="button" class="btn btn-default" id="btn-check-all">Select All</button>
+            <button type="button" class="btn btn-default" id="btn-uncheck-all">Deselect All</button>
+            <button type="button" class="btn btn-primary" id="btn-load-selected">Import selected items</button>
+            <button type="button" class="btn btn-primary" id="btn-load-all">Import all</button>
+            <div id="model-tree" class=""></div>
+        </div>
+    </div>
+
+    <!-- hidden form -->
+    <form id="form_load_all" action="{% url 'main:upload_model' %}" method="POST">
+        {% csrf_token %}
+        <input type="number" name="storage_id" id="storage_id" value="{{ storage.id }}" hidden>
+    </form>
+
+{% endblock content %}
+
+{% block end_scripts %}
+    <script>
+        {#let $modelTree = $('#model-tree').treeview({#}
+        {#    data: {{ tree|safe }},#}
+        {#    showCheckbox: true,#}
+        {#    showBorder: false,#}
+        {#    levels: 1,#}
+        {#});#}
+        {##}
+        {#let search = function (e) {#}
+        {#    let pattern = $('#input-search').val();#}
+        {#    let options = {#}
+        {#        ignoreCase: $('#chk-ignore-case').is(':checked'),#}
+        {#        exactMatch: $('#chk-exact-match').is(':checked'),#}
+        {#        revealResults: $('#chk-reveal-results').is(':checked')#}
+        {#    };#}
+        {#    let results = $modelTree.treeview('search', [pattern, options]);#}
+        {##}
+        {#    let output = '<p>' + results.length + ' matches found</p>';#}
+        {#    $.each(results, function (index, result) {#}
+        {#        output += '<p>- ' + result.text + '</p>';#}
+        {#    });#}
+        {#    $('#search-output').html(output);#}
+        {#};#}
+        {##}
+        {#$('#btn-search').on('click', search);#}
+        {#$('#input-search').on('keyup', search);#}
+        {#$('#btn-clear-search').on('click', function (e) {#}
+        {#    $modelTree.treeview('clearSearch');#}
+        {#    $('#input-search').val('');#}
+        {#    $('#search-output').html('');#}
+        {#});#}
+        {##}
+        {#$('#btn-check-all').on('click', function (e) {#}
+        {#    $modelTree.treeview('checkAll', {silent: $('#chk-check-silent').is(':checked')});#}
+        {#});#}
+        {#$('#btn-uncheck-all').on('click', function (e) {#}
+        {#    $modelTree.treeview('uncheckAll', {silent: $('#chk-check-silent').is(':checked')});#}
+        {#});#}
+
+        $('#btn-load-all').on('click', function (e) {
+            if (confirm("This will load the entire model into the database. Continue?")) {
+                $("form#form_load_all").submit();
+            }
+        });
+
+        $('#btn-load-selected').on('click', function (e) {
+            alert("Sorry, this is not working yet ... ");
+            {% comment %}
+            let checkedNodes = $modelTree.treeview('getChecked', {silent: $('#chk-check-silent').is(':checked')});
+            // TODO Figure out how to do this via AJAX ... but that means storing in the temporaryStorage structure
+            {#checkedNodes.forEach(function(item) {#}
+            {#    // Make an AJAX call here to load the node with this index into the database, and update the colour of the page#}
+            {#    alert(item['nodeId']);#}
+            {# });#}
+            let sub_list = [];
+            checkedNodes.forEach(function(item){
+                sub_list.append(item['nodeId']);
+            });
+            {% endcomment %}
+        });
+
+    </script>
+{% endblock end_scripts %}

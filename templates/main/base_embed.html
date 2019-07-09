@@ -1,0 +1,62 @@
+{% load static %}
+{% load foe_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>CellML online scratch</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="{% foe_static_repo 'bootstrap/3.3.6/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% foe_static_repo 'font-awesome/4.3.0/css/font-awesome.min.css' %}" rel="stylesheet" type="text/css">
+    <link href="{% foe_static_repo 'datatables/1.10.11/css/dataTables.bootstrap.min.css' %}" rel="stylesheet"
+          type="text/css">
+
+    <!-- this makes rows in tables clickable -->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jasny-bootstrap/3.1.3/css/jasny-bootstrap.min.css">
+
+    <script src="{% foe_static_repo 'jquery/2.2.0/jquery-2.2.0.min.js' %}" type="text/javascript"></script>
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+
+<body>
+
+<div class="container">
+    {% block content %}{% endblock content %}
+</div>
+
+
+</body>
+
+{% block end_scripts %}
+    <!-- TODO clean up the unneeded links here ... -->
+    <script src="{% foe_static_repo 'bootstrap/3.3.6/js/bootstrap.min.js' %}" type="text/javascript"></script>
+    <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+
+    <script src="{% foe_static_repo 'datatables/1.10.11/js/jquery.dataTables.min.js' %}"
+            type="text/javascript"></script>
+    <script src="{% foe_static_repo 'datatables/1.10.11/js/dataTables.bootstrap.min.js' %}"
+            type="text/javascript"></script>
+
+    <script src="https://cdn.datatables.net/responsive/2.1.0/js/dataTables.responsive.min.js"
+            type="text/javascript"></script>
+    <script src="https://cdn.datatables.net/fixedheader/3.1.2/js/dataTables.fixedHeader.min.js"
+            type="text/javascript"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jasny-bootstrap/3.1.3/js/jasny-bootstrap.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('.datatables').DataTable({
+                "bLengthChange": false, //thought this line could hide the LengthMenu
+                "bInfo": false,
+                "pageLength": 25
+            });
+        });
+
+    </script>
+
+{% endblock end_scripts %}
+
+</html>

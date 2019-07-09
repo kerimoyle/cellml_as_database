@@ -1,0 +1,15 @@
+{% extends 'main/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Upload CellML file{% endblock title %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-6">
+            {% lorem %}
+        </div>
+        <div class="col-md-6">
+            {% crispy form %}
+        </div>
+    </div>
+{% endblock content %}

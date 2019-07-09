@@ -1,0 +1,74 @@
+{% extends 'main/base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Model <b>{{ model.name|title }}</b>{% endblock title %}
+
+{% block button_edit %}{% endblock button_edit %}
+{% block button_new %}{% endblock button_new %}
+
+{% block todo %}
+    <br> - Graphic display of model
+    <br> - move JS elsewhere ...
+{% endblock todo %}
+
+{% block content %}
+    <div class="row">
+
+        <div class="col-md-6">
+            <h3>Components</h3>
+            <table class="datatables display table table-hover" id="table-components">
+                <thead>
+                <tr>
+                    <th>Component</th>
+                    <th>Notes</th>
+                </tr>
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for c in model.components.all %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'main:display' item_type='component' item_id=c.id %}"></a>
+                            {{ c.name }}
+                        </td>
+                        <td>{% if c.notes %}{{ c.notes|linebreaks }}
+                        {% else %}None
+                        {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="col-md-6 table-responsive">
+            <h3>Units</h3>
+            <table class="datatables display table table-hover" id="table-units" cellspacing="0">
+                <thead>
+                <tr>
+                    <th>Units</th>
+                    <th>Child units</th>
+                    <th>Notes</th>
+                </tr>
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for cu in model.units.all %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'main:display' item_type='compoundunit' item_id=cu.id %}"></a>
+                            {{ cu.name }}
+                        </td>
+                        <td>
+                            {% for u in cu.units.all %}
+                                {{ u }}<br>
+                            {% endfor %}
+                        </td>
+                        <td>{{ cu.notes|linebreaks }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock content %}
+

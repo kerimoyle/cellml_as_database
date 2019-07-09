@@ -1,0 +1,71 @@
+{% extends 'main/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create a new <b>{{ item_type|title }}</b> item{% endblock title %}
+
+{% block todo %} - make possible to convert xml field into model  ... {% endblock todo %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-sm-12 info">
+            <p>
+                There are three ways in which you can extend your model to include more items:<br>
+            </p>
+            <ul>
+                <li>
+                    Create a new {{ item_type }} manually from scratch using the form fields below. This will make a
+                    brand
+                    new database entry for your item. If the other items to which it's connected (child items or parent
+                    items) are not created yet, that's ok - you can link to them later.
+                </li>
+                <li>
+                    Upload a CellML 2.0 file and selectively import some or all of its items. Use the
+                    <a>import</a> menu for this.
+                </li>
+                <li>
+                    Create a copy of an existing {{ item_type }} item which you own and can edit. This process will
+                    keep the attribution of the copied item, but changes to the original item will not be
+                    propagated to your copy or vice versa.
+                </li>
+                <li>
+                    Import a reference to an item which already exists in the database - you do not need to own this
+                    other item. This process simply references the other item in the same way as it would reference
+                    an item which you owned. The only difference is that you will not be able to edit items which
+                    you do not own, and changes to the original item will be propagated to your copy.
+                </li>
+            </ul>
+            
+            </p>
+        </div>
+
+        <div class="col-md-6">
+            <h3>Create from scratch</h3>
+            {% crispy form %}
+        </div>
+        <div class="col-md-6">
+            <h3>Create from a copy</h3>
+            <p class="info">
+                Clicking a row in the list below will create a copy of that {{ item_type }} and enable you to edit it.
+            </p>
+            <table class="datatables display table table-hover" id="table-units" cellspacing="0">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Notes</th>
+                </tr>
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for eg in existing_items %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'main:copy' item_type=item_type item_id=eg.id %}"></a>
+                            {{ eg.name }}
+                        </td>
+                        <td>{{ eg.notes|linebreaks }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock content %}

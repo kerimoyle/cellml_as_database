@@ -1,0 +1,214 @@
+{% extends 'main/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ item_type|title }} <b>{{ item.name }}</b>{% endblock title %}
+
+{% block button_edit %}{% endblock button_edit %}
+{% block button_new %}{% endblock button_new %}
+
+{% block todo %}{% endblock todo %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="row">
+                <div class="col-sm-6">
+                    <h3>Locals</h3>
+                </div>
+                <div class="col-sm-6 button_bar" style="padding-top:15px;">
+                    <a onclick="LoadModalData('{% url 'main:edit_locals' item_type=item_type item_id=item.id %}');"
+                       data-toggle="modal"
+                       data-target="#formModal"
+                       style="text-decoration: none;">
+                        <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit locals</button>
+                    </a>
+                </div>
+            </div>
+
+            <p class="info"><b>Local</b> attributes are those specifically owned by this type of object, ie:
+                the {{ item_type }}.
+                These are distinct from links or connections to other objects, which are the <b>Externals</b> in the
+                other column. You can edit the local attributes of any items which you own by clicking the <b>Edit</b>
+                button at the bottom of the list.</p>
+            <p class="info">
+                If you need to edit the local attributes of an item which you don't own, you will need to first create
+                your own copy using the <b>Create</b> page.
+            </p>
+
+            <table class="datatables display table" id="table-attributes">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Value</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for field, obj in locals %}
+                    <tr>
+                        <td>{{ field }}</td>
+                        <td>{{ obj }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <h3>Information</h3>
+            <p class="info">
+                The information section contains those things which cannot be changed by the user, such as item
+                ownership
+                or provenance.
+            </p>
+            <table class="datatables display table" id="table-information">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Value</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>owner</td>
+                    <td>
+                        {% if item.owner %}{{ item.owner|title }}
+                        {% else %}
+                            <p class="empty">None</p>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>provenance</td>
+                    <td>
+                        {% if item.imported_from %}{{ item.imported_from }}
+                        {% else %}
+                            <p class="empty">None</p>
+                        {% endif %}
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+
+        </div>
+
+        <div class="col-md-6">
+            <div class="row">
+                <div class="col-sm-6">
+                    <h3>Relationships</h3>
+                </div>
+                <div class="col-sm-6 button_bar" style="padding-top:15px;">
+                    <div class="dropdown">
+                        <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">
+                            <i class="fa fa-pencil"></i> Edit relationships
+                            <span class="caret"></span></button>
+                        <ul class="dropdown-menu dropdown-menu-right">
+                            {% for r in child_fields %}
+                                <li>
+                                    <a onclick="LoadModalData(
+                                            '{% url 'main:link' item_type=item_type item_id=item.id related_name=r %}'
+                                            );"
+                                       data-toggle="modal"
+                                       data-target="#formModal"
+                                       style="text-decoration: none;">
+                                        {{ r|title }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+
+                        </ul>
+                    </div>
+
+
+                </div>
+            </div>
+            <p class="info">
+                <b>Relations</b> are those parts of an item which are links to other items, ie: the children or parents
+                of the current item. Clicking on a row in the table below will open the detailed description page for
+                each of the related items. To remove an external connection, click the delete button on that row. To
+                add a new connection, click the <b>Add new</b> button.
+            </p>
+            <table class="datatables display table table-hover" id="table-connections">
+                <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for field, type, obj in children %}
+                    {% if obj %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'main:display' item_type=type item_id=obj.id %}"></a>
+                                {{ field }}
+                            </td>
+                            <td>{{ obj }}</td>
+                            <td class="rowlink-skip">
+                                <a onclick="LoadModalData(
+                                        '{% url 'main:link' item_type=item_type item_id=item.id related_name=field %}'
+                                        );"
+                                   data-toggle="modal"
+                                   data-target="#formModal"
+                                   style="text-decoration: none;">
+                                    <button class="btn btn-default btn-sm"><i class="fa fa-pencil"></i></button>
+                                </a>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td>
+                                {{ field }}
+                            </td>
+                            <td class="empty">Not connected to any {{ field }} items</td>
+                            <td></td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block modals %}
+
+    <div class="modal fade" id="formModal" tabindex="-1" role="dialog"
+         aria-labelledby="formModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="formModalTitle">Edit {{ item_type }}</h3>
+                </div>
+                <div class="modal-body">
+                    <iframe id="formModal_iframe" src="" style="zoom:0.60" width="99.6%" height="700px"
+                            frameborder="0">
+                        <h3>Please wait ... loading data ...</h3>
+                    </iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock modals %}
+
+{% block end_scripts %}
+    {{ block.super }}
+    <script>
+        $(document).ready(function () {
+            $('#table-attributes_filter').css('display', 'none');
+            $('#table-attributes_paginate').css('display', 'none');
+            $('#table-information_filter').css('display', 'none');
+            $('#table-information_paginate').css('display', 'none');
+            $('#table-connections_filter').css('width', '100%');
+        });
+
+        function LoadModalData(url) {
+            // Updating the source of the modal iframe data
+            let $iframe = $('#formModal_iframe');
+            if ($iframe.length) {
+                $iframe.attr('src', url);
+            }
+        }
+    </script>
+{% endblock end_scripts %}

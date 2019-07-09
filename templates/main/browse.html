@@ -1,0 +1,48 @@
+{% extends 'main/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Browse {{ item_type|title }} items{% endblock title %}
+
+{% block button_edit %}{% endblock button_edit %}
+{% block button_new %}{% endblock button_new %}
+
+{% block todo %}
+{% endblock todo %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-md-12">
+
+            <table class="datatables display table table-hover" id="table-attributes">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Notes</th>
+                    <th>Owner</th>
+                </tr>
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for item in items %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'main:display' item_type=item_type item_id=item.id %}"></a>
+                            {{ item.name }}
+                        </td>
+                        <td>
+                            {{ item.notes|linebreaks }}
+                        </td>
+                        <td>
+                            {% if item.owner %}{{ item.owner|title }}
+                            {% else %}<p class="empty">None</p>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% endblock content %}
+

@@ -1,0 +1,16 @@
+{% extends 'main/base.html' %}
+{% block includes %}
+    {{ block.super }}
+    <script type="text/javascript"
+            src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+{% endblock includes %}
+
+{% block todo %} ... show formatted ... {% endblock %}
+
+{% block content %}
+
+    {{ math.math_ml|safe }}
+
+{% endblock content %}
+

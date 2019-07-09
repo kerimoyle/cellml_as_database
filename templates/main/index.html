@@ -1,0 +1,21 @@
+{% extends "main/base.html" %}
+
+{% block title %}Welcome to whatever this is{% endblock title %}
+
+{% block todo %}
+    <br> - Info goes here for how to use
+    <br> - Links to upload, registration, login etc - still need permissions everywhere
+    <br> -
+{% endblock todo %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-6">
+            <p>{% lorem %}</p>
+        </div>
+        <div class="col-md-6">
+            <a href="{% url 'main:upload' %}"><button class="btn btn-primary">Upload CellML model</button></a>
+        </div>
+    </div>
+
+{% endblock content %}

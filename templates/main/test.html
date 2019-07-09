@@ -1,0 +1,21 @@
+{% extends 'main/base.html' %}
+{% load static %}
+{% load bootstrap4 %}
+{% load crispy_forms_tags %}
+
+{% block head_includes %} {{ block.super }}
+    <script type="text/javascript" async
+            src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_CHTML" async></script>
+{% endblock head_includes %}
+
+{% block content %}
+    <div class="jumbotron text-center">
+        <h1>Keri's playground</h1>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            When \(a \ne 0\), there are two solutions to \(ax^2 + bx + c = 0\) and they are
+            $$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
+        </div>
+    </div>
+{% endblock content %}
