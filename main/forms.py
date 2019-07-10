@@ -29,7 +29,7 @@ class LoginForm(forms.Form):
 
 class RegistrationForm(forms.Form):
     class Meta:
-        fields = ['username', 'password', 'repeat_password']
+        fields = ['first_name', 'last_name', 'email', 'username', 'password', 'repeat_password']
 
     def __init__(self, *args, **kwargs):
         super(RegistrationForm, self).__init__(*args, **kwargs)
@@ -40,6 +40,15 @@ class RegistrationForm(forms.Form):
         self.helper.form_method = 'post'
         self.helper.add_input(Submit('register', 'Register'))
 
+        self.fields['first_name'] = forms.CharField(
+            widget=forms.TextInput()
+        )
+        self.fields['last_name'] = forms.CharField(
+            widget=forms.TextInput()
+        )
+        self.fields['email'] = forms.EmailField(
+            widget=forms.EmailInput
+        )
         self.fields['username'] = forms.CharField(
             widget=forms.TextInput()
         )

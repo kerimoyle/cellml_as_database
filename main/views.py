@@ -15,11 +15,7 @@ from main.defines import MENU_OPTIONS
 from main.forms import ReverseLinkForm, UnlinkForm, LoginForm, RegistrationForm
 from main.functions import build_tree_from_model, load_model, get_edit_locals_form, get_item_local_attributes, \
     get_child_fields, get_item_child_attributes, get_parent_fields, get_item_parent_attributes
-from main.models import Math, TemporaryStorage, CellModel, CompoundUnit
-
-
-def home(request):
-    return render(request, 'main/index.html', {'menu': MENU_OPTIONS['home']})
+from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person
 
 
 def test(request):
@@ -29,6 +25,10 @@ def test(request):
         'menu': MENU_OPTIONS['home']
     }
     return render(request, 'main/test.html', context)
+
+
+def intro(request):
+    return render(request, 'main/index.html', {'menu': MENU_OPTIONS['home']})
 
 
 def login_view(request):
@@ -87,6 +87,12 @@ def register(request):
                     user.save()
                     user.set_password(password)
                     user.save()
+                    person = Person(user=user,
+                                    first_name=form.cleaned_data['first_name'],
+                                    last_name=form.cleaned_data['last_name'],
+                                    email=form.cleaned_data['email']
+                                    )
+                    person.save()
                     return redirect('main:home')
     form = RegistrationForm()
     context = {
@@ -98,6 +104,21 @@ def register(request):
 def logout_view(request):
     logout(request)
     return redirect('main:home')
+
+
+@login_required
+def home(request):
+    try:
+        person = request.user.person
+    except Exception as e:
+        messages.error(request, "Could not get person instance")
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    context = {
+        'person': person,
+        'models': CellModel.objects.filter(owner=person)
+    }
 
 
 # --------------------- CREATE VIEWS --------------------
