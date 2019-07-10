@@ -28,25 +28,31 @@ h1, h2, h3, h4 {
     background-color: #e2e8ee;
     color: #7c95b4;
     font-style: italic;
-    padding:7px;
-    radius:2px;
-    display:none;
+    padding: 7px;
+    radius: 2px;
+    display: none;
 }
 
 .button_bar {
-    padding-top:15px;
+    padding-top: 15px;
     text-align: right;
 }
 
 .empty {
     font-style: italic;
     color: #cccccc;
+    margin-bottom: 0px;
 }
 
 .error_messages {
-    color:darkred;
-    background-color: #957883;
-    list-style-image: none;
+    color: #c4afc8;
+    background-color: darkred;
+    padding: 20px;
+    border-radius: 3px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    margin-left: 0px;
+    margin-right: 0px;
 }
 
 /* ----------------- NAVIGATION BAR STUFF -------------------- */
@@ -55,11 +61,13 @@ h1, h2, h3, h4 {
     background-color: #2f557b;
 
 }
+
 .navbar-default {
     background-color: #2f557b;
     border: 0;
-    padding-right:15px;
+    padding-right: 15px;
 }
+
 /* Title */
 .navbar-default .navbar-brand {
     color: #bcc2c8;
@@ -71,6 +79,7 @@ h1, h2, h3, h4 {
 .navbar-default .navbar-brand:focus {
     color: #bcc2c8;
 }
+
 /* Link */
 .navbar-default .navbar-nav > li > a {
     color: #bcc2c8;
@@ -78,20 +87,22 @@ h1, h2, h3, h4 {
 
 .navbar-default .dropdown-menu {
     color: #146080;
-    padding-top:10px;
-    padding-bottom:10px;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 .navbar-default .navbar-nav > li > a:hover,
 .navbar-default .navbar-nav > li > a:focus {
     color: #fff;
 }
+
 .navbar-default .navbar-nav > .active > a,
 .navbar-default .navbar-nav > .active > a:hover,
 .navbar-default .navbar-nav > .active > a:focus {
     color: #ccc;
     background-color: #000;
 }
+
 .navbar-default .navbar-nav > .open > a,
 .navbar-default .navbar-nav > .open > a:hover,
 .navbar-default .navbar-nav > .open > a:focus {
@@ -109,4 +120,10 @@ td.details-control {
 tr.shown td.details-control {
     text-align: center;
     color: #094914;
+}
+
+.datatables_empty {
+    font-style: italic;
+    color: #cccccc;
+    margin-bottom: 0px;
 }

@@ -12,15 +12,25 @@ urlpatterns = [
     path('copy/<item_type>/<int:item_id>/', views.copy, name='copy'),
     path('create/<item_type>/', views.create, name='create'),
 
-    path('display/math/<int:item_id>/', views.display_math, name='display_math'),
     path('display/cellmodel/<int:item_id>/', views.display_model, name='display_model'),  # aliased ...
+    path('display/compoundunit/<int:item_id>/', views.display_compoundunit, name='display_compoundunit'),  # aliased ...
+    path('display/math/<int:item_id>/', views.display_math, name='display_math'),
+
     path('display/model/<int:item_id>/', views.display_model, name='display_model'),
 
     path('display/<item_type>/<int:item_id>/', views.display, name='display'),
 
     path('edit_locals/<item_type>/<int:item_id>/', views.edit_locals, name='edit_locals'),
 
-    path('link/<item_type>/<int:item_id>/<related_name>', views.link, name='link'),
+    path('home/', views.home, name='home'),
+
+    path('link_backwards/<item_type>/<int:item_id>/<related_name>', views.link_backwards, name='link_backwards'),
+    path('link_forwards/<item_type>/<int:item_id>/<related_name>', views.link_forwards, name='link_forwards'),
+    path('link_remove/', views.link_remove, name='link_remove'),
+    path('login_view/', views.login_view, name='login_view'),
+    path('logout_view/', views.logout_view, name='logout_view'),
+
+    path('register/', views.register, name='register'),
 
     path('upload/', views.upload, name='upload'),
     path('upload_check/<int:item_id>/', views.upload_check, name='upload_check'),

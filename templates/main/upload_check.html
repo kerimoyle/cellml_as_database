@@ -8,6 +8,7 @@
             integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
             crossorigin="anonymous"></script>
     <script src="{% static 'js/bootstrap-treeview.js' %}"></script>
+
 {% endblock head_includes %}
 
 {% block title %}Importing CellML model: {{ model_name }}{% endblock title %}
@@ -66,6 +67,7 @@
     <!-- hidden form -->
     <form id="form_load_all" action="{% url 'main:upload_model' %}" method="POST">
         {% csrf_token %}
+        <input type="text" name="new_name" id="new_name" value="" hidden>
         <input type="number" name="storage_id" id="storage_id" value="{{ storage.id }}" hidden>
     </form>
 
@@ -73,43 +75,43 @@
 
 {% block end_scripts %}
     <script>
-        {#let $modelTree = $('#model-tree').treeview({#}
-        {#    data: {{ tree|safe }},#}
-        {#    showCheckbox: true,#}
-        {#    showBorder: false,#}
-        {#    levels: 1,#}
-        {#});#}
-        {##}
-        {#let search = function (e) {#}
-        {#    let pattern = $('#input-search').val();#}
-        {#    let options = {#}
-        {#        ignoreCase: $('#chk-ignore-case').is(':checked'),#}
-        {#        exactMatch: $('#chk-exact-match').is(':checked'),#}
-        {#        revealResults: $('#chk-reveal-results').is(':checked')#}
-        {#    };#}
-        {#    let results = $modelTree.treeview('search', [pattern, options]);#}
-        {##}
-        {#    let output = '<p>' + results.length + ' matches found</p>';#}
-        {#    $.each(results, function (index, result) {#}
-        {#        output += '<p>- ' + result.text + '</p>';#}
-        {#    });#}
-        {#    $('#search-output').html(output);#}
-        {#};#}
-        {##}
-        {#$('#btn-search').on('click', search);#}
-        {#$('#input-search').on('keyup', search);#}
-        {#$('#btn-clear-search').on('click', function (e) {#}
-        {#    $modelTree.treeview('clearSearch');#}
-        {#    $('#input-search').val('');#}
-        {#    $('#search-output').html('');#}
-        {#});#}
-        {##}
-        {#$('#btn-check-all').on('click', function (e) {#}
-        {#    $modelTree.treeview('checkAll', {silent: $('#chk-check-silent').is(':checked')});#}
-        {#});#}
-        {#$('#btn-uncheck-all').on('click', function (e) {#}
-        {#    $modelTree.treeview('uncheckAll', {silent: $('#chk-check-silent').is(':checked')});#}
-        {#});#}
+        let $modelTree = $('#model-tree').treeview({
+            data: {{ tree|safe }},
+            showCheckbox: true,
+            showBorder: false,
+            levels: 1,
+        });
+
+        let search = function (e) {
+            let pattern = $('#input-search').val();
+            let options = {
+                ignoreCase: $('#chk-ignore-case').is(':checked'),
+                exactMatch: $('#chk-exact-match').is(':checked'),
+                revealResults: $('#chk-reveal-results').is(':checked')
+            };
+            let results = $modelTree.treeview('search', [pattern, options]);
+
+            let output = '<p>' + results.length + ' matches found</p>';
+            $.each(results, function (index, result) {
+                output += '<p>- ' + result.text + '</p>';
+            });
+            $('#search-output').html(output);
+        };
+
+        $('#btn-search').on('click', search);
+        $('#input-search').on('keyup', search);
+        $('#btn-clear-search').on('click', function (e) {
+            $modelTree.treeview('clearSearch');
+            $('#input-search').val('');
+            $('#search-output').html('');
+        });
+
+        $('#btn-check-all').on('click', function (e) {
+            $modelTree.treeview('checkAll', {silent: $('#chk-check-silent').is(':checked')});
+        });
+        $('#btn-uncheck-all').on('click', function (e) {
+            $modelTree.treeview('uncheckAll', {silent: $('#chk-check-silent').is(':checked')});
+        });
 
         $('#btn-load-all').on('click', function (e) {
             if (confirm("This will load the entire model into the database. Continue?")) {

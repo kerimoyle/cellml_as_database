@@ -2,16 +2,20 @@ import libcellml
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django.contrib import messages
+from django.contrib.auth import logout, authenticate, login
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import ForeignKey, ManyToManyField, AutoField
+from django.db.models import ForeignKey, ManyToManyField, AutoField, ManyToOneRel
 from django.forms import modelform_factory, CheckboxSelectMultiple, RadioSelect
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
 from main.defines import MENU_OPTIONS
+from main.forms import ReverseLinkForm, UnlinkForm, LoginForm, RegistrationForm
 from main.functions import build_tree_from_model, load_model, get_edit_locals_form, get_item_local_attributes, \
-    get_child_fields, get_item_child_attributes
-from main.models import Math, TemporaryStorage, CellModel
+    get_child_fields, get_item_child_attributes, get_parent_fields, get_item_parent_attributes
+from main.models import Math, TemporaryStorage, CellModel, CompoundUnit
 
 
 def home(request):
@@ -27,8 +31,77 @@ def test(request):
     return render(request, 'main/test.html', context)
 
 
-# --------------------- CREATE VIEWS --------------------
+def login_view(request):
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
 
+            # Test whether there's a user with this username
+            user = User.objects.filter(username=username).first()
+            if user is not None:
+                # User exists, now test password
+                user = authenticate(request, username=username, password=password)
+                if user is not None:
+                    login(request, user)
+                    if 'next' in request.GET:
+                        return redirect(request.GET.get('next'))
+                    return redirect('main:home')
+                else:
+                    messages.error(request, "Your password is not correct.  Please try again.")
+            else:
+                # User does not exist
+                messages.error(request,
+                               "Sorry, the username '{}' was not found.  "
+                               "Please check it's correct, or register as a new user.".format(username))
+
+    form = LoginForm()
+    context = {
+        'form': form,
+    }
+
+    return render(request, 'main/login.html', context)
+
+
+def register(request):
+    if request.method == 'POST':
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+            repeat_password = form.cleaned_data['repeat_password']
+
+            if password != repeat_password:
+                messages.error(request, "The passwords do not match")
+            else:
+                # Test whether there's a user with this username
+                user = User.objects.filter(username=username).first()
+                if user is not None:
+                    # User exists already
+                    messages.error(request,
+                                   "A user with that username already exists.  "
+                                   "Please login instead, or choose another name.")
+                else:
+                    user = User(username=username)
+                    user.save()
+                    user.set_password(password)
+                    user.save()
+                    return redirect('main:home')
+    form = RegistrationForm()
+    context = {
+        'form': form,
+    }
+    return render(request, 'main/register.html', context)
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('main:home')
+
+
+# --------------------- CREATE VIEWS --------------------
+@login_required
 def create(request, item_type):
     """
     Basic view to create one instance of the @p item_type
@@ -57,6 +130,8 @@ def create(request, item_type):
         exclude_fields += ('owner',)
     if 'ready' in all_fields:
         exclude_fields += ('ready',)
+    if 'is_standard' in all_fields:
+        exclude_fields += ('is_standard',)
 
     create_form = modelform_factory(item_model.model_class(), exclude=exclude_fields)
 
@@ -85,6 +160,7 @@ def create(request, item_type):
     return render(request, 'main/create.html', context)
 
 
+@login_required
 def copy(request, item_type, item_id):
     """
     Function to duplicate an existing item of item_type
@@ -129,6 +205,7 @@ def copy(request, item_type, item_id):
     return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item.id}))
 
 
+@login_required
 def edit_locals(request, item_type, item_id):
     """
     Basic view to edit the local attributes of an instance of the @p item_type
@@ -178,7 +255,8 @@ def edit_locals(request, item_type, item_id):
     return render(request, 'main/form_modal.html', context)
 
 
-def link(request, item_type, item_id, related_name):
+@login_required
+def link_forwards(request, item_type, item_id, related_name):
     """
     Generic view to link foreign keys and many-to-many fields into a parent item
     :param request: request
@@ -239,7 +317,7 @@ def link(request, item_type, item_id, related_name):
     form.helper.form_method = 'post'
     form.helper.attrs = {'target': '_top'}
     form.helper.add_input(Submit('submit', "Save"))
-    form.helper.form_action = reverse('main:link',
+    form.helper.form_action = reverse('main:link_forwards',
                                       kwargs={'item_type': item_type, 'item_id': item_id, 'related_name': related_name})
 
     context = {
@@ -250,8 +328,125 @@ def link(request, item_type, item_id, related_name):
     return render(request, 'main/form_modal.html', context)
 
 
-# --------------------- DISPLAY VIEWS -------------------
+@login_required
+def link_backwards(request, item_type, item_id, related_name):
+    """
+        Generic view to link parent onetomanyrel fields to the current item
+        :param request: request
+        :param item_type: the type of the current item
+        :param item_id: the id of the current item
+        :param related_name: the type of the parent item to link
+        :return:
+        """
 
+    item_model = None
+    item = None
+    parent_model = None
+
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Can't find object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Can't find '{}' object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    r = item._meta.get_field(related_name)
+    parent_type = r.related_model()._meta.model_name
+    parent_field = r.field.name
+
+    try:
+        parent_model = ContentType.objects.get(app_label="main", model=parent_type)
+    except Exception as e:
+        messages.error(request, "Can't find object type for the related name of '{}'".format(related_name))
+        messages.error(request, " ... I tried looking for parent of type '{}'".format(parent_type))
+        return redirect('main:error')
+
+    if request.POST:
+        form = ReverseLinkForm(request.POST, item_type=item_type, item_id=item_id, parent_type=parent_type)
+
+        if form.is_valid():
+            parent = form.cleaned_data['link_to_id']
+            # try:
+            #     parent = parent_model.get_object_for_this_type(id=parent_id)
+            # except Exception as e:
+            #     messages.error(request, "Can't find '{}' object with id of '{}'".format(parent_type, parent_id))
+            #     messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+            #     return redirect('main:error')
+
+            setattr(parent, r.field, [item_id])
+
+            return redirect(reverse('main:display',
+                                    kwargs={'item_type': item_type,
+                                            'item_id': item.id}))
+    else:
+        form = ReverseLinkForm(item_type=item_type, item_id=item_id, parent_type=parent_type)
+
+    form.helper = FormHelper()
+    form.helper.form_method = 'post'
+    form.helper.attrs = {'target': '_top'}
+    form.helper.add_input(Submit('submit', "Save"))
+    form.helper.form_action = reverse('main:link_backwards',
+                                      kwargs={'item_type': item_type, 'item_id': item_id, 'related_name': related_name})
+
+    context = {
+        'item_type': item_type,
+        'item': item,
+        'form': form,
+    }
+    return render(request, 'main/form_modal.html', context)
+
+
+@login_required
+def link_remove(request):
+    if request.method == "POST":
+        form = UnlinkForm(request.POST)
+        if form.is_valid():
+
+            item_type = form.data['unlink_item_type']
+            item_id = form.data['unlink_item_id']
+            related_name = form.data['unlink_related_name']
+            related_id = form.data['unlink_related_id']
+
+            try:
+                item_model = ContentType.objects.get(app_label="main", model=item_type)
+            except Exception as e:
+                messages.error(request, "Can't find object type called '{}'".format(item_type))
+                messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+                return redirect('main:error')
+
+            try:
+                item = item_model.get_object_for_this_type(id=item_id)
+            except Exception as e:
+                messages.error(request, "Can't find '{}' object with id of '{}'".format(item_type, item_id))
+                messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+                return redirect('main:error')
+
+            r = item._meta.get_field(related_name)
+            link_type = type(r)
+
+            if link_type == ForeignKey:
+                setattr(item, related_name, None)
+                item.save()
+            elif link_type == ManyToManyField:
+                m2m = getattr(item, related_name)
+
+            elif link_type == ManyToOneRel:
+                pass
+            else:
+                pass
+
+            return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_id}))
+
+
+# --------------------- DISPLAY VIEWS -------------------
+@login_required
 def display(request, item_type, item_id):
     item = None
 
@@ -269,20 +464,44 @@ def display(request, item_type, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
-    # Make the create/edit links here instead of in template so we can tell the difference between parent and child
-    # sides?
+    child_fields = get_child_fields(item_model)
+    local_attrs = get_item_local_attributes(item, ['notes', 'name'])
+    children = get_item_child_attributes(item)
+
+    parent_fields = get_parent_fields(item_model)
+    parents = get_item_parent_attributes(item)
 
     context = {
         'item': item,
         'item_type': item_type,
-        'child_fields': get_child_fields(item_model),
-        'locals': get_item_local_attributes(item),
-        'children': get_item_child_attributes(item),
+        'child_fields': child_fields,
+        'locals': local_attrs,
+        'children': children,
+        'parent_fields': parent_fields,
+        'parents': parents,
         'menu': MENU_OPTIONS['display'],
     }
     return render(request, 'main/display.html', context)
 
 
+@login_required
+def display_compoundunit(request, item_id):
+    item = None
+    try:
+        item = CompoundUnit.objects.get(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find CompoundUnit object with id of '{}'".format(item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    context = {
+        'item': item,
+        'menu': MENU_OPTIONS['display']
+    }
+    return render(request, 'main/display_compoundunit.html', context)
+
+
+@login_required
 def display_model(request, item_id):
     model = None
 
@@ -300,6 +519,7 @@ def display_model(request, item_id):
     return render(request, 'main/display_model.html', context)
 
 
+@login_required
 def display_math(request, item_id):
     math = None
     try:
@@ -316,6 +536,7 @@ def display_math(request, item_id):
     return render(request, 'main/display_math.html', context)
 
 
+@login_required
 def browse(request, item_type):
     item_model = None
     try:
@@ -348,7 +569,7 @@ def browse(request, item_type):
 
 
 # -------------------- UPLOAD VIEWS --------------------
-
+@login_required
 def upload(request):
     # Set up import form for cellml text input:
     form_type = modelform_factory(TemporaryStorage, exclude=('tree',))
@@ -375,6 +596,7 @@ def upload(request):
     return render(request, 'main/upload.html', context)
 
 
+@login_required
 def upload_check(request, item_id):
     # This view makes a scratchpad from the uploaded file, and allows users to select which parts to save
     # retrieve the file
@@ -400,14 +622,15 @@ def upload_check(request, item_id):
 
     context = {
         'storage': storage,
-        'model_name': model.name(),
+        'model_name': storage.model_name,
         'tree': storage.tree,
-        'menu': MENU_OPTIONS['upload']
+        'menu': MENU_OPTIONS['upload'],
     }
 
     return render(request, 'main/upload_check.html', context)
 
 
+@login_required
 def upload_model(request):
     # Recreate the CellML model ... TODO should be cached or pickled instead of parsing->loading again?
 
@@ -415,6 +638,7 @@ def upload_model(request):
     storage = None
 
     if request.method == 'POST':
+
         try:
             storage_id = request.POST.get('storage_id')
         except Exception as e:
@@ -446,6 +670,9 @@ def upload_model(request):
 
         # TODO Need to draw the loaded detailed tree properly, including href components.  Will copy for now ...
         model.tree = storage.tree
+        model.uploaded_from = storage.file.name
+        model.name = storage.model_name
+        model.owner = request.user.person
         model.save()
 
         # Delete the TemporaryStorage object

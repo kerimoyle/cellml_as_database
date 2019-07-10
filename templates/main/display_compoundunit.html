@@ -1,0 +1,80 @@
+{% extends 'main/base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Compound Units <b>{{ item.name|title }}</b>{% endblock title %}
+
+{% block button_edit %}{% endblock button_edit %}
+{% block button_new %}{% endblock button_new %}
+
+{% block todo %}{% endblock todo %}
+
+{% block content %}
+    <div class="row">
+
+        <div class="col-md-6">
+            <h3>Locals</h3>
+            <table class="datatables display table table-hover" id="table-components">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Value</th>
+                    <th>Notes</th>
+                </tr>
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for c in locals %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'main:display' item_type='component' item_id=c.id %}"></a>
+                            {{ c.name }}
+                        </td>
+                        <td>{% if c.notes %}{{ c.notes|linebreaks }}
+                        {% else %}None
+                        {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="col-md-6 table-responsive">
+            <h3>Units</h3>
+            <table class="datatables display table table-hover" id="table-units">
+                <thead>
+                <tr>
+                    <th>Units</th>
+                    <th>Attributes</th>
+                    <th>Notes</th>
+                </tr>
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for u in item.units.all %}
+                    <tr>
+                        <td>
+                            {% if u.base %}
+                                <a href="{% url 'main:display' item_type='compoundunit' item_id=u.base.id %}"></a>
+                            {% endif %}
+                            {{ u.name }}
+                        </td>
+                        <td>
+                            <ul>
+                                <li>Prefix: {{ u.prefix }}</li>
+                                <li>Multiplier: {{ u.multiplier }}</li>
+                                <li>Exponent: {{ u.exponent }}</li>
+                            </ul>
+                        </td>
+                        <td>
+                            {% if u.notes %}{{ u.notes|linebreaks }}
+                            {% else %}<p class="empty">None</p>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock content %}
+

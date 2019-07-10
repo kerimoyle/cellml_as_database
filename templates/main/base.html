@@ -7,18 +7,25 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link href="{% foe_static_repo 'bootstrap/3.3.6/css/bootstrap.min.css' %}" rel="stylesheet">
-    <link href="{% foe_static_repo 'font-awesome/4.3.0/css/font-awesome.min.css' %}" rel="stylesheet" type="text/css">
-    <link href="{% foe_static_repo 'datatables/1.10.11/css/dataTables.bootstrap.min.css' %}" rel="stylesheet"
-          type="text/css">
+    {% block head_includes %}
+        <link href="{% foe_static_repo 'bootstrap/3.3.6/css/bootstrap.min.css' %}" rel="stylesheet">
+        <link href="{% foe_static_repo 'font-awesome/4.3.0/css/font-awesome.min.css' %}" rel="stylesheet"
+              type="text/css">
+        <link href="{% foe_static_repo 'datatables/1.10.11/css/dataTables.bootstrap.min.css' %}" rel="stylesheet"
+              type="text/css">
 
-    <!-- this makes rows in tables clickable -->
-    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jasny-bootstrap/3.1.3/css/jasny-bootstrap.min.css">
+        <!-- this makes rows in tables clickable -->
+        <link rel="stylesheet"
+              href="//cdnjs.cloudflare.com/ajax/libs/jasny-bootstrap/3.1.3/css/jasny-bootstrap.min.css">
 
 
-    <script src="{% foe_static_repo 'jquery/2.2.0/jquery-2.2.0.min.js' %}" type="text/javascript"></script>
+        <script src="{% foe_static_repo 'jquery/2.2.0/jquery-2.2.0.min.js' %}" type="text/javascript"></script>
 
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?124358727372">
+
+
+        <link rel="stylesheet" href="{% static 'css/style.css' %}?124358727372">
+
+    {% endblock head_includes %}
 </head>
 
 <body>
@@ -34,51 +41,57 @@
                         <span class="icon-bar"></span>
                     </button>
                 </div>
+
+
                 <div class="collapse navbar-collapse nav-style" id="myNavbar">
-                    <ul class="nav navbar-nav navbar-left ">
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'main:upload' %}">UPLOAD</a>
-                        </li>
+                    {% if user.is_authenticated %}
+                        <ul class="nav navbar-nav navbar-left ">
+                            {% if menu.upload %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'main:upload' %}">UPLOAD</a>
+                                </li>
+                            {% endif %}
+                            {% if menu.create|length %}
+                                <li class="dropdown">
+                                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                                        CREATE <span class="caret"></span>
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        {% for t, name in menu.create.items %}
+                                            <li><a href="{% url 'main:create' item_type=t %}">{{ name|title }}</a></li>
+                                        {% endfor %}
+                                    </ul>
+                                </li>
+                            {% endif %}
+                            {% if menu.browse|length %}
+                                <li class="dropdown">
+                                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                                        BROWSE <span class="caret"></span>
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        {% for t, name in menu.browse.items %}
+                                            <li><a href="{% url 'main:browse' item_type=t %}">{{ name|title }}</a></li>
+                                        {% endfor %}
+                                    </ul>
+                                </li>
+                            {% endif %}
+                        </ul>
+                        <ul class="nav navbar-nav navbar-right">
+                            {#                        <li class="nav-item"><a class="nav-link" onclick="alert('not working yet');">HELP</a></li>#}
+                            <li class="nav-item"><a class="nav-link" href="{% url 'main:logout_view' %}">LOG OUT</a></li>
+                        </ul>
 
-                        {% if menu.create|length %}
-                            <li class="dropdown">
-                                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                                    CREATE <span class="caret"></span>
-                                </a>
-                                <ul class="dropdown-menu">
-                                    {% for t, name in menu.create.items %}
-                                        <li><a href="{% url 'main:create' item_type=t %}">{{ name|title }}</a></li>
-                                    {% endfor %}
-                                </ul>
-                            </li>
-                        {% endif %}
-                        {% if menu.upload|length %}
-                            <li class="dropdown">
-                                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                                    CREATE <span class="caret"></span>
-                                </a>
-                                <ul class="dropdown-menu">
-                                    {% for t, name in menu.create.items %}
-                                        <li><a href="{% url 'main:create' item_type=t %}">{{ name|title }}</a></li>
-                                    {% endfor %}
-                                </ul>
-                            </li>
-                        {% endif %}
+                    {% else %}
+                        <ul class="nav navbar-nav navbar-right">
+                            <li class="nav-item"><a class="nav-link" href="{% url 'main:login_view' %}">LOG IN</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'main:register' %}">REGISTER</a></li>
+                        </ul>
 
-                        {% if menu.browse|length %}
-                            <li class="dropdown">
-                                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                                    BROWSE <span class="caret"></span>
-                                </a>
-                                <ul class="dropdown-menu">
-                                    {% for t, name in menu.browse.items %}
-                                        <li><a href="{% url 'main:browse' item_type=t %}">{{ name|title }}</a></li>
-                                    {% endfor %}
-                                </ul>
-                            </li>
-                        {% endif %}
-                    </ul>
+                    {% endif %}
+
                 </div>
+
+
             </div>
         </nav>
     {% endblock navigation %}
@@ -87,9 +100,9 @@
 </div>
 
 <div class="container-fluid todo">{% block todo %}{% endblock todo %}</div>
-<div class="container">
+<div class="container-fluid" id="main_container">
     <div class="row">
-        <h1>{% block title %}{% endblock title %}</h1>
+        <div class="col-sm-12"><h1>{% block title %}{% endblock title %}</h1></div>
     </div>
     {% block content %}{% endblock content %}
     {% block modals %}{% endblock modals %}

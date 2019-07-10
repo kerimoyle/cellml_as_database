@@ -92,25 +92,18 @@ class Variable(NamedCellMLEntity):
 class Unit(NamedCellMLEntity):
     prefix = ForeignKey("Prefix", on_delete=DO_NOTHING, null=True, blank=True)
 
-    compoundunits = ManyToManyField("CompoundUnit", related_name="made_of", blank=True)
+    base = ForeignKey("CompoundUnit", related_name='used_by_units', blank=True, null=True,
+                          on_delete=DO_NOTHING)
+
+    units = ForeignKey("CompoundUnit", related_name='units', blank=True, null=True, on_delete=CASCADE)
 
     multiplier = FloatField(default=0.0, null=True)
     exponent = FloatField(default=0.0, null=True)
     reference = CharField(max_length=100,
-                          null=True)  # Reference is stored as a string, will be processed into fks below
-
-    is_standard = BooleanField(default=False)
-    based_on = ForeignKey("CompoundUnit", related_name='child_units', blank=True, null=True,
-                          on_delete=DO_NOTHING)
+                          null=True)  # Reference is stored as a string, will be processed into fks TODO
 
     def __str__(self):
         return self.name
-
-    def delete(self, args, kwargs):
-        # prevent deleting if is standard
-        if self.is_standard:
-            return
-        super.delete(args, kwargs)
 
     def is_base(self):
         if self.based_on is not None:
@@ -126,11 +119,11 @@ class CompoundUnit(NamedCellMLEntity):
     def __str__(self):
         return self.name
 
-    def delete(self, args, kwargs):
-        # prevent deleting if is standard
-        if self.is_standard:
-            return
-        super.delete(args, kwargs)
+    # def delete(self, args, kwargs):
+    #     # prevent deleting if is standard
+    #     if self.is_standard:
+    #         return
+    #     super.delete(args, kwargs)
 
 
 class Math(NamedCellMLEntity):
@@ -167,6 +160,7 @@ class Reset(NamedCellMLEntity):  # TODO should this be inherited or not?
 
 
 class CellModel(NamedCellMLEntity):
+    uploaded_from = CharField(max_length=250, blank=True, null=True)
     pass
 
     def __str__(self):
@@ -177,6 +171,7 @@ class TemporaryStorage(DjangoModel):
     # This is the storage and reading of the initial cellml file
     file = FileField(blank=False)
     tree = TextField(blank=True)
+    model_name = CharField(blank=False, max_length=100)
 
 # class TemporaryStorageItem(DjangoModel):
 #     # this is a list of the identified entities (components, variable, units etc) in the file and their

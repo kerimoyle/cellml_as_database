@@ -1,9 +1,9 @@
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import ForeignKey, ManyToManyField, AutoField, ManyToOneRel
+from django.db.models import ForeignKey, ManyToManyField, AutoField, ManyToOneRel, ManyToManyRel
 from django.forms import modelform_factory
 
 from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Unit, \
-    Math
+    Math, Prefix
 
 
 # ---------------------- CELLML FUNCTIONS -------------------------------------
@@ -127,9 +127,12 @@ def load_model(in_model):
     for c in range(in_model.componentCount()):
         load_component(c, in_model, model)
 
-    # Add the units
+    # Add the compound units
     for u in range(in_model.unitsCount()):
         load_compound_units(u, in_model, model)
+
+    for u in model.compoundunits.all():
+        load_units(u, in_model, model)
 
     # Once everything is loaded into the database, we have to make the connections between items
     for component in model.components.all():
@@ -140,7 +143,14 @@ def load_model(in_model):
             in_units = in_variable.units()
             if type(in_units).__name__ == 'str':
                 # not sure how to deal with base units here ...
-                pass
+                # Set unit as the CompoundUnit(is_standard=True) with the same name
+                try:
+                    u = CompoundUnit.objects.get(is_standard=True, name=in_units)
+                    variable.compoundunit = u
+                    variable.save()
+                except Exception as e:
+                    pass
+
             else:
                 variable.units = model.units.filter(name=in_units.name()).first()
                 variable.save()
@@ -162,23 +172,16 @@ def load_model(in_model):
             reset.variable = component.variables.filter(name=in_reset.variable.name()).first()
             reset.test_variable = component.variables.filter(name=in_reset.test_variable.name()).first()
 
-    for c_unit in model.units.all():
-        for unit in c_unit.units.all():
-            # Want to find the unit in the model whose name = reference, and link
-            # to standard unit or compound unit as appropriate
-            standard_unit = StandardUnit.objects.filter(name=unit.reference).first()
-            if standard_unit:
-                unit.based_on_standard_unit = standard_unit
-                unit.save()
-                continue
+    # for c_unit in model.compoundunits.all():
+    #     for unit in c_unit.units.all():
+    #
+    #         other_unit = model.units.filter(name=unit.reference).first()
+    #         if other_unit:
+    #             unit.based_on_compound_unit = other_unit
+    #             unit.save()
+    #             continue
 
-            other_unit = model.units.filter(name=unit.reference).first()
-            if other_unit:
-                unit.based_on_compound_unit = other_unit
-                unit.save()
-                continue
-
-            # If we get to this point then the unit for this compound unit does not exist in the model: add todo item
+    # If we get to this point then the unit for this compound unit does not exist in the model: add todo item
 
     return model
 
@@ -227,31 +230,73 @@ def load_compound_units(index, in_model, model):
     )
     out_compound_units.save()
 
+    return
+
+    # for u in range(in_units.unitCount()):
+    #     reference, prefix_string, multiplier, exponent, local_id = in_units.unitAttributes(u)
+    #
+    #     prefix = Prefix.objects.get(name=prefix_string)
+    #
+    #     unit = Unit(
+    #         cellml_index=u,
+    #         reference=reference,
+    #         prefix=prefix,
+    #         multiplier=multiplier,
+    #         exponent=exponent,
+    #         cellml_id=local_id
+    #     )
+    #
+    #     # TODO Need to narrow scope to the current model here, at the moment it's searching the whole db!!
+    #     # Have to locate the reference before this will make any sense ...
+    #
+    #     su = CompoundUnit.objects.filter(name=reference, is_standard=True).first()
+    #     if su:  # Then is related to a standard unit ...
+    #         unit.base = su
+    #     else:
+    #         # Try to find named unit item
+    #         cu = CompoundUnit.objects.filter(name=reference).first()
+    #         if cu:
+    #             unit.base = cu
+    #
+    #     unit.save()
+    #     out_compound_units.units.add(unit)
+    #
+    # return
+
+
+def load_units(compoundunit, in_model, model):
+    in_units = in_model.units(compoundunit.cellml_index)
+
     for u in range(in_units.unitCount()):
-        reference, prefix, multiplier, exponent, local_id = in_units.unitAttributes(u)
+        reference, prefix_string, multiplier, exponent, local_id = in_units.unitAttributes(u)
+
+        prefix = Prefix.objects.get(name=prefix_string)
 
         unit = Unit(
             cellml_index=u,
-            reference=reference,
-            prefix_string=prefix,
+            prefix=prefix,
             multiplier=multiplier,
             exponent=exponent,
-            cellml_id=local_id
+            cellml_id=local_id,
+            name=reference,
+            units=compoundunit,
         )
-
-    # TODO Need to narrow scope to the current model here, at the moment it's searching the whole db!!
-        # Have to locate the reference before this will make any sense ...
-        su = CompoundUnit.objects.filter(name=reference, is_standard=True).first()
-        if su:  # Then is related to a standard unit ...
-            unit.compoundunit = su
-        else:
-            # Try to find named unit item
-            cu = CompoundUnit.objects.filter(name=reference).first()
-            if cu:
-                unit.compoundunit = cu
-
         unit.save()
-        out_compound_units.units.add(unit)
+
+        # TODO Need to narrow scope to the current model here, at the moment it's searching the whole db!!
+        # Have to locate the reference before this will make any sense ...
+
+        base = CompoundUnit.objects.filter(name=reference, model=model).first()
+        if base:
+            unit.base = base
+            unit.save()
+        else:
+            base = CompoundUnit.objects.filter(name=reference, is_standard=True).first()
+            if base:
+                unit.base = base
+                unit.save()
+            else:
+                pass
 
     return
 
@@ -309,6 +354,8 @@ def get_local_fields(item_model):
         local_fields.remove('cellml_index')
     if 'ready' in local_fields:
         local_fields.remove('ready')
+    if 'is_standard' in local_fields:
+        local_fields.remove('is_standard')
 
     return local_fields
 
@@ -356,9 +403,37 @@ def get_item_child_attributes(item):
     return item_children
 
 
-def get_item_local_attributes(item):
+def get_parent_fields(item_model):
+    parent_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
+                     type(x) == ManyToOneRel or type(x) == ManyToManyRel]
+
+    return parent_fields
+
+
+def get_item_parent_attributes(item):
+    parent_fields = get_parent_fields(ContentType.objects.get_for_model(item))
+
+    item_parents = []
+
+    for l in parent_fields:
+        m2m = getattr(item, l)
+        m2m_2 = getattr(m2m, 'all')()
+        for m in m2m_2:
+            item_parents.append((l, m._meta.model_name, m))
+
+    return item_parents
+
+
+def get_item_local_attributes(item, excluding=[]):
     # Get the local attributes of this item (ie: not fk, m2m, o2o)
     local_fields = get_local_fields(ContentType.objects.get_for_model(item))
+
+    for l in excluding:
+        try:
+            local_fields.remove(l)
+        except KeyError:
+            pass
+
     item_locals = []
     for l in local_fields:
         item_locals.append((l, getattr(item, l)))

@@ -14,7 +14,59 @@
 
 {% block content %}
     <div class="row">
+        <div class="col-md-12">
+            <div class="row">
+                <div class="col-sm-6">
+                    <h3>Information</h3>
+                </div>
+                <div class="col-sm-6 button_bar" style="padding-top:15px;">
+                    <a onclick="LoadModalData('{% url 'main:edit_locals' item_type="cellmodel" item_id=model.id %}');"
+                       data-toggle="modal"
+                       data-target="#formModal"
+                       style="text-decoration: none;">
+                        <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit information</button>
+                    </a>
+                </div>
+            </div>
+            <table class="display table" id="table-info">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Value</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>CellML ID</td>
+                    <td>
+                        {% if model.cellml_id %}{{ model.cellml_id }}
+                        {% else %}<p class="empty">None</p>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>Owner</td>
+                    <td>
+                        {% if model.owner %}{{ model.owner|title }}
+                        {% else %}<p class="empty">None</p>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>Imported from</td>
+                    <td>
+                        {% if model.imported_from %}{{ model.imported_from }}
+                        {% else %}<p class="empty">None</p>
+                        {% endif %}
+                    </td>
+                </tr>
+                </tbody>
+            </table>
 
+            <div>{{ model.notes|linebreaks }}</div>
+        </div>
+    </div>
+    <div class="row">
         <div class="col-md-6">
             <h3>Components</h3>
             <table class="datatables display table table-hover" id="table-components">
@@ -41,7 +93,7 @@
             </table>
         </div>
 
-        <div class="col-md-6 table-responsive">
+        <div class="col-md-6">
             <h3>Units</h3>
             <table class="datatables display table table-hover" id="table-units" cellspacing="0">
                 <thead>
@@ -52,7 +104,7 @@
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
-                {% for cu in model.units.all %}
+                {% for cu in model.compoundunits.all %}
                     <tr>
                         <td>
                             <a href="{% url 'main:display' item_type='compoundunit' item_id=cu.id %}"></a>
@@ -71,4 +123,43 @@
         </div>
     </div>
 {% endblock content %}
+
+{% block modals %}
+
+    <div class="modal fade" id="formModal" tabindex="-1" role="dialog"
+         aria-labelledby="formModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="formModalTitle">Edit {{ item_type }}</h3>
+                </div>
+                <div class="modal-body">
+                    <iframe id="formModal_iframe" src="" style="zoom:0.60" width="99.6%" height="700px"
+                            frameborder="0">
+                        <h3>Please wait ... loading data ...</h3>
+                    </iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock modals %}
+
+{% block end_scripts %}
+    {{ block.super }}
+    <script>
+
+    $(document).ready(function () {
+            $('#table-info_filter').css('display', 'none');
+            $('#table-info_paginate').css('display', 'none');
+        });
+        function LoadModalData(url) {
+            // Updating the source of the modal iframe data
+            let $iframe = $('#formModal_iframe');
+            if ($iframe.length) {
+                $iframe.attr('src', url);
+            }
+        }
+    </script>
+{% endblock end_scripts %}
 

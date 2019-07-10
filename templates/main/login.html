@@ -1,0 +1,25 @@
+{% extends 'main/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% endblock title %}
+{% block menu %}{% endblock menu %}
+
+{% block content %}
+    <div class="row">
+
+        <div class="col-sm-6 col-sm-offset-3">
+            <h1>Login to CellML online database</h1>
+            {% crispy form %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="error_messages">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            <a href="{% url 'main:register' %}">
+                <button class="btn btn-default pull-right">Register as a new user</button>
+            </a>
+        </div>
+    </div>
+{% endblock content %}
