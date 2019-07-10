@@ -16,15 +16,23 @@
                 <div class="col-sm-6">
                     <h3>Information</h3>
                 </div>
-                {% if user.can_edit %}
-                <div class="col-sm-6 button_bar" style="padding-top:15px;">
-                    <a onclick="LoadModalData('{% url 'main:edit_locals' item_type=item_type item_id=item.id %}');"
-                       data-toggle="modal"
-                       data-target="#formModal"
-                       style="text-decoration: none;">
-                        <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit locals</button>
-                    </a>
-                </div>
+                {% if can_edit %}
+                    <div class="col-sm-6 button_bar" style="padding-top:15px;">
+                        <a onclick="LoadModalData('{% url 'main:edit_locals' item_type=item_type item_id=item.id %}');"
+                           data-toggle="modal"
+                           data-target="#formModal"
+                           style="text-decoration: none;">
+                            <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit locals</button>
+                        </a>
+
+                        <a onclick="LoadModalData('{% url 'main:delete' item_type=item_type item_id=item.id %}');"
+                           data-toggle="modal"
+                           data-target="#formModal"
+                           style="text-decoration: none;">
+                            <button class="btn btn-default pull-right"><i class="fa fa-trash"></i> Delete</button>
+                        </a>
+
+                    </div>
                 {% endif %}
             </div>
 
@@ -84,27 +92,29 @@
                 <div class="col-sm-6">
                     <h3>Relationships</h3>
                 </div>
-                <div class="col-sm-6 button_bar" style="padding-top:15px;">
-                    <div class="dropdown">
-                        <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">
-                            <i class="fa fa-chain"></i> Add link to ...
-                            <span class="caret"></span></button>
-                        <ul class="dropdown-menu dropdown-menu-right">
-                            {% for r in child_fields %}
-                                <li>
-                                    <a onclick="LoadModalData(
-                                            '{% url 'main:link_forwards' item_type=item_type item_id=item.id related_name=r %}'
-                                            );"
-                                       data-toggle="modal"
-                                       data-target="#formModal"
-                                       style="text-decoration: none;">
-                                        {{ r|title }}
-                                    </a>
-                                </li>
-                            {% endfor %}
-                        </ul>
+                {% if can_edit %}
+                    <div class="col-sm-6 button_bar" style="padding-top:15px;">
+                        <div class="dropdown">
+                            <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">
+                                <i class="fa fa-chain"></i> Add link to ...
+                                <span class="caret"></span></button>
+                            <ul class="dropdown-menu dropdown-menu-right">
+                                {% for r in child_fields %}
+                                    <li>
+                                        <a onclick="LoadModalData(
+                                                '{% url 'main:link_forwards' item_type=item_type item_id=item.id related_name=r %}'
+                                                );"
+                                           data-toggle="modal"
+                                           data-target="#formModal"
+                                           style="text-decoration: none;">
+                                            {{ r|title }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
                     </div>
-                </div>
+                {% endif %}
             </div>
             <p class="info">
                 <b>Relations</b> are those parts of an item which are links to other items, ie: the children or parents

@@ -74,7 +74,11 @@ class ImportedEntity(DjangoModel):
     source_reference = URLField(blank=True, null=True)  # eg: address of file which was imported to generate it
     source_id = IntegerField(default=-1, blank=True,
                              null=True)  # eg: The id of the item generated after import in *this* database
-    attribution = TextField(blank=True, null=True)
+    attribution = TextField(blank=True, null=True)  # the original attribution field
+
+    def __str__(self):
+        return self.attribution
+
 
 
 class Variable(NamedCellMLEntity):

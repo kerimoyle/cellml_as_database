@@ -112,11 +112,12 @@ def build_tree_from_reset(storage, reset, tree, index, parents):
 
 # -------------------- LOADING FUNCTIONS -------------------------------------
 
-def load_model(in_model):
+def load_model(in_model, owner):
     # Create the CellModel instance:
     model = CellModel(
         name=in_model.name(),
         cellml_id=in_model.id(),
+        owner=owner,
         # TODO save attribution somehow ...
     )
     model.save()
@@ -125,14 +126,14 @@ def load_model(in_model):
 
     # Add the components
     for c in range(in_model.componentCount()):
-        load_component(c, in_model, model)
+        load_component(c, in_model, model, owner)
 
     # Add the compound units
     for u in range(in_model.unitsCount()):
-        load_compound_units(u, in_model, model)
+        load_compound_units(u, in_model, model, owner)
 
     for u in model.compoundunits.all():
-        load_units(u, in_model, model)
+        load_units(u, in_model, model, owner)
 
     # Once everything is loaded into the database, we have to make the connections between items
     for component in model.components.all():
@@ -186,29 +187,30 @@ def load_model(in_model):
     return model
 
 
-def load_component(index, in_model, model):
+def load_component(index, in_model, model, owner):
     in_component = in_model.component(index)
 
     out_component = Component(
         name=in_component.name(),
         cellml_index=index,
         cellml_id=in_component.id(),
-        model=model
+        model=model,
+        owner=owner,
     )
     out_component.save()
 
     # Load variables in this component
     for v in range(in_component.variableCount()):
-        load_variable(v, in_component, out_component)
+        load_variable(v, in_component, out_component, owner)
 
     # Load resets in this component
     for r in range(in_component.resetCount()):
-        load_reset(r, in_component, out_component)
+        load_reset(r, in_component, out_component, owner)
 
     return
 
 
-def load_compound_units(index, in_model, model):
+def load_compound_units(index, in_model, model, owner):
     in_units = in_model.units(index)
 
     if in_units.isBaseUnit():  # TODO check why libcellml has this as *base* unit not *standard* unit?
@@ -227,6 +229,7 @@ def load_compound_units(index, in_model, model):
         name=in_units.name(),
         cellml_index=index,
         model=model,
+        owner=owner,
     )
     out_compound_units.save()
 
@@ -264,7 +267,7 @@ def load_compound_units(index, in_model, model):
     # return
 
 
-def load_units(compoundunit, in_model, model):
+def load_units(compoundunit, in_model, model, owner):
     in_units = in_model.units(compoundunit.cellml_index)
 
     for u in range(in_units.unitCount()):
@@ -280,6 +283,7 @@ def load_units(compoundunit, in_model, model):
             cellml_id=local_id,
             name=reference,
             units=compoundunit,
+            owner=owner,
         )
         unit.save()
 
@@ -301,7 +305,7 @@ def load_units(compoundunit, in_model, model):
     return
 
 
-def load_variable(index, in_component, out_component):
+def load_variable(index, in_component, out_component, owner):
     in_variable = in_component.variable(index)
     out_variable = Variable(
         cellml_index=index,
@@ -309,20 +313,23 @@ def load_variable(index, in_component, out_component):
         initial_value=in_variable.initialValue(),
         # interface_type=in_variable.interfaceType(),  # TODO get dictionary of interfaceTypes ...
         component=out_component,
+        owner=owner,
     )
     out_variable.save()
 
 
-def load_reset(index, in_component, out_component):
+def load_reset(index, in_component, out_component, owner):
     in_reset = in_component.reset(index)
 
     test_value = Math(
-        math_ml=in_reset.test_value()
+        math_ml=in_reset.test_value(),
+        owner=owner,
     )
     test_value.save()
 
     reset_value = Math(
-        math_ml=in_reset.reset_value()
+        math_ml=in_reset.reset_value(),
+        owner=owner
     )
     reset_value.save()
 
@@ -331,7 +338,8 @@ def load_reset(index, in_component, out_component):
         order=int(in_reset.order()),
         component=out_component,
         reset_value=reset_value,
-        test_value=test_value
+        test_value=test_value,
+        owner=owner,
     )
     out_reset.save()
 
@@ -447,6 +455,15 @@ def get_relationship_menu(item_model):
     :param item_model:
     :return:
     """
+
+
+
+
+
+
+
+
+
 
 # --------------------- Others ----------------------------------
 

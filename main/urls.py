@@ -12,12 +12,11 @@ urlpatterns = [
     path('copy/<item_type>/<int:item_id>/', views.copy, name='copy'),
     path('create/<item_type>/', views.create, name='create'),
 
+    path('delete/<item_type>/<int:item_id>/', views.delete, name='delete'),
     path('display/cellmodel/<int:item_id>/', views.display_model, name='display_model'),  # aliased ...
     path('display/compoundunit/<int:item_id>/', views.display_compoundunit, name='display_compoundunit'),  # aliased ...
     path('display/math/<int:item_id>/', views.display_math, name='display_math'),
-
     path('display/model/<int:item_id>/', views.display_model, name='display_model'),
-
     path('display/<item_type>/<int:item_id>/', views.display, name='display'),
 
     path('edit_locals/<item_type>/<int:item_id>/', views.edit_locals, name='edit_locals'),

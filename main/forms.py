@@ -6,6 +6,35 @@ from django.contrib.contenttypes.models import ContentType
 from main.models import (Math)
 
 
+# TODO make levels for copy/importing ...
+class CopyForm(forms.Form):
+    class Meta:
+        fields = ['item_type', 'item_id']
+
+    def __init__(self, *args, **kwargs):
+        super(CopyForm, self).__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.form_id = 'id-copy_form'
+        self.helper.form_class = 'blueForms'
+        self.helper.form_method = 'post'
+        self.helper.add_input(Submit('submit', 'Copy'))
+
+
+class DeleteForm(forms.Form):
+    class Meta:
+        fields = ['item_type', 'item_id']
+
+    def __init__(self, *args, **kwargs):
+        super(DeleteForm, self).__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.form_id = 'id-delete_form'
+        self.helper.form_class = 'blueForms'
+        self.helper.form_method = 'post'
+        self.helper.add_input(Submit('submit', 'Delete'))
+
+
 class LoginForm(forms.Form):
     class Meta:
         fields = ['username', 'password']

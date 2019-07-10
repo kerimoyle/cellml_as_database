@@ -7,6 +7,10 @@ h1, h2, h3, h4 {
     color: #2f557b;
 }
 
+iframe {
+    border:0;
+}
+
 
 .todo {
     background: #bcc2c8;
@@ -54,6 +58,8 @@ h1, h2, h3, h4 {
     margin-left: 0px;
     margin-right: 0px;
 }
+
+
 
 /* ----------------- NAVIGATION BAR STUFF -------------------- */
 

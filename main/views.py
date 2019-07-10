@@ -12,10 +12,10 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 
 from main.defines import MENU_OPTIONS
-from main.forms import ReverseLinkForm, UnlinkForm, LoginForm, RegistrationForm
+from main.forms import ReverseLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import build_tree_from_model, load_model, get_edit_locals_form, get_item_local_attributes, \
     get_child_fields, get_item_child_attributes, get_parent_fields, get_item_parent_attributes
-from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Component
+from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, ImportedEntity
 
 
 def test(request):
@@ -150,6 +150,13 @@ def create(request, item_type):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
+    try:
+        person = request.user.person
+    except Exception as e:
+        messages.error(request, "Could not get authenticated person from request: please login or register.")
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
     exclude_fields = ()
     all_fields = [x.name for x in item_model.model_class()._meta.fields]
     if 'tree' in all_fields:
@@ -169,6 +176,7 @@ def create(request, item_type):
         form = create_form(request.POST)
         if form.is_valid():
             item = form.save()
+            item.owner = person
             return redirect(reverse('main:display',
                                     kwargs={'item_type': item_type, 'item_id': item.id}))
     else:
@@ -199,8 +207,10 @@ def copy(request, item_type, item_id):
     :param item_id: the id of the item to be duplicated
     :return: redirects to edit page of the new item
     """
+
     item_model = None
     item = None
+
     try:
         item_model = ContentType.objects.get(app_label="main", model=item_type)
     except Exception as e:
@@ -215,25 +225,58 @@ def copy(request, item_type, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
-        # Duplicate the existing item by removing the id and primary keys and saving ...
-    connection_fields = [x.name for x in item._meta.fields if
-                         type(x) == ForeignKey or type(x) == ManyToManyField and type(x) != AutoField]
+    # TODO Protect with POST
+    if request.method == 'POST':
+        form = CopyForm(request.POST)
+        if form.is_valid():
 
-    old_dict = {}
-    for c in connection_fields:
-        old_dict[c] = getattr(item, c)
+            # Duplicate the existing item by removing the id and primary keys and saving ...
+            connection_fields = [x.name for x in item._meta.fields if
+                                 type(x) == ForeignKey or type(x) == ManyToManyField and type(x) != AutoField]
 
-    item.pk = None
-    item.id = None
-    item.name += "_copied"
-    item.save()
-    # TODO not sure if this will work for the m2m fields??
-    for c in connection_fields:
-        setattr(item, c, old_dict[c])
-    item.owner = request.user.person
-    item.save()
+            old_dict = {}
+            for c in connection_fields:
+                old_dict[c] = getattr(item, c)
 
-    return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item.id}))
+            old_item_id = item.id
+            attribution = "Copied from: {} ({})".format(item.name, item.owner)
+
+            # NB: Setting the pk to None and saving triggers the copy
+            item.pk = None
+            item.id = None
+            item.name += " (copy)"
+            item.save()
+
+            # TODO How to make deep copy? See issue #2
+            for c in connection_fields:
+                setattr(item, c, old_dict[c])
+            item.owner = request.user.person
+
+            imported_entity = ImportedEntity(
+                source_type=item_type,
+                source_id=old_item_id,
+                attribution=attribution,
+            )
+            imported_entity.save()
+            item.imported_from = imported_entity
+            item.save()
+
+            return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item.id}))
+
+    form = CopyForm()
+    form.helper = FormHelper()
+    form.helper.attrs = {'target': '_top'}
+    form.helper.form_method = 'post'
+    form.helper.add_input(Submit('submit', "OK"))
+    form.helper.form_action = reverse('main:copy', kwargs={'item_type': item_type, 'item_id': item_id})
+
+    context = {
+        'form': form,
+        'modal_text': 'Do you really want to send {}: "{}" to your library? '
+                      'This will make a copy and allow you to edit it.'.format(item_type, item.name)
+    }
+
+    return render(request, 'main/form_modal.html', context)
 
 
 @login_required
@@ -247,6 +290,8 @@ def edit_locals(request, item_type, item_id):
     """
 
     item = None
+    is_owner = False
+
     try:
         item_model = ContentType.objects.get(app_label="main", model=item_type)
     except Exception as e:
@@ -261,14 +306,15 @@ def edit_locals(request, item_type, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
+    check_ownership(request, item)
+
     edit_form = get_edit_locals_form(item_model)
 
     if request.POST:
         form = edit_form(request.POST, instance=item)
         if form.is_valid():
             item = form.save()
-            return redirect(reverse('main:display',
-                                    kwargs={'item_type': item_type, 'item_id': item.id}))
+            return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item.id}))
     else:
         form = edit_form(instance=item)
 
@@ -314,6 +360,8 @@ def link_forwards(request, item_type, item_id, related_name):
         messages.error(request, "Can't find '{}' object with id of '{}'".format(item_type, item_id))
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
+
+    check_ownership(request, item)
 
     r = item._meta.get_field(related_name)
     # child_type = r.related_model()._meta.model_name
@@ -388,6 +436,8 @@ def link_backwards(request, item_type, item_id, related_name):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
+    check_ownership(request, item)
+
     r = item._meta.get_field(related_name)
     parent_type = r.related_model()._meta.model_name
     parent_field = r.field.name
@@ -434,6 +484,8 @@ def link_backwards(request, item_type, item_id, related_name):
     return render(request, 'main/form_modal.html', context)
 
 
+# ---------------------- DELETE VIEWS -------------------
+
 @login_required
 def link_remove(request):
     if request.method == "POST":
@@ -459,6 +511,8 @@ def link_remove(request):
                 messages.error(request, "{}: {}".format(type(e).__name__, e.args))
                 return redirect('main:error')
 
+            check_ownership(request, item)
+
             r = item._meta.get_field(related_name)
             link_type = type(r)
 
@@ -474,6 +528,44 @@ def link_remove(request):
                 pass
 
             return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_id}))
+
+
+@login_required
+def delete(request, item_type, item_id):
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Couldn't find an object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    if request.method == 'POST':
+        form = DeleteForm(request.POST)
+        if form.is_valid():
+            check_ownership(request, item)
+            item.delete()
+            return redirect('main:home')
+
+    form = DeleteForm()
+    form.helper = FormHelper()
+    form.helper.form_action = reverse('main:delete', kwargs={'item_type': item_type, 'item_id': item_id})
+    form.helper.attrs = {'target': '_top'}
+    form.helper.form_method = 'POST'
+    form.helper.add_input(Submit('submit', 'Yes, delete it'))
+
+    context = {
+        'form': form,
+        'modal_text': "Are you sure you want to delete '{i}'?".format(i=item.name)
+    }
+
+    return render(request, 'main/form_modal.html', context)
 
 
 # --------------------- DISPLAY VIEWS -------------------
@@ -511,6 +603,7 @@ def display(request, item_type, item_id):
         'parent_fields': parent_fields,
         'parents': parents,
         'menu': MENU_OPTIONS['display'],
+        'can_edit': request.user.person == item.owner
     }
     return render(request, 'main/display.html', context)
 
@@ -527,7 +620,8 @@ def display_compoundunit(request, item_id):
 
     context = {
         'item': item,
-        'menu': MENU_OPTIONS['display']
+        'menu': MENU_OPTIONS['display'],
+        'can_edit': request.user.person == item.owner
     }
     return render(request, 'main/display_compoundunit.html', context)
 
@@ -545,7 +639,8 @@ def display_model(request, item_id):
 
     context = {
         'model': model,
-        'menu': MENU_OPTIONS['display']
+        'menu': MENU_OPTIONS['display'],
+        'can_edit': request.user.person == model.owner
     }
     return render(request, 'main/display_model.html', context)
 
@@ -562,7 +657,8 @@ def display_math(request, item_id):
 
     context = {
         'math': math,
-        'menu': MENU_OPTIONS['display']
+        'menu': MENU_OPTIONS['display'],
+        'can_edit': request.user.person == math.owner
     }
     return render(request, 'main/display_math.html', context)
 
@@ -663,13 +759,19 @@ def upload_check(request, item_id):
 
 @login_required
 def upload_model(request):
-    # Recreate the CellML model ... TODO should be cached or pickled instead of parsing->loading again?
+    try:
+        person = request.user.person
+    except Exception as e:
+        messages.error(request, "Could not get an authenticated user.  Please login or register.")
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    # TODO should be cached or pickled instead of parsing->loading again?
 
     storage_id = None
     storage = None
 
     if request.method == 'POST':
-
         try:
             storage_id = request.POST.get('storage_id')
         except Exception as e:
@@ -697,7 +799,7 @@ def upload_model(request):
         in_model = parser.parseModel(cellml_text)
 
         # Load into database
-        model = load_model(in_model)
+        model = load_model(in_model, person)
 
         # TODO Need to draw the loaded detailed tree properly, including href components.  Will copy for now ...
         model.tree = storage.tree
@@ -706,7 +808,7 @@ def upload_model(request):
         model.owner = request.user.person
         model.save()
 
-        # Delete the TemporaryStorage object
+        # Delete the TemporaryStorage object, also deletes the uploaded file
         storage.delete()
 
         return redirect(reverse('main:display', kwargs={'item_type': 'model', 'item_id': model.id}))
@@ -718,3 +820,20 @@ def upload_model(request):
 
 def error(request):
     return render(request, 'main/error.html', {'menu': MENU_OPTIONS['display']})
+
+
+# ------------------------------------ PERMISSIONS ------------------------------------------
+def check_ownership(request, item):
+    try:
+        is_owner = item.owner == request.user.person
+    except Exception as e:
+        messages.error(request, "Could not get person from user instance.")
+        messages.error(request, "{t}: {m}".format(t=type(e).__name__, m=e.args))
+        return redirect("main:error")
+
+    if not is_owner:
+        messages.error(request, "You don't have edit permissions for this item.  Use the 'Send to my library' button "
+                                "to import a copy you can edit.")
+        return redirect(reverse("main:display", kwargs={'item_type': type(item).__name__, 'item_id': item.id}))
+
+    return True
