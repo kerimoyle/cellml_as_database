@@ -23,6 +23,7 @@ urlpatterns = [
     path('edit_locals/<item_type>/<int:item_id>/', views.edit_locals, name='edit_locals'),
 
     path('home/', views.home, name='home'),
+    path('intro/', views.intro, name='intro'),
 
     path('link_backwards/<item_type>/<int:item_id>/<related_name>', views.link_backwards, name='link_backwards'),
     path('link_forwards/<item_type>/<int:item_id>/<related_name>', views.link_forwards, name='link_forwards'),

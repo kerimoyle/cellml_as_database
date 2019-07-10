@@ -1,0 +1,39 @@
+{% extends "main/base.html" %}
+
+{% block title %}{{ person.first_name }}'s home{% endblock title %}
+
+{% block todo %}{% endblock todo %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-sm-12">
+            <h3>Objects you own</h3>
+            <table class="datatables display table table-hover" id="table-connections">
+                <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                </tr>
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for type, items in data %}
+                    {% for item in items %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'main:display' item_type=type item_id=item.id %}"></a>
+                                {{ type }}
+                            </td>
+                            <td>
+                                <b>{{ item.name }}</b><br>
+                                <p>{{ item.notes|linebreaks }}</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
+{% endblock content %}

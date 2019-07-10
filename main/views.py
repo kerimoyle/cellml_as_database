@@ -15,7 +15,7 @@ from main.defines import MENU_OPTIONS
 from main.forms import ReverseLinkForm, UnlinkForm, LoginForm, RegistrationForm
 from main.functions import build_tree_from_model, load_model, get_edit_locals_form, get_item_local_attributes, \
     get_child_fields, get_item_child_attributes, get_parent_fields, get_item_parent_attributes
-from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person
+from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Component
 
 
 def test(request):
@@ -115,10 +115,19 @@ def home(request):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
+    items = []
+    types = ['cellmodel', 'component', 'math', 'compoundunit', 'unit', 'reset', 'variable']
+    for type in types:
+        items.append((
+            type,
+            ContentType.objects.get(app_label='main', model=type).get_all_objects_for_this_type().filter(owner=person)))
+
     context = {
         'person': person,
-        'models': CellModel.objects.filter(owner=person)
+        'data': items,
+        'menu': MENU_OPTIONS['home']
     }
+    return render(request, 'main/home.html', context)
 
 
 # --------------------- CREATE VIEWS --------------------
@@ -221,6 +230,7 @@ def copy(request, item_type, item_id):
     # TODO not sure if this will work for the m2m fields??
     for c in connection_fields:
         setattr(item, c, old_dict[c])
+    item.owner = request.user.person
     item.save()
 
     return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item.id}))

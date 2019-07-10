@@ -16,6 +16,7 @@
                 <div class="col-sm-6">
                     <h3>Information</h3>
                 </div>
+                {% if user.can_edit %}
                 <div class="col-sm-6 button_bar" style="padding-top:15px;">
                     <a onclick="LoadModalData('{% url 'main:edit_locals' item_type=item_type item_id=item.id %}');"
                        data-toggle="modal"
@@ -24,6 +25,7 @@
                         <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit locals</button>
                     </a>
                 </div>
+                {% endif %}
             </div>
 
             <p class="info"><b>Local</b> attributes are those specifically owned by this type of object, ie:
