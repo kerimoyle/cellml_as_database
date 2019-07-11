@@ -5,7 +5,8 @@
 
 {% block content %}
     <div class="row">
-        While trying to load the previous page we encountered these errors:<br><br>
+        <div class="col-sm-12">
+            While trying to load the previous page we encountered these errors:<br><br>
 
             {% if messages %}
                 {% for message in messages %}
@@ -13,6 +14,7 @@
                 {% endfor %}
             {% endif %}
 
-        The page you were trying to load was: {{ request.META.HTTP_REFERER }}
+            The page you were trying to load was: {{ request.META.HTTP_REFERER }}
+        </div>
     </div>
 {% endblock content %}

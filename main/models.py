@@ -9,12 +9,11 @@ import os
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import (IntegerField, ManyToManyField, FloatField, CharField, TextField, ForeignKey,
-                              DO_NOTHING, NullBooleanField, URLField, FileField, CASCADE, OneToOneField, EmailField,
-                              BooleanField)
+                              NullBooleanField, URLField, FileField, CASCADE, OneToOneField, EmailField,
+                              BooleanField, SET_NULL)
 from django.db.models import Model as DjangoModel
-
 # -------------------- ABSTRACT MODELS --------------------
-from django.db.models.signals import post_delete, pre_save
+from django.db.models.signals import post_delete
 from django.dispatch import receiver
 
 
@@ -23,9 +22,9 @@ class NamedCellMLEntity(DjangoModel):
     name = CharField(blank=False, max_length=100)  # The name of the entity
     ready = NullBooleanField()  # object in database has all fields completed TODO not working yet
     notes = TextField(blank=True)
-    owner = ForeignKey('Person', blank=True, null=True, on_delete=DO_NOTHING)  # TODO give a default "owner"
-    imported_from = ForeignKey('ImportedEntity', on_delete=DO_NOTHING,
-                               related_name="imported_%(class)s_objects", blank=True, null=True)
+    owner = ForeignKey('Person', blank=True, null=True, on_delete=SET_NULL)  # TODO give a default "owner"
+    imported_from = ForeignKey('ImportedEntity', on_delete=SET_NULL, related_name="imported_%(class)s_objects",
+                               blank=True, null=True)
 
     # CellML and libCellML fields:
     cellml_id = CharField(blank=True, max_length=100)  # Mimics the cellml field 'id', not needed here
@@ -80,7 +79,6 @@ class ImportedEntity(DjangoModel):
         return self.attribution
 
 
-
 class Variable(NamedCellMLEntity):
     INTERFACE_TYPE = [
         ("Public", "PU"),
@@ -93,61 +91,53 @@ class Variable(NamedCellMLEntity):
 
     initial_value = CharField(max_length=100, null=True)
     interface_type = CharField(max_length=2, choices=INTERFACE_TYPE, default="NA", null=True, blank=True)
-    compoundunit = ForeignKey("CompoundUnit", related_name="variables", on_delete=DO_NOTHING, null=True, blank=True)
-    component = ForeignKey("Component", related_name="variables", on_delete=DO_NOTHING, null=True, blank=True)
+    compoundunit = ForeignKey("CompoundUnit", related_name="variables", on_delete=SET_NULL, null=True, blank=True)
+    component = ForeignKey("Component", related_name="variables", on_delete=CASCADE, null=True, blank=True)
 
     def __str__(self):
         return self.name
 
 
 class Unit(NamedCellMLEntity):
-    prefix = ForeignKey("Prefix", on_delete=DO_NOTHING, null=True, blank=True)
+    prefix = ForeignKey("Prefix", on_delete=SET_NULL, null=True, blank=True)
 
-    base = ForeignKey("CompoundUnit", related_name='used_by_units', blank=True, null=True,
-                      on_delete=DO_NOTHING)
-
+    base = ForeignKey("CompoundUnit", related_name='used_by_units', blank=True, null=True, on_delete=SET_NULL)
     units = ForeignKey("CompoundUnit", related_name='units', blank=True, null=True, on_delete=CASCADE)
 
     multiplier = FloatField(default=0.0, null=True)
     exponent = FloatField(default=0.0, null=True)
-    reference = CharField(max_length=100,
-                          null=True)  # Reference is stored as a string, will be processed into fks TODO
+    reference = CharField(max_length=100, null=True)  # TODO Reference is stored as a string, will be processed into fks
 
     def __str__(self):
         return self.name
 
-    def is_base(self):
-        if self.based_on is not None:
-            return False
-        return True
-
 
 class CompoundUnit(NamedCellMLEntity):
-    model = ForeignKey("CellModel", on_delete=CASCADE, related_name="compoundunits", blank=True, null=True)
+    model = ForeignKey("CellModel", on_delete=SET_NULL, related_name="compoundunits", blank=True, null=True)
 
     is_standard = BooleanField(default=False)
 
     def __str__(self):
         return self.name
 
-    # def delete(self, args, kwargs):
-    #     # prevent deleting if is standard
-    #     if self.is_standard:
-    #         return
-    #     super.delete(args, kwargs)
+    def delete(self, *args, **kwargs):
+        # prevent deleting if is standard
+        if self.is_standard:
+            return
+        super(CompoundUnit, self).delete(args, kwargs)
 
 
 class Math(NamedCellMLEntity):
-    model = ForeignKey("CellModel", on_delete=CASCADE, related_name="maths", null=True, blank=True)
+    model = ForeignKey("CellModel", on_delete=SET_NULL, related_name="maths", null=True, blank=True)
     math_ml = TextField(blank=True)
 
-    # TODO how to make a parent fk to *either*
+    # TODO how to make a parent fk to *either* model or reset?
     def __str__(self):
         return self.name
 
 
 class Component(NamedCellMLEntity):
-    model = ForeignKey("CellModel", null=True, on_delete=CASCADE, related_name="components")
+    model = ForeignKey("CellModel", null=True, on_delete=SET_NULL, related_name="components")
 
     def __str__(self):
         return self.name
@@ -158,12 +148,12 @@ class Encapsulation(NamedCellMLEntity):
 
 
 class Reset(NamedCellMLEntity):  # TODO should this be inherited or not?
-    variable = ForeignKey("Variable", related_name="reset_variables", on_delete=DO_NOTHING, null=True, blank=True)
-    test_variable = ForeignKey("Variable", related_name="reset_test_variables", on_delete=DO_NOTHING, null=True,
+    variable = ForeignKey("Variable", related_name="reset_variables", on_delete=SET_NULL, null=True, blank=True)
+    test_variable = ForeignKey("Variable", related_name="reset_test_variables", on_delete=SET_NULL, null=True,
                                blank=True)
     order = IntegerField(default=0)
-    reset_value = ForeignKey("Math", null=True, blank=True, on_delete=DO_NOTHING, related_name="reset_values")
-    test_value = ForeignKey("Math", null=True, blank=True, on_delete=DO_NOTHING, related_name="test_values")
+    reset_value = ForeignKey("Math", null=True, blank=True, on_delete=SET_NULL, related_name="reset_values")
+    test_value = ForeignKey("Math", null=True, blank=True, on_delete=SET_NULL, related_name="test_values")
     component = ForeignKey("Component", null=True, blank=True, on_delete=CASCADE, related_name="resets")
 
     def __str__(self):
