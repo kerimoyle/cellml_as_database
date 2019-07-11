@@ -8,7 +8,7 @@ h1, h2, h3, h4 {
 }
 
 iframe {
-    border:0;
+    border: 0;
 }
 
 
@@ -40,7 +40,7 @@ iframe {
 .button_bar {
     padding-top: 15px;
     text-align: right;
-    margin:5px;
+    margin: 5px;
 }
 
 .empty {
@@ -60,23 +60,25 @@ iframe {
     margin-right: 0px;
 }
 
-.messages {
-    background-color: #9fcdff;
-    padding:10px;
+
+.success {
+    background-color: #dbf1cf;
+    color: darkgreen;
+    padding: 10px;
     margin-top: 5px;
     margin-bottom: 5px;
     margin-left: 0px;
     margin-right: 0px;
 }
 
-.success {
-    background-color: #99cc66;
-    color:darkgreen;
-}
-
 .error {
     background-color: papayawhip;
-    color:darkred;
+    color: darkred;
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    margin-left: 0px;
+    margin-right: 0px;
 }
 
 /* ----------------- NAVIGATION BAR STUFF -------------------- */

@@ -93,6 +93,7 @@ def register(request):
                                     email=form.cleaned_data['email']
                                     )
                     person.save()
+                    messages.success(request, "Your registration was successful! Please login below.")
                     return redirect('main:home')
     form = RegistrationForm()
     context = {

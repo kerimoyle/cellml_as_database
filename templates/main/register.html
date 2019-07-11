@@ -10,13 +10,6 @@
         <div class="col-sm-6 col-sm-offset-3">
             <h1>Register for access to the CellML online database</h1>
             {% crispy form %}
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="error_messages">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
             <a href="{% url 'main:login_view' %}">
                 <button class="btn btn-default pull-right">Login to an existing account</button>
             </a>

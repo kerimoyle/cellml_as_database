@@ -98,13 +98,7 @@
 </div>
 
 <div class="container-fluid todo">{% block todo %}{% endblock todo %}</div>
-<div class="container-fluid messages">{% block messages %}
-    {% if messages %}
-        {% for message in messages %}
-            <div {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-{% endblock messages %}</div>
+<div class="container-fluid messages">{% block messages %}{% if messages %}{% for message in messages %}<div {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</div>{% endfor %}{% endif %}{% endblock messages %}</div>
 <div class="container-fluid" id="main_container">
     <div class="row">
         <div class="col-sm-8"><h1>{% block title %}{% endblock title %}</h1></div>
