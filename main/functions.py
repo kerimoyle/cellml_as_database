@@ -1,9 +1,11 @@
+from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import ForeignKey, ManyToManyField, AutoField, ManyToOneRel, ManyToManyRel
 from django.forms import modelform_factory
+from django.shortcuts import redirect
 
 from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Unit, \
-    Math, Prefix
+    Math, Prefix, ImportedEntity
 
 
 # ---------------------- CELLML FUNCTIONS -------------------------------------
@@ -194,10 +196,10 @@ def load_component(index, in_model, model, owner):
         name=in_component.name(),
         cellml_index=index,
         cellml_id=in_component.id(),
-        model=model,
         owner=owner,
     )
     out_component.save()
+    out_component.models.add(model)
 
     # Load variables in this component
     for v in range(in_component.variableCount()):
@@ -228,10 +230,11 @@ def load_compound_units(index, in_model, model, owner):
     out_compound_units = CompoundUnit(
         name=in_units.name(),
         cellml_index=index,
-        model=model,
+
         owner=owner,
     )
     out_compound_units.save()
+    out_compound_units.models.add(model)
 
     return
 
@@ -290,7 +293,7 @@ def load_units(compoundunit, in_model, model, owner):
         # TODO Need to narrow scope to the current model here, at the moment it's searching the whole db!!
         # Have to locate the reference before this will make any sense ...
 
-        base = CompoundUnit.objects.filter(name=reference, model=model).first()
+        base = CompoundUnit.objects.filter(name=reference, models=model).first()
         if base:
             unit.base = base
             unit.save()
@@ -312,10 +315,11 @@ def load_variable(index, in_component, out_component, owner):
         name=in_variable.name(),
         initial_value=in_variable.initialValue(),
         # interface_type=in_variable.interfaceType(),  # TODO get dictionary of interfaceTypes ...
-        component=out_component,
         owner=owner,
     )
     out_variable.save()
+    out_variable.components.add(out_component)
+
 
 
 def load_reset(index, in_component, out_component, owner):
@@ -457,13 +461,107 @@ def get_relationship_menu(item_model):
     """
 
 
+# ------------------------------- COPY FUNCTIONS ------------------------------------------
+
+def create_by_shallow_copy(request, item):
+    """
+    This just copies the local attributes of the item from one to another
+    :param item_type: type of the item
+    :param item: source to copy from
+    :return: newly created item copied from the from_item
+    """
+
+    imported_entity = ImportedEntity(
+        source_type=type(item).__name__,
+        source_id=item.id,
+        attribution="Copied from: {} ({})".format(item.name, item.owner),
+    )
+    imported_entity.save()
+
+    item.pk = None  # NB: Setting the pk to None and saving triggers the copy
+    item.id = None
+    item.name += " (copy)"
+    item.save()  # Now this is the new object
+
+    item.owner = request.user.person
+    item.imported_from = imported_entity
+    try:
+        item.is_standard = False
+    except Exception as e:
+        pass
+
+    item.save()
+
+    return item
 
 
+def link_copy(request, from_item, to_item):
+    """
+    Copies the related fields by transferring the existing reference not by creating new objects
+    :param request: request (for passing back messages)
+    :param item_type: type of item to link
+    :param from_item: source item
+    :param to_item: target item
+    :return:
+    """
+
+    # Get the item type
+    item_type = type(from_item).__name__.lower()
+    try:
+        item_model = ContentType.objects.get(app_label='main', model=item_type)
+    except Exception as e:
+        messages.error(request, "Could not find class with name '{t}'".format(t=item_type))
+        messages.error(request, "{t}: {a}".format(t=type(e).__name__, a=e.args))
+        return redirect('main:error')
+
+    # Get a list of all the relational fields in the model
+    fields = [x.name for x in from_item._meta.get_fields() if type(x) == ForeignKey]
+    for f in fields:
+        setattr(to_item, f, getattr(from_item, f))
+
+    fields = [(x.name, x.field.name) for x in from_item._meta.get_fields() if type(x) == ManyToManyRel]
+    for f, r in fields:
+        for related_object in getattr(from_item, f).all():
+            getattr(related_object, r).add(to_item)
+
+    return
 
 
+def deep_copy(request, from_item, to_item):
+    """
+    Makes a duplicate of all connected items instead of copying them as a link
+    :param request:
+    :param from_item:
+    :param to_item:
+    :return:
+    """
+
+    messages.error(request, "Deep copying is not implemented yet!")
+
+    return
 
 
+def copy_item(request, from_item, options):
+    item_type = type(from_item).__name__.lower()
+    try:
+        item_model = ContentType.objects.get(app_label='main', model=item_type)
+    except Exception as e:
+        messages.error(request, "Could not find class with name '{t}'".format(t=item_type))
+        messages.error(request, "{t}: {a}".format(t=type(e).__name__, a=e.args))
+        return redirect('main:error')
 
+    item_id = from_item.id
+    to_item = create_by_shallow_copy(request, from_item)
+    # Resetting the "from_item" after the copy as the pointers are changed by the change in pk?
+    from_item = item_model.get_object_for_this_type(id=item_id)
+
+    if options == 'link':
+        link_copy(request, from_item, to_item)
+
+    if options == 'deep':
+        deep_copy(request, from_item, to_item)
+
+    return to_item
 
 # --------------------- Others ----------------------------------
 

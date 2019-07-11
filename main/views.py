@@ -14,7 +14,7 @@ from django.urls import reverse
 from main.defines import MENU_OPTIONS
 from main.forms import ReverseLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import build_tree_from_model, load_model, get_edit_locals_form, get_item_local_attributes, \
-    get_child_fields, get_item_child_attributes, get_parent_fields, get_item_parent_attributes
+    get_child_fields, get_item_child_attributes, get_parent_fields, get_item_parent_attributes, copy_item
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, ImportedEntity
 
 
@@ -225,48 +225,10 @@ def copy(request, item_type, item_id):
         messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
-
-    # TODO Protect with POST
     if request.method == 'POST':
         form = CopyForm(request.POST)
         if form.is_valid():
-
-            # Duplicate the existing item by removing the id and primary keys and saving ...
-            connection_fields = [x.name for x in item._meta.fields if
-                                 type(x) == ForeignKey or type(x) == ManyToManyField and type(x) != AutoField]
-
-            old_dict = {}
-            for c in connection_fields:
-                old_dict[c] = getattr(item, c)
-
-            old_item_id = item.id
-            attribution = "Copied from: {} ({})".format(item.name, item.owner)
-
-            # NB: Setting the pk to None and saving triggers the copy
-            item.pk = None
-            item.id = None
-            item.name += " (copy)"
-            item.save()
-
-            # TODO How to make deep copy? See issue #2
-            for c in connection_fields:
-                setattr(item, c, old_dict[c])
-            item.owner = request.user.person
-
-            imported_entity = ImportedEntity(
-                source_type=item_type,
-                source_id=old_item_id,
-                attribution=attribution,
-            )
-            imported_entity.save()
-            item.imported_from = imported_entity
-            try:
-                item.is_standard = False
-            except Exception as e:
-                pass
-
-            item.save()
-
+            item_copy = copy_item(request, item, 'link')   # TODO Give option of deep copy
             return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item.id}))
 
     form = CopyForm()

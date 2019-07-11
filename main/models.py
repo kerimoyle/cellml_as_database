@@ -22,17 +22,13 @@ class NamedCellMLEntity(DjangoModel):
     name = CharField(blank=False, max_length=100)  # The name of the entity
     ready = NullBooleanField()  # object in database has all fields completed TODO not working yet
     notes = TextField(blank=True)
-    owner = ForeignKey('Person', blank=True, null=True, on_delete=SET_NULL)  # TODO give a default "owner"
+    owner = ForeignKey('Person', blank=True, null=True, on_delete=SET_NULL)  # TODO set to admin
     imported_from = ForeignKey('ImportedEntity', on_delete=SET_NULL, related_name="imported_%(class)s_objects",
                                blank=True, null=True)
 
     # CellML and libCellML fields:
     cellml_id = CharField(blank=True, max_length=100)  # Mimics the cellml field 'id', not needed here
     cellml_index = IntegerField(default=-1, null=True)  # the corresponding item index inside libcellml
-
-    # cellml_code = TextField(blank=True)
-    #       Raw XML field, useful for providing different options when creating/changing stuff
-    # tree = TextField(blank=True)
 
     class Meta:
         abstract = True
@@ -92,7 +88,7 @@ class Variable(NamedCellMLEntity):
     initial_value = CharField(max_length=100, null=True)
     interface_type = CharField(max_length=2, choices=INTERFACE_TYPE, default="NA", null=True, blank=True)
     compoundunit = ForeignKey("CompoundUnit", related_name="variables", on_delete=SET_NULL, null=True, blank=True)
-    component = ForeignKey("Component", related_name="variables", on_delete=CASCADE, null=True, blank=True)
+    components = ManyToManyField("Component", related_name="variables", blank=True)
 
     def __str__(self):
         return self.name
@@ -113,7 +109,7 @@ class Unit(NamedCellMLEntity):
 
 
 class CompoundUnit(NamedCellMLEntity):
-    model = ForeignKey("CellModel", on_delete=SET_NULL, related_name="compoundunits", blank=True, null=True)
+    models = ManyToManyField("CellModel", related_name="compoundunits", blank=True)
 
     is_standard = BooleanField(default=False)
 
@@ -128,7 +124,7 @@ class CompoundUnit(NamedCellMLEntity):
 
 
 class Math(NamedCellMLEntity):
-    model = ForeignKey("CellModel", on_delete=SET_NULL, related_name="maths", null=True, blank=True)
+    models = ManyToManyField("CellModel", related_name="maths", blank=True)
     math_ml = TextField(blank=True)
 
     # TODO how to make a parent fk to *either* model or reset?
@@ -137,7 +133,7 @@ class Math(NamedCellMLEntity):
 
 
 class Component(NamedCellMLEntity):
-    model = ForeignKey("CellModel", null=True, on_delete=SET_NULL, related_name="components")
+    models = ManyToManyField("CellModel", blank=True, related_name="components")
 
     def __str__(self):
         return self.name
