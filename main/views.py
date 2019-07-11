@@ -19,8 +19,6 @@ from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person,
 
 
 def test(request):
-    messages.add_message(request, messages.ERROR, "HELLO!!")
-
     context = {
         'menu': MENU_OPTIONS['home']
     }
@@ -228,7 +226,7 @@ def copy(request, item_type, item_id):
     if request.method == 'POST':
         form = CopyForm(request.POST)
         if form.is_valid():
-            item_copy = copy_item(request, item, 'link')   # TODO Give option of deep copy
+            item_copy = copy_item(request, item, 'link')  # TODO Give option of deep copy
             return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item.id}))
 
     form = CopyForm()
@@ -590,6 +588,25 @@ def display(request, item_type, item_id):
 
 
 @login_required
+def display_storage(request, item_id):
+    item = None
+    try:
+        item = TemporaryStorage.objects.get(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find TemporaryStorage object with id of '{}'".format(item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    context = {
+        'item': item,
+        'item_type': 'temporarystorage',
+        'menu': MENU_OPTIONS['display'],
+        'can_edit': request.user.person == item.owner
+    }
+    return render(request, 'main/display_storage.html', context)
+
+
+@login_required
 def display_compoundunit(request, item_id):
     item = None
     try:
@@ -680,12 +697,14 @@ def browse(request, item_type):
 @login_required
 def upload(request):
     # Set up import form for cellml text input:
-    form_type = modelform_factory(TemporaryStorage, exclude=('tree',))
+    form_type = modelform_factory(TemporaryStorage, exclude=('tree', 'owner'))
 
     if request.POST:
         form = form_type(request.POST, request.FILES)
         if form.is_valid():
             item = form.save()
+            item.owner = request.user.person
+            item.save()
             return redirect(reverse('main:upload_check',
                                     kwargs={'item_id': item.id}))
 
@@ -782,15 +801,23 @@ def upload_model(request):
         # Load into database
         model = load_model(in_model, person)
 
+        imported_from = ImportedEntity(
+            source_type="temporarystorage",
+            source_id=storage.id,
+            attribution="Uploaded from {}".format(storage.file.name)
+        )
+        imported_from.save()
+
         # TODO Need to draw the loaded detailed tree properly, including href components.  Will copy for now ...
         model.tree = storage.tree
         model.uploaded_from = storage.file.name
         model.name = storage.model_name
         model.owner = request.user.person
+        model.imported_from = imported_from
         model.save()
 
         # Delete the TemporaryStorage object, also deletes the uploaded file
-        storage.delete()
+        storage.delete()  # TODO Removed this for now ... not sure how best to handle it wrt import references?
 
         return redirect(reverse('main:display', kwargs={'item_type': 'model', 'item_id': model.id}))
 

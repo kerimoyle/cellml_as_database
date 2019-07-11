@@ -17,6 +17,7 @@ urlpatterns = [
     path('display/compoundunit/<int:item_id>/', views.display_compoundunit, name='display_compoundunit'),  # aliased ...
     path('display/math/<int:item_id>/', views.display_math, name='display_math'),
     path('display/model/<int:item_id>/', views.display_model, name='display_model'),
+    path('display/temporarystorage/<int:item_id>/', views.display_storage, name='display_storage'),
     path('display/<item_type>/<int:item_id>/', views.display, name='display'),
 
     path('edit_locals/<item_type>/<int:item_id>/', views.edit_locals, name='edit_locals'),

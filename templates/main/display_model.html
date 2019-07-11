@@ -80,7 +80,7 @@
                     <td>Imported from</td>
                     <td>
                         {% if model.imported_from %}
-                            <a href="{% url 'main:display' item_type="cellmodel" item_id=model.imported_from.source_id %}">
+                            <a href="{% url 'main:display' item_type=model.imported_from.source_type item_id=model.imported_from.source_id %}">
                                 {{ model.imported_from }}
                             </a>
                         {% else %}<p class="empty">None</p>

@@ -1,0 +1,50 @@
+{% extends 'main/base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Uploaded CellML file <b>{{ item.file.name }}</b>{% endblock title %}
+{% block title_buttons %}
+    {% if can_edit %}
+        <a onclick="LoadModalData('Delete?', '{% url 'main:delete' item_type="compoundunit" item_id=item.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration: none;">
+            <button class="btn btn-default pull-right"><i class="fa fa-trash"></i> Delete</button>
+        </a>
+    {% endif %}
+{% endblock title_buttons %}
+{% block todo %}
+    <br> - how best to display and maintain this?? Should it even be stored or not??
+{% endblock todo %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-6">
+
+            <table class="datatables display table" id="table-components">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody >
+                    <tr>
+                        <td>Uploaded by</td>
+                        <td>{{ item.owner }}</td>
+                    </tr>
+                                    <tr>
+                        <td>Download link</td>
+                        <td>
+                            (todo)
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock content %}
+
+
+

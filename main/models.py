@@ -66,7 +66,7 @@ class ImportedEntity(DjangoModel):
     source_type, source_id combination.
     """
     source_type = CharField(max_length=100, null=True, blank=True)  # eg: Component, CompoundUnit etc
-    source_reference = URLField(blank=True, null=True)  # eg: address of file which was imported to generate it
+    source_reference = URLField(blank=True, null=True)  # eg: TODO address of file which was imported to generate it
     source_id = IntegerField(default=-1, blank=True,
                              null=True)  # eg: The id of the item generated after import in *this* database
     attribution = TextField(blank=True, null=True)  # the original attribution field
@@ -169,6 +169,7 @@ class TemporaryStorage(DjangoModel):
     file = FileField(blank=False)
     tree = TextField(blank=True)
     model_name = CharField(blank=False, max_length=100)
+    owner = ForeignKey(Person, related_name="stored_files", on_delete=CASCADE, null=True, blank=True)
 
 
 @receiver(post_delete, sender=TemporaryStorage)

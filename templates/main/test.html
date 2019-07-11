@@ -6,16 +6,197 @@
 {% block head_includes %} {{ block.super }}
     <script type="text/javascript" async
             src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_CHTML" async></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+
+    <style>
+        .holder {
+            width: 500px;
+            height: 500px;
+        }
+
+        .dropzone {
+            background-color: #ccc;
+            padding: 10px;
+            width: 500px;
+            height: 200px;
+            border: dashed 4px transparent;
+            float: left;
+        }
+
+        .draggable {
+            width: 100px;
+            height: 100px;
+            float: left;
+            background-color: #2196F3;
+            color: white;
+            padding: 10px;
+            margin: 10px;
+        }
+
+        .drop-active {
+            border-color: #aaa;
+        }
+
+        .drop-target {
+            background-color: #000;
+            color: #FFF;
+            border-color: #fff;
+            border-style: solid;
+        }
+
+
+        .resize-drag {
+            {#background-color: #29e;#}
+            {#color: white;#}
+            {#font-size: 20px;#}
+            {#font-family: sans-serif;#}
+            {#border-radius: 8px;#}
+            {#padding: 20px;#}
+            {#margin: 30px 20px;#}
+            {##}
+            {#width: 120px;#}
+
+            /* This makes things *much* easier */
+            box-sizing: border-box;
+            z-index: 0;
+        }
+
+        .resize-container {
+            width: 100%;
+            height: 240px;
+        }
+
+    </style>
+
 {% endblock head_includes %}
 
 {% block content %}
-    <div class="jumbotron text-center">
-        <h1>Keri's playground</h1>
-    </div>
     <div class="row">
-        <div class="col-md-6">
-            When \(a \ne 0\), there are two solutions to \(ax^2 + bx + c = 0\) and they are
-            $$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
+
+        <div class="col-sm-12">
+            <div class="holder resize-container">
+
+                <div id="box-one" class="draggable">
+                    <p> I am the first Box </p>
+                </div>
+                <div id="box-two" class="draggable">
+                    <p> I am the second Box </p>
+                </div>
+                <br>
+                <div id="dropzone" class="dropzone resize-drag">You can drop the boxes here</div>
+
+            </div>
+
+
+
+
         </div>
     </div>
+
 {% endblock content %}
+
+{% block end_scripts %}
+    {{ block.super }}
+    <script>
+
+        interact('.draggable')
+            .draggable({
+                // enable inertial throwing
+                inertia: true,
+                // keep the element within the area of it's parent
+                restrict: {
+                    restriction: "parent",
+                    endOnly: true,
+                    elementRect: {top: 0, left: 0, bottom: 1, right: 1}
+                },
+                // enable autoScroll
+                autoScroll: true,
+                // call this function on every dragmove event
+                onmove: dragMoveListener,
+            });
+
+        function dragMoveListener(event) {
+            var target = event.target,
+                // keep the dragged position in the data-x/data-y attributes
+                x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx,
+                y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+
+            // translate the element
+            target.style.webkitTransform =
+                target.style.transform =
+                    'translate(' + x + 'px, ' + y + 'px)';
+
+            // update the posiion attributes
+            target.setAttribute('data-x', x);
+            target.setAttribute('data-y', y);
+        }
+
+        // enable draggables to be dropped into this
+        interact('.dropzone').dropzone({
+            // Require a 50% element overlap for a drop to be possible
+            overlap: 0.50,
+
+            // listen for drop related events:
+
+            ondropactivate: function (event) {
+                // add active dropzone feedback
+                event.target.classList.add('drop-active');
+            },
+            ondragenter: function (event) {
+                var draggableElement = event.relatedTarget,
+                    dropzoneElement = event.target;
+
+                // feedback the possibility of a drop
+                dropzoneElement.classList.add('drop-target');
+            },
+            ondragleave: function (event) {
+                // remove the drop feedback style
+                event.target.classList.remove('drop-target');
+            },
+            ondrop: function (event) {
+                event.relatedTarget.textContent = 'Dropped';
+            },
+            ondropdeactivate: function (event) {
+                // remove active dropzone feedback
+                event.target.classList.remove('drop-active');
+                event.target.classList.remove('drop-target');
+            }
+        });
+
+        interact('.resize-drag')
+            .draggable({
+                onmove: window.dragMoveListener
+            })
+            .resizable({
+                preserveAspectRatio: false,
+                edges: {left: true, right: true, bottom: true, top: true}
+            })
+            .on('resizemove', function (event) {
+                var target = event.target,
+                    x = (parseFloat(target.getAttribute('data-x')) || 0),
+                    y = (parseFloat(target.getAttribute('data-y')) || 0);
+
+                // update the element's style
+                target.style.width = event.rect.width + 'px';
+                target.style.height = event.rect.height + 'px';
+
+                // translate when resizing from top or left edges
+                x += event.deltaRect.left;
+                y += event.deltaRect.top;
+
+                target.style.webkitTransform = target.style.transform =
+                    'translate(' + x + 'px,' + y + 'px)';
+
+                target.setAttribute('data-x', x);
+                target.setAttribute('data-y', y);
+                target.textContent = event.rect.width + '×' + event.rect.height;
+            });
+
+
+    </script>
+
+
+
+
+{% endblock %}
