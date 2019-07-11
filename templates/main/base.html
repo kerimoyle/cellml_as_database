@@ -93,10 +93,7 @@
             </div>
         </nav>
     {% endblock navigation %}
-
-
 </div>
-
 <div class="container-fluid todo">{% block todo %}{% endblock todo %}</div>
 <div class="container-fluid">{% block messages %}{% if messages %}{% for message in messages %}<div {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</div>{% endfor %}{% endif %}{% endblock messages %}</div>
 <div class="container-fluid" id="main_container">
