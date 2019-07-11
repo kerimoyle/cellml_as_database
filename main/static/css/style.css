@@ -64,21 +64,13 @@ iframe {
 .success {
     background-color: #dbf1cf;
     color: darkgreen;
-    padding: 10px;
-    margin-top: 5px;
-    margin-bottom: 5px;
-    margin-left: 0px;
-    margin-right: 0px;
+    padding: 20px;
 }
 
 .error {
     background-color: papayawhip;
     color: darkred;
-    padding: 10px;
-    margin-top: 5px;
-    margin-bottom: 5px;
-    margin-left: 0px;
-    margin-right: 0px;
+    padding: 20px;
 }
 
 /* ----------------- NAVIGATION BAR STUFF -------------------- */
