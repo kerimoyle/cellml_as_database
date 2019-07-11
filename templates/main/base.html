@@ -98,14 +98,38 @@
 </div>
 
 <div class="container-fluid todo">{% block todo %}{% endblock todo %}</div>
+<div class="container-fluid messages">{% block messages %}
+    {% if messages %}
+        {% for message in messages %}
+            <div {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endblock messages %}</div>
 <div class="container-fluid" id="main_container">
     <div class="row">
-        <div class="col-sm-12"><h1>{% block title %}{% endblock title %}</h1></div>
+        <div class="col-sm-8"><h1>{% block title %}{% endblock title %}</h1></div>
+        <div class="col-sm-4 button_bar">{% block title_buttons %}{% endblock title_buttons %}</div>
     </div>
     {% block content %}{% endblock content %}
-    {% block modals %}{% endblock modals %}
+    {% block modals %}
+        <div class="modal fade" id="formModal" tabindex="-1" role="dialog"
+             aria-labelledby="formModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title" id="formModalTitle">Edit {{ item_type }}</h3>
+                    </div>
+                    <div class="modal-body">
+                        <iframe id="formModal_iframe" src="" style="zoom:0.60;" width="99.6%" height="700px">
+                            <h3>Please wait ... loading data ...</h3>
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endblock modals %}
 </div>
-</div>
+
 
 </body>
 
@@ -135,6 +159,17 @@
                 "pageLength": 25
             });
         });
+
+        function LoadModalData(title, url) {
+            // Updating the source of the modal iframe data
+            $('#formModalTitle').text(title);
+
+            let $iframe = $('#formModal_iframe');
+
+            if ($iframe.length) {
+                $iframe.attr('src', url);
+            }
+        }
 
     </script>
 

@@ -4,11 +4,6 @@
 
 {% block title %}Model <b>{{ model.name|title }}</b>{% endblock title %}
 
-{% block button_edit %}{% endblock button_edit %}
-{% block button_new %}{% endblock button_new %}
-
-{% block todo %}{% endblock todo %}
-
 {% block content %}
     <div class="row">
         <div class="col-md-12">
@@ -18,7 +13,8 @@
                 </div>
                 {% if can_edit %}
                     <div class="col-sm-6 button_bar" style="padding-top:15px;">
-                        <a onclick="LoadModalData('formModal', '{% url 'main:edit_locals' item_type="cellmodel" item_id=model.id %}');"
+                        <a onclick="LoadModalData('Edit information',
+                                '{% url 'main:edit_locals' item_type="cellmodel" item_id=model.id %}');"
                            data-toggle="modal"
                            data-target="#formModal"
                            style="text-decoration: none;">
@@ -26,7 +22,7 @@
                             </button>
                         </a>
 
-                        <a onclick="LoadModalData('{% url 'main:delete' item_type="cellmodel" item_id=model.id %}');"
+                        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type="cellmodel" item_id=model.id %}');"
                            data-toggle="modal"
                            data-target="#formModal"
                            style="text-decoration: none;">
@@ -36,15 +32,14 @@
                     </div>
                 {% else %}
                     <div class="col-sm-6 button_bar" style="padding-top:15px;">
-                        <a onclick="LoadModalData('copyModal','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
+                        <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
                            data-toggle="modal"
-                           data-target="#copyModal"
+                           data-target="#formModal"
                            style="text-decoration: none;">
-                            <button class="btn btn-primary pull-right"><i class="fa fa-send"></i> Send to my library
+                            <button class="btn btn-primary pull-right"><i class="fa fa-send"></i> Send
                             </button>
                         </a>
                     </div>
-
                 {% endif %}
             </div>
             <table class="display table" id="table-info">
@@ -143,64 +138,13 @@
     </div>
 {% endblock content %}
 
-{% block modals %}
-
-    {% if can_edit %}
-        <div class="modal fade" id="formModal" tabindex="-1" role="dialog"
-             aria-labelledby="formModalTitle" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3 class="modal-title" id="formModalTitle">Edit {{ item_type }}</h3>
-                    </div>
-                    <div class="modal-body">
-                        <iframe id="formModal_iframe" src="" style="zoom:0.60;" width="99.6%" height="700px">
-                            <h3>Please wait ... loading data ...</h3>
-                        </iframe>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-    {% else %}
-        <div class="modal fade" id="copyModal" tabindex="-1" role="dialog"
-             aria-labelledby="formCopyTitle" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3 class="modal-title" id="formCopyTitle">Send {{ item.name }} to my library</h3>
-                    </div>
-                    <div class="modal-body">
-                        <iframe id="copyModal_iframe" src="" style="zoom:0.60;" width="99.6%" height="700px">
-                            <h3>Please wait ... loading data ...</h3>
-                        </iframe>
-                    </div>
-                </div>
-            </div>
-        </div>
-    {% endif %}
-
-
-{% endblock modals %}
-
 {% block end_scripts %}
     {{ block.super }}
     <script>
-
         $(document).ready(function () {
             $('#table-info_filter').css('display', 'none');
             $('#table-info_paginate').css('display', 'none');
         });
-
-        function LoadModalData(modal, url) {
-            // Updating the source of the modal iframe data
-            let id = '#' + modal + "_iframe";
-            let $iframe = $(id);
-            if ($iframe.length) {
-                $iframe.attr('src', url);
-            }
-        }
     </script>
 {% endblock end_scripts %}
 

@@ -3,17 +3,48 @@
 {% load static %}
 
 {% block title %}Compound Units <b>{{ item.name|title }}</b>{% endblock title %}
+{% block title_buttons %}
+    {% if can_edit %}
+        <a onclick="LoadModalData('Delete?', '{% url 'main:delete' item_type="compoundunit" item_id=item.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration: none;">
+            <button class="btn btn-default pull-right"><i class="fa fa-trash"></i> Delete</button>
+        </a>
+    {% else %}
+        <a onclick="LoadModalData('Send a copy to your library?',
+                '{% url 'main:copy' item_type="compoundunit" item_id=item.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration:none;">
+            <button class="btn btn-primary">
+                <i class="fa fa-send"></i>&nbsp;&nbsp;Send to my library
+            </button>
+        </a>
+    {% endif %}
+{% endblock title_buttons %}
 
-{% block button_edit %}{% endblock button_edit %}
-{% block button_new %}{% endblock button_new %}
-
-{% block todo %}{% endblock todo %}
+{% block todo %} - Show in a cleaner way than this? {% endblock todo %}
 
 {% block content %}
     <div class="row">
-
         <div class="col-md-6">
-            <h3>Locals</h3>
+            <div class="row">
+                <div class="col-sm-6">
+                    <h3>Information</h3>
+                </div>
+                <div class="col-sm-6 button_bar" style="padding-top:15px;">
+                    {% if can_edit %}
+                        <a onclick="LoadModalData('Edit information',
+                                '{% url 'main:edit_locals' item_type="compoundunit" item_id=item.id %}');"
+                           data-toggle="modal"
+                           data-target="#formModal"
+                           style="text-decoration: none;">
+                            <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit locals</button>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
             <table class="datatables display table table-hover" id="table-components">
                 <thead>
                 <tr>
@@ -77,4 +108,6 @@
         </div>
     </div>
 {% endblock content %}
+
+
 

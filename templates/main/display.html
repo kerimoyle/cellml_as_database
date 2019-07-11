@@ -2,6 +2,34 @@
 {% load crispy_forms_tags %}
 
 {% block title %}{{ item_type|title }} <b>{{ item.name }}</b>{% endblock title %}
+{% block title_buttons %}
+    {% if can_edit %}
+        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type=item_type item_id=item.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration: none;">
+            <button class="btn btn-default pull-right"><i class="fa fa-trash"></i> Delete</button>
+        </a>
+        <a onclick="LoadModalData('Create a copy?','{% url 'main:copy' item_type=item_type item_id=item.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration:none;">
+            <button class="btn btn-primary">
+                <i class="fa fa-plus"></i>&nbsp;&nbsp;Copy
+            </button>
+        </a>
+    {% else %}
+        <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type=item_type item_id=item.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration:none;">
+            <button class="btn btn-primary">
+                <i class="fa fa-send"></i>&nbsp;&nbsp;Send
+            </button>
+        </a>
+    {% endif %}
+
+{% endblock %}
 
 {% block button_edit %}{% endblock button_edit %}
 {% block button_new %}{% endblock button_new %}
@@ -16,24 +44,19 @@
                 <div class="col-sm-6">
                     <h3>Information</h3>
                 </div>
-                {% if can_edit %}
-                    <div class="col-sm-6 button_bar" style="padding-top:15px;">
-                        <a onclick="LoadModalData('{% url 'main:edit_locals' item_type=item_type item_id=item.id %}');"
+
+                <div class="col-sm-6 button_bar" style="padding-top:15px;">
+                    {% if can_edit %}
+                        <a onclick="LoadModalData('Edit information','{% url 'main:edit_locals' item_type=item_type item_id=item.id %}');"
                            data-toggle="modal"
                            data-target="#formModal"
                            style="text-decoration: none;">
                             <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit locals</button>
                         </a>
+                    {% endif %}
+                </div>
 
-                        <a onclick="LoadModalData('{% url 'main:delete' item_type=item_type item_id=item.id %}');"
-                           data-toggle="modal"
-                           data-target="#formModal"
-                           style="text-decoration: none;">
-                            <button class="btn btn-default pull-right"><i class="fa fa-trash"></i> Delete</button>
-                        </a>
 
-                    </div>
-                {% endif %}
             </div>
 
             <p class="info"><b>Local</b> attributes are those specifically owned by this type of object, ie:
@@ -101,7 +124,7 @@
                             <ul class="dropdown-menu dropdown-menu-right">
                                 {% for r in child_fields %}
                                     <li>
-                                        <a onclick="LoadModalData(
+                                        <a onclick="LoadModalData('Create link',
                                                 '{% url 'main:link_forwards' item_type=item_type item_id=item.id related_name=r %}'
                                                 );"
                                            data-toggle="modal"
@@ -127,7 +150,9 @@
                 <tr>
                     <th>Type</th>
                     <th>Name</th>
-                    <th></th>
+                    {% if can_edit %}
+                        <th></th>
+                    {% endif %}
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
@@ -139,9 +164,11 @@
                                 {{ field }}
                             </td>
                             <td>{{ obj }}</td>
-                            <td class="rowlink-skip">
-                                <a onclick="Unlink('{{ field }}','{{ obj.id }}');">Unlink</a>
-                            </td>
+                            {% if can_edit %}
+                                <td class="rowlink-skip">
+                                    <a onclick="Unlink('{{ field }}','{{ obj.id }}');">Unlink</a>
+                                </td>
+                            {% endif %}
                         </tr>
                     {% else %}
                         <tr>
@@ -167,26 +194,6 @@
 
 {% endblock content %}
 
-{% block modals %}
-
-    <div class="modal fade" id="formModal" tabindex="-1" role="dialog"
-         aria-labelledby="formModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 class="modal-title" id="formModalTitle">Edit {{ item_type }}</h3>
-                </div>
-                <div class="modal-body">
-                    <iframe id="formModal_iframe" src="" style="zoom:0.60" width="99.6%" height="700px">
-                        <h3>Please wait ... loading data ...</h3>
-                    </iframe>
-                </div>
-            </div>
-        </div>
-    </div>
-
-{% endblock modals %}
-
 {% block end_scripts %}
     {{ block.super }}
     <script>
@@ -197,14 +204,6 @@
             $('#table-information_paginate').css('display', 'none');
             $('#table-connections_filter').css('width', '100%');
         });
-
-        function LoadModalData(url) {
-            // Updating the source of the modal iframe data
-            let $iframe = $('#formModal_iframe');
-            if ($iframe.length) {
-                $iframe.attr('src', url);
-            }
-        }
 
         function Unlink(related_name, related_id) {
             $('input[name="unlink_item_type"]').val("{{ item_type }}");

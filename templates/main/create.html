@@ -58,7 +58,14 @@
                 {% for eg in existing_items %}
                     <tr>
                         <td>
-                            <a href="{% url 'main:copy' item_type=item_type item_id=eg.id %}"></a>
+                            <a onclick="LoadModalData('Edit information',
+                                '{% url 'main:copy' item_type=item_type item_id=eg.id %}');"
+                           data-toggle="modal"
+                           data-target="#formModal"
+                           style="text-decoration: none;">
+{#                            <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit information#}
+{#                            </button>#}
+                        </a>
                             {{ eg.name }}
                         </td>
                         <td>{{ eg.notes|linebreaks }}</td>
@@ -69,3 +76,4 @@
         </div>
     </div>
 {% endblock content %}
+

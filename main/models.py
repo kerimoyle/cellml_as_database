@@ -123,7 +123,7 @@ class CompoundUnit(NamedCellMLEntity):
     def delete(self, *args, **kwargs):
         # prevent deleting if is standard
         if self.is_standard:
-            return
+            return "Could not delete Compound Unit '{}' because it is built-in.".format(self.name)
         super(CompoundUnit, self).delete(args, kwargs)
 
 

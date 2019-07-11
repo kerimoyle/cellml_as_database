@@ -259,6 +259,11 @@ def copy(request, item_type, item_id):
             )
             imported_entity.save()
             item.imported_from = imported_entity
+            try:
+                item.is_standard = False
+            except Exception as e:
+                pass
+
             item.save()
 
             return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item.id}))
@@ -550,8 +555,21 @@ def delete(request, item_type, item_id):
         form = DeleteForm(request.POST)
         if form.is_valid():
             check_ownership(request, item)
-            item.delete()
-            return redirect('main:home')
+            name = item.name
+            id = item.id
+
+            m = item.delete()
+
+            try:
+                item_model.get_object_for_this_type(id=item_id)
+                messages.error(request, m)
+                return redirect(reverse("main:display", kwargs={'item_type': item_type, 'item_id': item_id}))
+            except:
+                messages.success(request, "The {t} {n} was deleted successfully.".format(t=item_type, n=item.name))
+                return redirect('main:home')
+        else:
+            messages.error(request, "The {t} {n} item could not be deleted.".format(t=item_type, n=item.name))
+            return redirect(reverse("main:display", kwargs={'item_type': item_type, 'item_id': item_id}))
 
     form = DeleteForm()
     form.helper = FormHelper()
