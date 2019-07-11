@@ -571,19 +571,20 @@ def delete(request, item_type, item_id):
     if request.method == 'POST':
         form = DeleteForm(request.POST)
         if form.is_valid():
-            check_ownership(request, item)
-            name = item.name
-            id = item.id
+            if check_ownership(request, item):
 
-            m = item.delete()
+                name = item.name
+                id = item.id
 
-            try:
-                item_model.get_object_for_this_type(id=item_id)
-                messages.error(request, m)
-                return redirect(reverse("main:display", kwargs={'item_type': item_type, 'item_id': item_id}))
-            except:
-                messages.success(request, "The {t} {n} was deleted successfully.".format(t=item_type, n=item.name))
-                return redirect('main:home')
+                m = item.delete()
+
+                try:
+                    item_model.get_object_for_this_type(id=item_id)
+                    messages.error(request, m)
+                    return redirect(reverse("main:display", kwargs={'item_type': item_type, 'item_id': item_id}))
+                except:
+                    messages.success(request, "The {t} {n} was deleted successfully.".format(t=item_type, n=item.name))
+                    return redirect('main:home')
         else:
             messages.error(request, "The {t} {n} item could not be deleted.".format(t=item_type, n=item.name))
             return redirect(reverse("main:display", kwargs={'item_type': item_type, 'item_id': item_id}))
@@ -898,6 +899,6 @@ def check_ownership(request, item):
     if not is_owner:
         messages.error(request, "You don't have edit permissions for this item.  Use the 'Send to my library' button "
                                 "to import a copy you can edit.")
-        return redirect(reverse("main:display", kwargs={'item_type': type(item).__name__, 'item_id': item.id}))
+        return False
 
     return True

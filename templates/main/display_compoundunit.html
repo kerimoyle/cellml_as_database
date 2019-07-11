@@ -24,7 +24,10 @@
     {% endif %}
 {% endblock title_buttons %}
 
-{% block todo %} - Show in a cleaner way than this? {% endblock todo %}
+{% block todo %}
+    <br>- Show in a cleaner way than this?
+    <br>- Store symbols or abbreviations for units so that they can be shown symbolically?
+{% endblock todo %}
 
 {% block content %}
     <div class="row">
@@ -94,6 +97,7 @@
                     <th>Multiplier</th>
                     <th>Base</th>
                     <th>Exponent</th>
+                    {% if can_edit %}<th></th>{% endif %}
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
@@ -106,6 +110,13 @@
                         <td>{{ u.multiplier }}</td>
                         <td>{{ u.child_cu.name }}</td>
                         <td>{{ u.exponent }}</td>
+                        {% if can_edit %}
+                            <td class="rowlink-skip">
+                            <a onclick="LoadModalData('Delete unit factor?','{% url 'main:delete' item_type='unit' item_id=u.id %}');"
+                           data-toggle="modal"
+                           data-target="#formModal">Remove</a>
+                            </td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
                 </tbody>

@@ -98,8 +98,8 @@
 <div class="container-fluid">{% block messages %}{% if messages %}{% for message in messages %}<div {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</div>{% endfor %}{% endif %}{% endblock messages %}</div>
 <div class="container-fluid" id="main_container">
     <div class="row">
-        <div class="col-sm-8"><h1>{% block title %}{% endblock title %}</h1></div>
-        <div class="col-sm-4 button_bar">{% block title_buttons %}{% endblock title_buttons %}</div>
+        <div class="col-sm-10"><h1>{% block title %}{% endblock title %}</h1></div>
+        <div class="col-sm-2 button_bar">{% block title_buttons %}{% endblock title_buttons %}</div>
     </div>
     {% block content %}{% endblock content %}
     {% block modals %}

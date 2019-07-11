@@ -97,7 +97,7 @@ class Variable(NamedCellMLEntity):
 class Unit(NamedCellMLEntity):
     prefix = ForeignKey("Prefix", on_delete=SET_NULL, null=True, blank=True)
 
-    parent_cu = ForeignKey("CompoundUnit", related_name='product_of', blank=True, null=True, on_delete=CASCADE)
+    parent_cu = ForeignKey("CompoundUnit", related_name='product_of', blank=True, null=True, on_delete=SET_NULL)
     child_cu = ForeignKey("CompoundUnit", related_name='part_of', blank=True, null=True, on_delete=SET_NULL)
 
     multiplier = FloatField(default=0.0, null=True)

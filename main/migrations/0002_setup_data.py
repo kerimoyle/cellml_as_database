@@ -47,7 +47,7 @@ prefix_list = [
     ["kilo", 3],
     ["hecto", 2],
     ["deca", 1],
-    ["", 0],
+    ["(none)", 0],
     ["deci", -1],
     ["centi", -2],
     ["milli", -3],
