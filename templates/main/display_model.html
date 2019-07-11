@@ -3,6 +3,33 @@
 {% load static %}
 
 {% block title %}Model <b>{{ model.name|title }}</b>{% endblock title %}
+{% block title_buttons %}
+    {% if can_edit %}
+        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type="cellmodel" item_id=model.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration: none;">
+            <button class="btn btn-default pull-right"><i class="fa fa-trash"></i> Delete</button>
+        </a>
+
+        <a onclick="LoadModalData('Copy into your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration: none;">
+            <button class="btn btn-primary pull-right"><i class="fa fa-plus"></i> Copy
+            </button>
+        </a>
+    {% else %}
+        <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration: none;">
+            <button class="btn btn-primary pull-right"><i class="fa fa-send"></i> Send
+            </button>
+        </a>
+    {% endif %}
+{% endblock %}
+
 
 {% block content %}
     <div class="row">
@@ -12,7 +39,7 @@
                     <h3>Information</h3>
                 </div>
                 {% if can_edit %}
-                    <div class="col-sm-6 button_bar" style="padding-top:15px;">
+                    <div class="col-sm-6 button_bar">
                         <a onclick="LoadModalData('Edit information',
                                 '{% url 'main:edit_locals' item_type="cellmodel" item_id=model.id %}');"
                            data-toggle="modal"
@@ -21,27 +48,10 @@
                             <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit information
                             </button>
                         </a>
-
-                        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type="cellmodel" item_id=model.id %}');"
-                           data-toggle="modal"
-                           data-target="#formModal"
-                           style="text-decoration: none;">
-                            <button class="btn btn-default pull-right"><i class="fa fa-trash"></i> Delete</button>
-                        </a>
-
-                    </div>
-                {% else %}
-                    <div class="col-sm-6 button_bar" style="padding-top:15px;">
-                        <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
-                           data-toggle="modal"
-                           data-target="#formModal"
-                           style="text-decoration: none;">
-                            <button class="btn btn-primary pull-right"><i class="fa fa-send"></i> Send
-                            </button>
-                        </a>
                     </div>
                 {% endif %}
             </div>
+
             <table class="display table" id="table-info">
                 <thead>
                 <tr>
@@ -69,7 +79,10 @@
                 <tr>
                     <td>Imported from</td>
                     <td>
-                        {% if model.imported_from %}{{ model.imported_from }}
+                        {% if model.imported_from %}
+                            <a href="{% url 'main:display' item_type="cellmodel" item_id=model.imported_from.source_id %}">
+                                {{ model.imported_from }}
+                            </a>
                         {% else %}<p class="empty">None</p>
                         {% endif %}
                     </td>

@@ -13,6 +13,7 @@
                 <tr>
                     <th>Type</th>
                     <th>Name</th>
+                    <th></th>
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
@@ -26,6 +27,15 @@
                             <td>
                                 <b>{{ item.name }}</b><br>
                                 <p>{{ item.notes|linebreaks }}</p>
+                            </td>
+                            <td class="rowlink-skip">
+                                <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type=type item_id=item.id %}');"
+                                   data-toggle="modal"
+                                   data-target="#formModal"
+                                   style="text-decoration: none;">
+                                    <button class="btn btn-default pull-right"><i class="fa fa-trash"></i> Delete
+                                    </button>
+                                </a>
                             </td>
                         </tr>
                     {% endfor %}
