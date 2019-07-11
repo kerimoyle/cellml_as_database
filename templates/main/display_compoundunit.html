@@ -40,12 +40,13 @@
                            data-toggle="modal"
                            data-target="#formModal"
                            style="text-decoration: none;">
-                            <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit information</button>
+                            <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit information
+                            </button>
                         </a>
                     {% endif %}
                 </div>
             </div>
-            <table class="datatables display table ">
+            <table class="datatables display table">
                 <tbody>
                 <tr>
                     <td>Notes</td>
@@ -71,12 +72,12 @@
         <div class="col-md-6 table-responsive">
             <div class="row">
                 <div class="col-sm-6">
-                    <h3>Units</h3>
+                    <h3>Product of Units</h3>
                 </div>
                 {% if can_edit %}
                     <div class="col-sm-6 button_bar" style="padding-top:15px;">
                         <a onclick="LoadModalData('Create relationship to another unit',
-                                '{% url 'main:create' item_type='unit' %}');"
+                                '{% url 'main:create_unit' cu_id=item.id in_modal=True %}');"
                            data-toggle="modal"
                            data-target="#formModal"
                            style="text-decoration: none;">
@@ -86,8 +87,7 @@
                 {% endif %}
             </div>
 
-
-            <table class="datatables display table" >
+            <table class="datatables display table table-hover">
                 <thead>
                 <tr>
                     <th>Prefix</th>
@@ -100,13 +100,11 @@
                 {% for u in item.product_of.all %}
                     <tr>
                         <td>
-                            {% if u.child_cu %}
-                                <a href="{% url 'main:display' item_type='compoundunit' item_id=u.child_cu.id %}"></a>
-                            {% endif %}
+                            <a href="{% url 'main:display' item_type='compoundunit' item_id=u.child_cu.id %}"></a>
                             {{ u.prefix }}
                         </td>
                         <td>{{ u.multiplier }}</td>
-                        <td>{{ u.child_cu }}</td>
+                        <td>{{ u.child_cu.name }}</td>
                         <td>{{ u.exponent }}</td>
                     </tr>
                 {% endfor %}
@@ -115,6 +113,8 @@
         </div>
     </div>
 {% endblock content %}
+
+
 
 
 

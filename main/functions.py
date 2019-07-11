@@ -230,7 +230,6 @@ def load_compound_units(index, in_model, model, owner):
     out_compound_units = CompoundUnit(
         name=in_units.name(),
         cellml_index=index,
-
         owner=owner,
     )
     out_compound_units.save()
@@ -285,7 +284,7 @@ def load_units(compoundunit, in_model, model, owner):
             exponent=exponent,
             cellml_id=local_id,
             name=reference,
-            units=compoundunit,
+            parent_cu=compoundunit,
             owner=owner,
         )
         unit.save()
@@ -295,12 +294,12 @@ def load_units(compoundunit, in_model, model, owner):
 
         base = CompoundUnit.objects.filter(name=reference, models=model).first()
         if base:
-            unit.base = base
+            unit.child_cu = base
             unit.save()
         else:
             base = CompoundUnit.objects.filter(name=reference, is_standard=True).first()
             if base:
-                unit.base = base
+                unit.child_cu = base
                 unit.save()
             else:
                 pass
@@ -319,7 +318,6 @@ def load_variable(index, in_component, out_component, owner):
     )
     out_variable.save()
     out_variable.components.add(out_component)
-
 
 
 def load_reset(index, in_component, out_component, owner):

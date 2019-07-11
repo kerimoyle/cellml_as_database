@@ -110,10 +110,6 @@ class Unit(NamedCellMLEntity):
 
 class CompoundUnit(NamedCellMLEntity):
     models = ManyToManyField("CellModel", related_name="compoundunits", blank=True)
-
-    # units = ManyToManyField("CompoundUnit", related_name='compoundunits', symmetrical=False, through='Unit',
-    #                         through_fields=('parent_cu', 'child_cu'))
-
     is_standard = BooleanField(default=False)
 
     def __str__(self):

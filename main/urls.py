@@ -10,7 +10,10 @@ urlpatterns = [
     path('browse/<item_type>/', views.browse, name='browse'),
 
     path('copy/<item_type>/<int:item_id>/', views.copy, name='copy'),
-    path('create/<item_type>/', views.create, name='create'),
+    path('create_unit/<cu_id>/<in_modal>', views.create_unit, name='create_unit', ),
+    path('create_unit/<cu_id>/', views.create_unit, name='create_unit', kwargs={'in_modal': False}),
+    path('create/<item_type>/<in_modal>', views.create, name='create'),
+    path('create/<item_type>/', views.create, name='create', kwargs={'in_modal': False}),
 
     path('delete/<item_type>/<int:item_id>/', views.delete, name='delete'),
     path('display/cellmodel/<int:item_id>/', views.display_model, name='display_model'),  # aliased ...

@@ -6,7 +6,7 @@ from django.contrib.auth import logout, authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import ForeignKey, ManyToManyField, AutoField, ManyToOneRel, ManyToManyRel
+from django.db.models import ForeignKey, ManyToManyField, ManyToOneRel, ManyToManyRel
 from django.forms import modelform_factory, CheckboxSelectMultiple, RadioSelect
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -15,7 +15,7 @@ from main.defines import MENU_OPTIONS
 from main.forms import ReverseLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import build_tree_from_model, load_model, get_edit_locals_form, get_item_local_attributes, \
     get_child_fields, get_item_child_attributes, get_parent_fields, get_item_parent_attributes, copy_item
-from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, ImportedEntity
+from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, ImportedEntity, Unit
 
 
 def test(request):
@@ -131,12 +131,12 @@ def home(request):
 
 # --------------------- CREATE VIEWS --------------------
 @login_required
-def create(request, item_type):
+def create(request, item_type, in_modal):
     """
     Basic view to create one instance of the @p item_type
     :param request: request
     :param item_type: name of the class which will be created
-    :param item_id: (optional) id of the item to edit
+    :param in_modal: (optional) whether or not to call the form_modal template
     :return: redirect to 'display' view of created item, or return to form with errors
     """
 
@@ -195,7 +195,66 @@ def create(request, item_type):
         'existing_items': existing_items,
         'menu': MENU_OPTIONS['create']
     }
-    return render(request, 'main/create.html', context)
+    if in_modal:
+        form.helper.attrs = {'target': '_top'}
+        return render(request, 'main/form_modal.html', context)
+    else:
+        return render(request, 'main/create.html', context)
+
+
+@login_required
+def create_unit(request, cu_id, in_modal):
+    """
+    Creates a unit object - the connection involving prefix/multiplier/exponent between two compound units
+    :param request: request
+    :param cu_id: the id of the compound unit which is defined by adding this new unit as a factor
+    :param in_modal: whether
+    :return:
+    """
+
+    try:
+        cu = CompoundUnit.objects.get(id=cu_id)
+    except Exception as e:
+        messages.error(request, "Could not get CompountUnit with id={} to add the new Unit to".format(cu_id))
+        messages.error(request, "{t}: {a}".format(t=type(e).__name__, a=e.args))
+        redirect('main:error')
+
+    try:
+        person = request.user.person
+    except Exception as e:
+        messages.error(request, "Could not get authenticated person from request: please login or register.")
+        messages.error(request, "{t}: {a}".format(t=type(e).__name__, a=e.args))
+        return redirect('main:error')
+
+    create_form = modelform_factory(Unit, fields=('prefix', 'child_cu', 'multiplier', 'exponent'))
+
+    if request.POST:
+        form = create_form(request.POST)
+        if form.is_valid():
+            item = form.save()
+            item.owner = person
+            item.parent_cu = cu
+            item.save()
+            return redirect(reverse('main:display',
+                                    kwargs={'item_type': 'compoundunit', 'item_id': cu.id}))
+    else:
+        form = create_form()
+
+    form.helper = FormHelper()
+    form.helper.form_method = 'post'
+    form.helper.add_input(Submit('submit', "Save"))
+    form.helper.form_action = reverse('main:create_unit', kwargs={'cu_id': cu_id, 'in_modal': in_modal})
+
+    context = {
+        'item_type': 'compoundunit',
+        'form': form,
+        'menu': MENU_OPTIONS['create']
+    }
+    if in_modal:
+        form.helper.attrs = {'target': '_top'}
+        return render(request, 'main/form_modal.html', context)
+    else:
+        return render(request, 'main/create.html', context)
 
 
 @login_required
@@ -244,9 +303,6 @@ def copy(request, item_type, item_id):
     }
 
     return render(request, 'main/form_modal.html', context)
-
-
-
 
 
 @login_required
