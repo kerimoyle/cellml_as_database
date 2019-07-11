@@ -97,19 +97,22 @@ class Variable(NamedCellMLEntity):
 class Unit(NamedCellMLEntity):
     prefix = ForeignKey("Prefix", on_delete=SET_NULL, null=True, blank=True)
 
-    base = ForeignKey("CompoundUnit", related_name='used_by_units', blank=True, null=True, on_delete=SET_NULL)
-    units = ForeignKey("CompoundUnit", related_name='units', blank=True, null=True, on_delete=CASCADE)
+    parent_cu = ForeignKey("CompoundUnit", related_name='product_of', blank=True, null=True, on_delete=CASCADE)
+    child_cu = ForeignKey("CompoundUnit", related_name='part_of', blank=True, null=True, on_delete=SET_NULL)
 
     multiplier = FloatField(default=0.0, null=True)
     exponent = FloatField(default=0.0, null=True)
     reference = CharField(max_length=100, null=True)  # TODO Reference is stored as a string, will be processed into fks
 
     def __str__(self):
-        return self.name
+        return self.child_cu.name
 
 
 class CompoundUnit(NamedCellMLEntity):
     models = ManyToManyField("CellModel", related_name="compoundunits", blank=True)
+
+    # units = ManyToManyField("CompoundUnit", related_name='compoundunits', symmetrical=False, through='Unit',
+    #                         through_fields=('parent_cu', 'child_cu'))
 
     is_standard = BooleanField(default=False)
 

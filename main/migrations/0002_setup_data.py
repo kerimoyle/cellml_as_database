@@ -122,7 +122,7 @@ def add_standards(apps, schema_editor):
         for key, val in made_of:
             base = CompoundUnit.objects.filter(name=key).first()
             if base:
-                u = Unit(exponent=val, base=base, units=cu, reference=key)
+                u = Unit(exponent=val, parent_cu=cu, child_cu=base, reference=key)
                 u.save()
 
     for p in prefix_list:

@@ -97,16 +97,16 @@
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
-                {% for u in item.units.all %}
+                {% for u in item.product_of.all %}
                     <tr>
                         <td>
-                            {% if u.base %}
-                                <a href="{% url 'main:display' item_type='compoundunit' item_id=u.base.id %}"></a>
+                            {% if u.child_cu %}
+                                <a href="{% url 'main:display' item_type='compoundunit' item_id=u.child_cu.id %}"></a>
                             {% endif %}
                             {{ u.prefix }}
                         </td>
                         <td>{{ u.multiplier }}</td>
-                        <td>{{ u.base }}</td>
+                        <td>{{ u.child_cu }}</td>
                         <td>{{ u.exponent }}</td>
                     </tr>
                 {% endfor %}
