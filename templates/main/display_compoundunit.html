@@ -40,44 +40,60 @@
                            data-toggle="modal"
                            data-target="#formModal"
                            style="text-decoration: none;">
-                            <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit locals</button>
+                            <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit information</button>
                         </a>
                     {% endif %}
                 </div>
             </div>
-            <table class="datatables display table table-hover" id="table-components">
-                <thead>
+            <table class="datatables display table ">
+                <tbody>
                 <tr>
-                    <th>Name</th>
-                    <th>Value</th>
-                    <th>Notes</th>
-                </tr>
-                </thead>
-                <tbody class="rowlink" data-link="row">
-                {% for c in locals %}
-                    <tr>
-                        <td>
-                            <a href="{% url 'main:display' item_type='component' item_id=c.id %}"></a>
-                            {{ c.name }}
-                        </td>
-                        <td>{% if c.notes %}{{ c.notes|linebreaks }}
-                        {% else %}None
+                    <td>Notes</td>
+                    <td>
+                        {% if item.is_standard %}<b>Built in units</b><br>{% endif %}
+                        {% if item.notes %}<p>{{ item.notes|linebreaksbr }}</p>
+                        {% else %}<p class="empty">No notes given</p>
                         {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>Owner</td>
+                    <td>
+                        {% if item.owner %}<p>{{ item.owner|title }}</p>
+                        {% else %}<p class="empty">None</p>
+                        {% endif %}
+                    </td>
+                </tr>
                 </tbody>
             </table>
         </div>
 
         <div class="col-md-6 table-responsive">
-            <h3>Units</h3>
-            <table class="datatables display table table-hover" id="table-units">
+            <div class="row">
+                <div class="col-sm-6">
+                    <h3>Units</h3>
+                </div>
+                {% if can_edit %}
+                    <div class="col-sm-6 button_bar" style="padding-top:15px;">
+                        <a onclick="LoadModalData('Create relationship to another unit',
+                                '{% url 'main:create' item_type='unit' %}');"
+                           data-toggle="modal"
+                           data-target="#formModal"
+                           style="text-decoration: none;">
+                            <button class="btn btn-primary"><i class="fa fa-plus"></i> Add unit</button>
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+
+
+            <table class="datatables display table" >
                 <thead>
                 <tr>
-                    <th>Units</th>
-                    <th>Attributes</th>
-                    <th>Notes</th>
+                    <th>Prefix</th>
+                    <th>Multiplier</th>
+                    <th>Base</th>
+                    <th>Exponent</th>
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
@@ -87,20 +103,11 @@
                             {% if u.base %}
                                 <a href="{% url 'main:display' item_type='compoundunit' item_id=u.base.id %}"></a>
                             {% endif %}
-                            {{ u.name }}
+                            {{ u.prefix }}
                         </td>
-                        <td>
-                            <ul>
-                                <li>Prefix: {{ u.prefix }}</li>
-                                <li>Multiplier: {{ u.multiplier }}</li>
-                                <li>Exponent: {{ u.exponent }}</li>
-                            </ul>
-                        </td>
-                        <td>
-                            {% if u.notes %}{{ u.notes|linebreaks }}
-                            {% else %}<p class="empty">None</p>
-                            {% endif %}
-                        </td>
+                        <td>{{ u.multiplier }}</td>
+                        <td>{{ u.base }}</td>
+                        <td>{{ u.exponent }}</td>
                     </tr>
                 {% endfor %}
                 </tbody>

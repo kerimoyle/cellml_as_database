@@ -176,6 +176,7 @@ def create(request, item_type):
         if form.is_valid():
             item = form.save()
             item.owner = person
+            item.save()
             return redirect(reverse('main:display',
                                     kwargs={'item_type': item_type, 'item_id': item.id}))
     else:
@@ -243,6 +244,9 @@ def copy(request, item_type, item_id):
     }
 
     return render(request, 'main/form_modal.html', context)
+
+
+
 
 
 @login_required
@@ -454,9 +458,9 @@ def link_remove(request):
         if form.is_valid():
 
             item_type = form.data['unlink_item_type']
-            item_id = form.data['unlink_item_id']
+            item_id = int(form.data['unlink_item_id'])
             related_name = form.data['unlink_related_name']
-            related_id = form.data['unlink_related_id']
+            related_id = int(form.data['unlink_related_id'])
 
             try:
                 item_model = ContentType.objects.get(app_label="main", model=item_type)

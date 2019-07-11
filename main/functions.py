@@ -524,6 +524,16 @@ def link_copy(request, from_item, to_item):
         for related_object in getattr(from_item, f).all():
             getattr(related_object, r).add(to_item)
 
+    fields = [x.name for x in from_item._meta.get_fields() if type(x) == ManyToManyField]
+    for f in fields:
+        for related_object in getattr(from_item, f).all():
+            getattr(to_item, f).add(related_object)
+
+    fields = [x.name for x in from_item._meta.get_fields() if type(x) == ManyToOneRel]
+    for f in fields:
+        for related_object in getattr(from_item, f).all():
+            getattr(to_item, f).add(related_object)
+
     return
 
 

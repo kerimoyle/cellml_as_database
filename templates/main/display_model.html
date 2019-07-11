@@ -93,18 +93,51 @@
                 </tr>
                 </tbody>
             </table>
-
             <div>{{ model.notes|linebreaks }}</div>
         </div>
     </div>
+
+
     <div class="row">
         <div class="col-md-6">
-            <h3>Components</h3>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <h3>Components</h3>
+                </div>
+                <div class="col-md-6 button_bar">
+                    {% if can_edit %}
+
+                        <a onclick="LoadModalData('Create link to existing component',
+                                '{% url 'main:link_backwards' item_type='cellmodel' item_id=model.id related_name='components' %}'
+                                );"
+                           data-toggle="modal"
+                           data-target="#formModal"
+                           style="text-decoration: none;">
+                            <button class="btn btn-primary"><i class="fa fa-chain"></i> Link</button>
+                        </a>
+
+                        <a onclick="LoadModalData('Create new component',
+                                '{% url 'main:create' item_type='component' %}'
+                                );"
+                           data-toggle="modal"
+                           data-target="#formModal"
+                           style="text-decoration: none;">
+                            <button class="btn btn-primary"><i class="fa fa-plus"></i> Create</button>
+                        </a>
+
+                    {% endif %}
+                </div>
+            </div>
+
+
             <table class="datatables display table table-hover" id="table-components">
                 <thead>
                 <tr>
                     <th>Component</th>
-                    <th>Notes</th>
+                    {% if can_edit %}
+                        <th>Notes</th>
+                    {% endif %}
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
@@ -112,12 +145,13 @@
                     <tr>
                         <td>
                             <a href="{% url 'main:display' item_type='component' item_id=c.id %}"></a>
-                            {{ c.name }}
+                            <b>{{ c.name }}</b> {{ c.notes|linebreaks }}
                         </td>
-                        <td>{% if c.notes %}{{ c.notes|linebreaks }}
-                        {% else %}None
+                        {% if can_edit %}
+                            <td class="rowlink-skip">
+                                <a onclick="Unlink('components','{{ c.id }}');">Unlink</a>
+                            </td>
                         {% endif %}
-                        </td>
                     </tr>
                 {% endfor %}
                 </tbody>
@@ -125,13 +159,38 @@
         </div>
 
         <div class="col-md-6">
-            <h3>Units</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h3>Units</h3>
+                </div>
+                <div class="col-md-6 button_bar">
+                    {% if can_edit %}
+                        <a onclick="LoadModalData('Create link to existing compound units',
+                                '{% url 'main:link_backwards' item_type='cellmodel' item_id=model.id related_name='compoundunits' %}'
+                                );"
+                           data-toggle="modal"
+                           data-target="#formModal"
+                           style="text-decoration: none;">
+                            <button class="btn btn-primary"><i class="fa fa-chain"></i> Link</button>
+                        </a>
+                        <a onclick="LoadModalData('Create new compound units',
+                                '{% url 'main:create' item_type='compoundunit' %}'
+                                );"
+                           data-toggle="modal"
+                           data-target="#formModal"
+                           style="text-decoration: none;">
+                            <button class="btn btn-primary"><i class="fa fa-plus"></i> Create</button>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
             <table class="datatables display table table-hover" id="table-units" cellspacing="0">
                 <thead>
                 <tr>
-                    <th>Units</th>
-                    <th>Child units</th>
-                    <th>Notes</th>
+                    <th>Compound units</th>
+                    <th>Unit</th>
+                    {% if can_edit %}<th></th>{% endif %}
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
@@ -139,20 +198,33 @@
                     <tr>
                         <td>
                             <a href="{% url 'main:display' item_type='compoundunit' item_id=cu.id %}"></a>
-                            {{ cu.name }}
+                            <b>{{ cu.name }}</b> {{ cu.notes|linebreaksbr }}
                         </td>
                         <td>
                             {% for u in cu.units.all %}
                                 {{ u }}<br>
                             {% endfor %}
                         </td>
-                        <td>{{ cu.notes|linebreaks }}</td>
+                        {% if can_edit %}
+                            <td class="rowlink-skip">
+                                <a onclick="Unlink('compoundunits','{{ cu.id }}');">Unlink</a>
+                            </td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+
+    <form id="unlink_form" action="{% url 'main:link_remove' %}" method="POST" hidden>
+        {% csrf_token %}
+        <input type="text" name="unlink_item_type" id="unlink_item_type" value="">
+        <input type="text" name="unlink_item_id" id="unlink_item_id" value="">
+        <input type="text" name="unlink_related_name" id="unlink_related_name" value="">
+        <input type="text" name="unlink_related_id" id="unlink_related_id" value="">
+    </form>
+
 {% endblock content %}
 
 {% block end_scripts %}
@@ -162,6 +234,14 @@
             $('#table-info_filter').css('display', 'none');
             $('#table-info_paginate').css('display', 'none');
         });
+
+        function Unlink(related_name, related_id) {
+            $('input[name="unlink_item_type"]').val("cellmodel");
+            $('input[name="unlink_item_id"]').val("{{ model.id }}");
+            $('input[name="unlink_related_name"]').val(related_name);
+            $('input[name="unlink_related_id"]').val(related_id);
+            $("form#unlink_form ").submit();
+        }
     </script>
 {% endblock end_scripts %}
 
