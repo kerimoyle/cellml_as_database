@@ -6,7 +6,7 @@ from django.contrib.auth import logout, authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import ForeignKey, ManyToManyField, AutoField, ManyToOneRel
+from django.db.models import ForeignKey, ManyToManyField, AutoField, ManyToOneRel, ManyToManyRel
 from django.forms import modelform_factory, CheckboxSelectMultiple, RadioSelect
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -419,15 +419,10 @@ def link_backwards(request, item_type, item_id, related_name):
         form = ReverseLinkForm(request.POST, item_type=item_type, item_id=item_id, parent_type=parent_type)
 
         if form.is_valid():
-            parent = form.cleaned_data['link_to_id']
-            # try:
-            #     parent = parent_model.get_object_for_this_type(id=parent_id)
-            # except Exception as e:
-            #     messages.error(request, "Can't find '{}' object with id of '{}'".format(parent_type, parent_id))
-            #     messages.error(request, "{}: {}".format(type(e).__name__, e.args))
-            #     return redirect('main:error')
+            add_me = form.cleaned_data['link_to_id']
 
-            setattr(parent, r.field, [item_id])
+            for related_object in add_me:
+                getattr(related_object, parent_field).add(item)
 
             return redirect(reverse('main:display',
                                     kwargs={'item_type': item_type,
@@ -485,9 +480,10 @@ def link_remove(request):
             if link_type == ForeignKey:
                 setattr(item, related_name, None)
                 item.save()
+            elif link_type == ManyToManyRel:
+                getattr(item, related_name).remove(related_id)
             elif link_type == ManyToManyField:
-                m2m = getattr(item, related_name)
-
+                getattr(item, related_name).remove(related_id)
             elif link_type == ManyToOneRel:
                 pass
             else:
@@ -576,11 +572,11 @@ def display(request, item_type, item_id):
     context = {
         'item': item,
         'item_type': item_type,
-        'child_fields': child_fields,
+        'upstream_fields': child_fields,
         'locals': local_attrs,
-        'children': children,
-        'parent_fields': parent_fields,
-        'parents': parents,
+        'upstream': children,
+        'downstream_fields': parent_fields,
+        'downstream': parents,
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner
     }

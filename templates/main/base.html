@@ -56,7 +56,7 @@
                                     </a>
                                     <ul class="dropdown-menu">
                                         {% for t, name in menu.create.items %}
-                                            <li><a href="{% url 'main:create' item_type=t %}">{{ name|title }}</a></li>
+                                            <li><a href="{% url 'main:create' item_type=t %}">{{ name }}</a></li>
                                         {% endfor %}
                                     </ul>
                                 </li>
@@ -68,7 +68,7 @@
                                     </a>
                                     <ul class="dropdown-menu">
                                         {% for t, name in menu.browse.items %}
-                                            <li><a href="{% url 'main:browse' item_type=t %}">{{ name|title }}</a></li>
+                                            <li><a href="{% url 'main:browse' item_type=t %}">{{ name }}</a></li>
                                         {% endfor %}
                                     </ul>
                                 </li>

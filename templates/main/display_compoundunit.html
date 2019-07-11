@@ -2,7 +2,7 @@
 {% load crispy_forms_tags %}
 {% load static %}
 
-{% block title %}Compound Units <b>{{ item.name|title }}</b>{% endblock title %}
+{% block title %}Compound Units <b>{{ item.name }}</b>{% endblock title %}
 {% block title_buttons %}
     {% if can_edit %}
         <a onclick="LoadModalData('Delete?', '{% url 'main:delete' item_type="compoundunit" item_id=item.id %}');"

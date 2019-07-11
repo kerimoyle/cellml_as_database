@@ -1,7 +1,7 @@
 {% extends 'main/base.html' %}
 {% load crispy_forms_tags %}
 
-{% block title %}{{ item_type|title }} <b>{{ item.name }}</b>{% endblock title %}
+{% block title %}{{ item_type }} <b>{{ item.name }}</b>{% endblock title %}
 {% block title_buttons %}
     {% if can_edit %}
         <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type=item_type item_id=item.id %}');"
@@ -30,16 +30,85 @@
     {% endif %}
 
 {% endblock %}
-
-{% block button_edit %}{% endblock button_edit %}
-{% block button_new %}{% endblock button_new %}
-
 {% block todo %}{% endblock todo %}
 
 {% block content %}
 
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-4">
+            <div class="row">
+                <div class="col-sm-6">
+                    <h3>Upstream</h3>
+                </div>
+                {% if can_edit %}
+                    <div class="col-sm-6 button_bar" style="padding-top:15px;">
+                        <div class="dropdown">
+                            <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">
+                                <i class="fa fa-chain"></i> Add link to ...
+                                <span class="caret"></span></button>
+                            <ul class="dropdown-menu dropdown-menu-right">
+                                {% for r in upstream_fields %}
+                                    <li>
+                                        <a onclick="LoadModalData('Create link',
+                                                '{% url 'main:link_forwards' item_type=item_type item_id=item.id related_name=r %}'
+                                                );"
+                                           data-toggle="modal"
+                                           data-target="#formModal"
+                                           style="text-decoration: none;">
+                                            {{ r }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <p class="info">
+                <b>Relations</b> are those parts of an item which are links to other items, ie: the children or parents
+                of the current item. Clicking on a row in the table below will open the detailed description page for
+                each of the related items. To remove an external connection, click the delete button on that row. To
+                add a new connection, click the <b>Add new</b> button.
+            </p>
+            <table class="datatables display table table-hover" id="table-connections">
+                <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    {% if can_edit %}
+                        <th></th>
+                    {% endif %}
+                </tr>
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for field, type, obj in upstream %}
+                    {% if obj %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'main:display' item_type=type item_id=obj.id %}"></a>
+                                {{ field }}
+                            </td>
+                            <td>{{ obj }}</td>
+                            {% if can_edit %}
+                                <td class="rowlink-skip">
+                                    <a onclick="Unlink('{{ field }}','{{ obj.id }}');">Unlink</a>
+                                </td>
+                            {% endif %}
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td>
+                                {{ field }}
+                            </td>
+                            <td class="empty">Not connected to any {{ field }} items</td>
+                            <td></td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="col-md-4">
             <div class="row">
                 <div class="col-sm-6">
                     <h3>Information</h3>
@@ -55,7 +124,6 @@
                         </a>
                     {% endif %}
                 </div>
-
 
             </div>
 
@@ -109,11 +177,10 @@
                 </tbody>
             </table>
         </div>
-
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="row">
                 <div class="col-sm-6">
-                    <h3>Relationships</h3>
+                    <h3>Downstream</h3>
                 </div>
                 {% if can_edit %}
                     <div class="col-sm-6 button_bar" style="padding-top:15px;">
@@ -122,15 +189,15 @@
                                 <i class="fa fa-chain"></i> Add link to ...
                                 <span class="caret"></span></button>
                             <ul class="dropdown-menu dropdown-menu-right">
-                                {% for r in child_fields %}
+                                {% for r in downstream_fields %}
                                     <li>
                                         <a onclick="LoadModalData('Create link',
-                                                '{% url 'main:link_forwards' item_type=item_type item_id=item.id related_name=r %}'
+                                                '{% url 'main:link_backwards' item_type=item_type item_id=item.id related_name=r %}'
                                                 );"
                                            data-toggle="modal"
                                            data-target="#formModal"
                                            style="text-decoration: none;">
-                                            {{ r|title }}
+                                            {{ r }}
                                         </a>
                                     </li>
                                 {% endfor %}
@@ -156,7 +223,7 @@
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
-                {% for field, type, obj in children %}
+                {% for field, type, obj in downstream %}
                     {% if obj %}
                         <tr>
                             <td>
@@ -184,6 +251,7 @@
             </table>
         </div>
     </div>
+
     <form id="unlink_form" action="{% url 'main:link_remove' %}" method="POST" hidden>
         {% csrf_token %}
         <input type="text" name="unlink_item_type" id="unlink_item_type" value="">

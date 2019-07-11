@@ -1,7 +1,7 @@
 {% extends 'main/base.html' %}
 {% load crispy_forms_tags %}
 
-{% block title %}{{ item_type|title }} <b>{{ item.name }}</b>{% endblock title %}
+{% block title %}{{ item_type }} <b>{{ item.name }}</b>{% endblock title %}
 
 {% block button_edit %}{% endblock button_edit %}
 {% block button_new %}{% endblock button_new %}
@@ -30,7 +30,7 @@
                                        data-toggle="modal"
                                        data-target="#formModal"
                                        style="text-decoration: none;">
-                                        {{ r|title }}
+                                        {{ r }}
                                     </a>
                                 </li>
                             {% endfor %}
@@ -136,7 +136,7 @@
                 <tr>
                     <td>owner</td>
                     <td>
-                        {% if item.owner %}{{ item.owner|title }}
+                        {% if item.owner %}{{ item.owner }}
                         {% else %}<p class="empty">None</p>
                         {% endif %}
                     </td>
@@ -172,7 +172,7 @@
                                        data-toggle="modal"
                                        data-target="#formModal"
                                        style="text-decoration: none;">
-                                        {{ r|title }}
+                                        {{ r }}
                                     </a>
                                 </li>
                             {% endfor %}

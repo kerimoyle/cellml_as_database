@@ -2,7 +2,11 @@
 {% load crispy_forms_tags %}
 {% load static %}
 
-{% block title %}Model <b>{{ model.name|title }}</b>{% endblock title %}
+{% block todo %}
+    - make links to imported files better
+{% endblock todo %}
+
+{% block title %}Model <b>{{ model.name }}</b>{% endblock title %}
 {% block title_buttons %}
     {% if can_edit %}
         <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type="cellmodel" item_id=model.id %}');"
