@@ -441,17 +441,11 @@ def link_forwards(request, item_type, item_id, related_name):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
-    check_ownership(request, item)
+    if not check_ownership(request, item):
+        messages.error(request, "Cannot create link from an item you don't own.")
+        return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_id}))
 
     r = item._meta.get_field(related_name)
-    # child_type = r.related_model()._meta.model_name
-
-    # try:
-    #     child_model = ContentType.objects.get(app_label="main", model=child_type)
-    # except Exception as e:
-    #     messages.error(request, "Can't find object type for the related name of '{}'".format(related_name))
-    #     messages.error(request, " ... I tried looking for child_type '{}'".format(child_type))
-    #     return redirect('main:error')
 
     if type(r).__name__ == 'ManyToOneRel' or type(r).__name__ == 'ForeignKey':
         widgets = {related_name: RadioSelect()}
@@ -474,6 +468,7 @@ def link_forwards(request, item_type, item_id, related_name):
 
     form.helper = FormHelper()
     form.helper.form_method = 'post'
+    form.fields[related_name].queryset = r.related_model.objects.filter(owner=request.user.person)
     form.helper.attrs = {'target': '_top'}
     form.helper.add_input(Submit('submit', "Save"))
     form.helper.form_action = reverse('main:link_forwards',
@@ -516,7 +511,9 @@ def link_backwards(request, item_type, item_id, related_name):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
-    check_ownership(request, item)
+    if not check_ownership(request, item):
+        messages.error(request, "Cannot create link to an item you don't own.")
+        return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_id}))
 
     r = item._meta.get_field(related_name)
     parent_type = r.related_model()._meta.model_name
@@ -536,7 +533,8 @@ def link_backwards(request, item_type, item_id, related_name):
             add_me = form.cleaned_data['link_to_id']
 
             for related_object in add_me:
-                getattr(related_object, parent_field).add(item)
+                setattr(related_object, parent_field, item)
+                related_object.save()
 
             return redirect(reverse('main:display',
                                     kwargs={'item_type': item_type,
@@ -586,7 +584,9 @@ def link_remove(request):
                 messages.error(request, "{}: {}".format(type(e).__name__, e.args))
                 return redirect('main:error')
 
-            check_ownership(request, item)
+            if not check_ownership(request, item):
+                messages.error(request, "Cannot remove link when you don't own the item.")
+                return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_id}))
 
             r = item._meta.get_field(related_name)
             link_type = type(r)
@@ -599,7 +599,9 @@ def link_remove(request):
             elif link_type == ManyToManyField:
                 getattr(item, related_name).remove(related_id)
             elif link_type == ManyToOneRel:
-                pass
+                related_item = r.related_model.objects.get(id=related_id)
+                setattr(related_item, item_type, None)
+                related_item.save()
             else:
                 pass
 

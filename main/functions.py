@@ -483,7 +483,7 @@ def create_by_shallow_copy(request, item, exclude=[]):
     """
 
     imported_entity = ImportedEntity(
-        source_type=type(item).__name__,
+        source_type=type(item).__name__.lower(),
         source_id=item.id,
         attribution="Copied from: {} ({})".format(item.name, item.owner),
     )
@@ -494,10 +494,6 @@ def create_by_shallow_copy(request, item, exclude=[]):
 
     item.pk = None  # NB: Setting the pk to None and saving triggers the copy
     item.id = None
-    try:
-        item.name += " (copy)"
-    except:
-        pass
     item.save()  # Now this is the new object
 
     item.owner = request.user.person
@@ -506,11 +502,9 @@ def create_by_shallow_copy(request, item, exclude=[]):
         item.is_standard = False
     except Exception as e:
         pass
-
     item.save()
 
     # Making sure we pass back the reference to the old object too ...
-
     old_item = item_type.get_object_for_this_type(id=old_id)
 
     return item, old_item
