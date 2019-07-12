@@ -115,7 +115,6 @@ class CompoundUnit(NamedCellMLEntity):
     models = ManyToManyField("CellModel", related_name="compoundunits", blank=True)
     is_standard = BooleanField(default=False)
     symbol = CharField(max_length=100, null=True, blank=True)
-
     variables = ManyToManyField("Variable", related_name="compoundunits", blank=True)
 
     def __str__(self):

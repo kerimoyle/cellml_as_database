@@ -285,11 +285,14 @@ def copy(request, item_type, item_id):
         messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
+
     if request.method == 'POST':
         form = CopyForm(request.POST)
         if form.is_valid():
-            item_copy = copy_item(request, item, 'link')  # TODO Give option of deep copy
-            return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item.id}))
+            options = form.cleaned_data['options']
+            item_copy = copy_item(request, item, options)
+            if item_copy:
+                return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_copy.id}))
 
     form = CopyForm()
     form.helper = FormHelper()
@@ -629,7 +632,6 @@ def delete(request, item_type, item_id):
             name = item.name
             id = item.id
             m = item.delete()
-
             try:
                 item_model.get_object_for_this_type(id=item_id)
                 messages.error(request, m)

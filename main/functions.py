@@ -474,7 +474,7 @@ def get_relationship_menu(item_model):
 
 # ------------------------------- COPY FUNCTIONS ------------------------------------------
 
-def create_by_shallow_copy(request, item):
+def create_by_shallow_copy(request, item, exclude=[]):
     """
     This just copies the local attributes of the item from one to another
     :param item_type: type of the item
@@ -489,9 +489,15 @@ def create_by_shallow_copy(request, item):
     )
     imported_entity.save()
 
+    old_id = item.id
+    item_type = ContentType.objects.get(app_label='main', model=type(item).__name__.lower())
+
     item.pk = None  # NB: Setting the pk to None and saving triggers the copy
     item.id = None
-    item.name += " (copy)"
+    try:
+        item.name += " (copy)"
+    except:
+        pass
     item.save()  # Now this is the new object
 
     item.owner = request.user.person
@@ -503,10 +509,14 @@ def create_by_shallow_copy(request, item):
 
     item.save()
 
-    return item
+    # Making sure we pass back the reference to the old object too ...
+
+    old_item = item_type.get_object_for_this_type(id=old_id)
+
+    return item, old_item
 
 
-def link_copy(request, from_item, to_item):
+def link_copy(request, from_item, to_item, exclude=[]):
     """
     Copies the related fields by transferring the existing reference not by creating new objects
     :param request: request (for passing back messages)
@@ -527,20 +537,40 @@ def link_copy(request, from_item, to_item):
 
     # Get a list of all the relational fields in the model
     fields = [x.name for x in from_item._meta.get_fields() if type(x) == ForeignKey]
+    for e in exclude:
+        try:
+            fields.remove(e)
+        except KeyError:
+            pass
     for f in fields:
         setattr(to_item, f, getattr(from_item, f))
 
     fields = [(x.name, x.field.name) for x in from_item._meta.get_fields() if type(x) == ManyToManyRel]
+    for e in exclude:
+        try:
+            fields.remove(e)
+        except KeyError:
+            pass
     for f, r in fields:
         for related_object in getattr(from_item, f).all():
             getattr(related_object, r).add(to_item)
 
     fields = [x.name for x in from_item._meta.get_fields() if type(x) == ManyToManyField]
+    for e in exclude:
+        try:
+            fields.remove(e)
+        except KeyError:
+            pass
     for f in fields:
         for related_object in getattr(from_item, f).all():
             getattr(to_item, f).add(related_object)
 
     fields = [x.name for x in from_item._meta.get_fields() if type(x) == ManyToOneRel]
+    for e in exclude:
+        try:
+            fields.remove(e)
+        except KeyError:
+            pass
     for f in fields:
         for related_object in getattr(from_item, f).all():
             getattr(to_item, f).add(related_object)
@@ -548,7 +578,7 @@ def link_copy(request, from_item, to_item):
     return
 
 
-def deep_copy(request, from_item, to_item):
+def deep_copy(request, from_item, to_item, exclude=[]):
     """
     Makes a duplicate of all connected items instead of copying them as a link
     :param request:
@@ -557,12 +587,50 @@ def deep_copy(request, from_item, to_item):
     :return:
     """
 
-    messages.error(request, "Deep copying is not implemented yet!")
+    # Get a list of all the relational fields in the model
+    # fk_fields = [x.name for x in from_item._meta.get_fields() if type(x) == ForeignKey]
+    # fk_fields.remove('owner')
+    # fk_fields.remove('imported_from')
+    # for f in fk_fields:
+    #     # Duplicate foreign key item
+    #     related_object = getattr(from_item, f)
+    #     new_related_object, related_object = create_by_shallow_copy(request, related_object)
+    #     deep_copy(request, related_object, new_related_object)
+    #     setattr(to_item, f, new_related_object)
+        
+        
+
+    m2o_fields = [x.name for x in from_item._meta.get_fields() if type(x) == ManyToOneRel]
+    for f in m2o_fields:
+        for related_object in getattr(from_item, f).all():
+            # Create new related object
+            new_related_object, related_object = create_by_shallow_copy(request, related_object)
+            deep_copy(request, related_object, new_related_object)
+            getattr(to_item, f).add(new_related_object)
+
+
+
+    m2mr_fields = [(x.name, x.field.name) for x in from_item._meta.get_fields() if type(x) == ManyToManyRel]
+    for f, r in m2mr_fields:
+        for related_object in getattr(from_item, f).all():
+            # Create new related object
+            new_related_object, related_object = create_by_shallow_copy(request, related_object)
+            deep_copy(request, related_object, new_related_object)
+            getattr(to_item, f).add(new_related_object)
+            
+            
+
+
+    # # Upstream manytomany fields still copied as links - have to link to new items
+    # m2mf_fields = [x.name for x in from_item._meta.get_fields() if type(x) == ManyToManyField]
+    # for f in m2mf_fields:
+    #     for related_object in getattr(from_item, f).all():
+    #         getattr(to_item, f).add(related_object)
 
     return
 
 
-def copy_item(request, from_item, options):
+def copy_item(request, from_item, options, exclude=[]):
     item_type = type(from_item).__name__.lower()
     try:
         item_model = ContentType.objects.get(app_label='main', model=item_type)
@@ -571,16 +639,14 @@ def copy_item(request, from_item, options):
         messages.error(request, "{t}: {a}".format(t=type(e).__name__, a=e.args))
         return redirect('main:error')
 
-    item_id = from_item.id
-    to_item = create_by_shallow_copy(request, from_item)
+    to_item, from_item = create_by_shallow_copy(request, from_item, exclude)
     # Resetting the "from_item" after the copy as the pointers are changed by the change in pk?
-    from_item = item_model.get_object_for_this_type(id=item_id)
 
     if options == 'link':
-        link_copy(request, from_item, to_item)
+        link_copy(request, from_item, to_item, exclude)
 
     if options == 'deep':
-        deep_copy(request, from_item, to_item)
+        deep_copy(request, from_item, to_item, exclude)
 
     return to_item
 

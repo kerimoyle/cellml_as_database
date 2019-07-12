@@ -9,7 +9,7 @@ from main.models import (Math)
 # TODO make levels for copy/importing ...
 class CopyForm(forms.Form):
     class Meta:
-        fields = ['item_type', 'item_id']
+        fields = ['item_type', 'item_id', 'options']
 
     def __init__(self, *args, **kwargs):
         super(CopyForm, self).__init__(*args, **kwargs)
@@ -19,6 +19,13 @@ class CopyForm(forms.Form):
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
         self.helper.add_input(Submit('submit', 'Copy'))
+
+        self.fields['options'] = forms.ChoiceField(
+            widget=forms.RadioSelect(),
+            choices=[('base', 'Local fields only'),
+                     ('link', 'Link to related items'),
+                     ('deep', 'Duplicate related items'), ],
+        )
 
 
 class DeleteForm(forms.Form):
