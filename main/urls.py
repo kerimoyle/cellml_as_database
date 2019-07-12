@@ -24,6 +24,7 @@ urlpatterns = [
     path('display/<item_type>/<int:item_id>/', views.display, name='display'),
 
     path('edit_locals/<item_type>/<int:item_id>/', views.edit_locals, name='edit_locals'),
+    path('edit_unit/<int:item_id>/', views.edit_unit, name='edit_unit'),
 
     path('home/', views.home, name='home'),
     path('intro/', views.intro, name='intro'),

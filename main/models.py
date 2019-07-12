@@ -107,8 +107,8 @@ class Unit(NamedCellMLEntity):
     child_cu = ForeignKey("CompoundUnit", related_name='part_of', blank=True, null=True, on_delete=SET_NULL)
 
     multiplier = IntegerField(default=0, null=True)
-    exponent = IntegerField(default=0, null=True)
-    reference = CharField(max_length=100, null=True)
+    exponent = IntegerField(default=1, null=True)
+    reference = CharField(max_length=100, null=True, blank=True)
 
 
 class CompoundUnit(NamedCellMLEntity):

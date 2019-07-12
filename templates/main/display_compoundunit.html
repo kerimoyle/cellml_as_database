@@ -108,8 +108,7 @@
                     <th>Multiplier</th>
                     <th>Base</th>
                     <th>Exponent</th>
-                    {% if can_edit %}
-                        <th></th>{% endif %}
+                    {% if can_edit %}<th></th>{% endif %}
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
@@ -124,6 +123,13 @@
                         <td>{{ u.exponent }}</td>
                         {% if can_edit %}
                             <td class="rowlink-skip">
+
+                                <a onclick="LoadModalData('Edit unit factor','{% url 'main:edit_unit' item_id=u.id %}');"
+                                   data-toggle="modal"
+                                   data-target="#formModal">Edit</a>
+
+                                &nbsp;&nbsp;
+
                                 <a onclick="LoadModalData('Delete unit factor?','{% url 'main:delete' item_type='unit' item_id=u.id %}');"
                                    data-toggle="modal"
                                    data-target="#formModal">Remove</a>

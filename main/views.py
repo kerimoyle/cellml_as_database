@@ -334,26 +334,75 @@ def edit_locals(request, item_type, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
-    check_ownership(request, item)
+    if check_ownership(request, item):
 
-    edit_form = get_edit_locals_form(item_model)
+        edit_form = get_edit_locals_form(item_model)
+
+        if request.POST:
+            form = edit_form(request.POST, instance=item)
+            if form.is_valid():
+                item = form.save()
+                return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item.id}))
+        else:
+            form = edit_form(instance=item)
+
+        form.helper = FormHelper()
+        form.helper.form_method = "POST"
+        form.helper.attrs = {'target': '_top'}  # Triggers reload of the parent page of this modal
+        form.helper.form_action = reverse('main:edit_locals', kwargs={'item_type': item_type, 'item_id': item_id})
+        form.helper.add_input(Submit('submit', 'Save'))
+
+        context = {
+            'item_type': item_type,
+            'form': form,
+            'item': item
+        }
+        return render(request, 'main/form_modal.html', context)
+    else:
+        context = {
+            'item_type': item_type,
+            'item': item,
+            'modal_text': "You don't have permission to edit this item.  The owner is {}.".format(item.owner)
+        }
+        return render(request, 'main/form_modal.html', context)
+
+
+@login_required
+def edit_unit(request, item_id):
+    item = None
+    is_owner = False
+
+    try:
+        item = Unit.objects.get(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find Unit object with id of '{}'".format(item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    if not check_ownership(request, item):
+        context = {
+            'item': item,
+            'modal_text': "You don't have permission to edit this item.  The owner is {}.".format(item.owner)
+        }
+        return render(request, 'main/form_modal.html', context)
+
+    edit_form = modelform_factory(Unit, fields=('prefix', 'child_cu', 'multiplier', 'exponent'))
 
     if request.POST:
         form = edit_form(request.POST, instance=item)
         if form.is_valid():
             item = form.save()
-            return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item.id}))
+            return redirect(reverse('main:display', kwargs={'item_type': 'compoundunit', 'item_id': item.parent_cu.id}))
     else:
         form = edit_form(instance=item)
 
     form.helper = FormHelper()
     form.helper.form_method = "POST"
     form.helper.attrs = {'target': '_top'}  # Triggers reload of the parent page of this modal
-    form.helper.form_action = reverse('main:edit_locals', kwargs={'item_type': item_type, 'item_id': item_id})
+    form.helper.form_action = reverse('main:edit_unit', kwargs={'item_id': item_id})
     form.helper.add_input(Submit('submit', 'Save'))
 
     context = {
-        'item_type': item_type,
         'form': form,
         'item': item
     }
@@ -570,23 +619,24 @@ def delete(request, item_type, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
+    if not check_ownership(request, item):
+        return render(request, 'main/form_modal.html',
+                      {'modal_text': "Sorry, you don't have permission to delete this item."})
+
     if request.method == 'POST':
         form = DeleteForm(request.POST)
         if form.is_valid():
-            if check_ownership(request, item):
+            name = item.name
+            id = item.id
+            m = item.delete()
 
-                name = item.name
-                id = item.id
-
-                m = item.delete()
-
-                try:
-                    item_model.get_object_for_this_type(id=item_id)
-                    messages.error(request, m)
-                    return redirect(reverse("main:display", kwargs={'item_type': item_type, 'item_id': item_id}))
-                except:
-                    messages.success(request, "The {t} {n} was deleted successfully.".format(t=item_type, n=item.name))
-                    return redirect('main:home')
+            try:
+                item_model.get_object_for_this_type(id=item_id)
+                messages.error(request, m)
+                return redirect(reverse("main:display", kwargs={'item_type': item_type, 'item_id': item_id}))
+            except:
+                messages.success(request, "The {t} {n} was deleted successfully.".format(t=item_type, n=item.name))
+                return redirect('main:home')
         else:
             messages.error(request, "The {t} {n} item could not be deleted.".format(t=item_type, n=item.name))
             return redirect(reverse("main:display", kwargs={'item_type': item_type, 'item_id': item_id}))

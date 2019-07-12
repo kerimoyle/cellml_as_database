@@ -354,6 +354,11 @@ def get_edit_locals_form(item_model):
     return edit_form
 
 
+def get_edit_form(item_model, fields):
+    edit_form = modelform_factory(item_model.model_class(), fields=fields)
+    return edit_form
+
+
 def get_local_fields(item_model):
     local_fields = [x.name for x in item_model.model_class()._meta.fields if
                     type(x) != ForeignKey and type(x) != ManyToManyField and type(x) != AutoField and

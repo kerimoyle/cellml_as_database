@@ -8,8 +8,10 @@
                 <p>{{ modal_text|linebreaksbr }}</p>
             </div>
         {% endif %}
-        <div class="col-sm-12">
-            {% crispy form %}
-        </div>
+        {% if form %}
+            <div class="col-sm-12">
+                {% crispy form %}
+            </div>
+        {% endif %}
     </div>
 {% endblock content %}
