@@ -89,7 +89,7 @@ class Variable(NamedCellMLEntity):
     initial_value = CharField(max_length=100, null=True)
     interface_type = CharField(max_length=2, choices=INTERFACE_TYPE, default="NA", null=True, blank=True)
     compoundunit = ForeignKey("CompoundUnit", related_name="variables", on_delete=SET_NULL, null=True, blank=True)
-    components = ManyToManyField("Component", related_name="variables", blank=True)
+    component = ForeignKey("Component", related_name="variables", blank=True, null=True, on_delete=SET_NULL)
 
     def __str__(self):
         return self.name
