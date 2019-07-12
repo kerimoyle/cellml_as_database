@@ -1,2 +1,3 @@
 # cellml_database
  
+This is my scratch pad for seeing how an online database for CellML manipulation could work.  Very much a work in progress ... 
