@@ -549,6 +549,9 @@ def link_backwards(request, item_type, item_id, related_name):
     form.helper.form_action = reverse('main:link_backwards',
                                       kwargs={'item_type': item_type, 'item_id': item_id, 'related_name': related_name})
 
+    # Want to have levels of suggestion and ability to search the queryset passed.
+
+
     context = {
         'item_type': item_type,
         'item': item,
