@@ -136,6 +136,7 @@ def load_model(in_model, owner):
 
     for u in model.compoundunits.all():
         load_units(u, in_model, model, owner)
+        u.save()
 
     # Once everything is loaded into the database, we have to make the connections between items
     for component in model.components.all():
@@ -273,7 +274,7 @@ def load_units(compoundunit, in_model, model, owner):
     in_units = in_model.units(compoundunit.cellml_index)
 
     for u in range(in_units.unitCount()):
-        reference, prefix_string, multiplier, exponent, local_id = in_units.unitAttributes(u)
+        reference, prefix_string, exponent, multiplier, local_id = in_units.unitAttributes(u)
 
         prefix = Prefix.objects.get(name=prefix_string)
 

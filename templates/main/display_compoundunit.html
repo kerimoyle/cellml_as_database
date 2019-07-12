@@ -25,8 +25,9 @@
 {% endblock title_buttons %}
 
 {% block todo %}
-    <br>- Show in a cleaner way than this?
-    <br>- Store symbols or abbreviations for units so that they can be shown symbolically?
+    <br>- Introduce markup for abbreviations/symbols
+    <br>- Clarify whether multiplier is log or not ...?
+    <br>- "send to my library" units can't have unit children removed until the deep copy functionality is done ...
 {% endblock todo %}
 
 {% block content %}
@@ -93,10 +94,10 @@
             <div class="row">
                 <br>
                 <div class="numerator"
-                     style="font-family: 'Times New Roman'; font-size: larger; font-style: italic; text-align: center;">
+                     style="font-family: 'Times New Roman'; font-size: x-large; font-style: italic; text-align: center;">
                     {% if multiplier %}(10<sup>{{ multiplier }}</sup>) {% endif %}
                     {% for f in formula %}{{ f|safe }}{% endfor %}
-
+                    <br>
                 </div>
             </div>
 

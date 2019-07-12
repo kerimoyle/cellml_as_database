@@ -8,7 +8,7 @@ import os
 
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import (IntegerField, ManyToManyField, FloatField, CharField, TextField, ForeignKey,
+from django.db.models import (IntegerField, ManyToManyField, CharField, TextField, ForeignKey,
                               NullBooleanField, URLField, FileField, CASCADE, OneToOneField, EmailField,
                               BooleanField, SET_NULL)
 from django.db.models import Model as DjangoModel
@@ -97,11 +97,11 @@ class Variable(NamedCellMLEntity):
 
 def get_default_prefix():
     p = Prefix.objects.get(name="")
-    return p
+    return p.id
 
 
 class Unit(NamedCellMLEntity):
-    prefix = ForeignKey("Prefix", on_delete=get_default_prefix, null=True, blank=True)
+    prefix = ForeignKey("Prefix", on_delete=get_default_prefix, default=get_default_prefix)
 
     parent_cu = ForeignKey("CompoundUnit", related_name='product_of', blank=True, null=True, on_delete=SET_NULL)
     child_cu = ForeignKey("CompoundUnit", related_name='part_of', blank=True, null=True, on_delete=SET_NULL)
@@ -114,10 +114,33 @@ class Unit(NamedCellMLEntity):
 class CompoundUnit(NamedCellMLEntity):
     models = ManyToManyField("CellModel", related_name="compoundunits", blank=True)
     is_standard = BooleanField(default=False)
-    symbol = CharField(max_length=20, null=True)
+    symbol = CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
         return "{n} ({s})".format(n=self.name, s=self.symbol)
+
+    def save(self, *args, **kwargs):
+        # If there is no symbol defined for this compound unit then use the product of the children
+        if self.symbol is None and self.product_of.count() != 0:
+            # Create from amalgamation of children
+            self.symbol = "("
+
+            for unit in self.product_of.all():
+                if unit.child_cu is None:
+                    continue
+                else:
+                    my_symbol = ""
+                    if unit.prefix is not None:
+                        my_symbol += unit.prefix.symbol
+                    if unit.child_cu.symbol:
+                        my_symbol += unit.child_cu.symbol
+                    if unit.exponent != 1:
+                        my_symbol += "<sup>{}</sup>".format(unit.exponent)
+                    self.symbol = "{}{}".format(self.symbol, my_symbol)
+
+            self.symbol = "{})".format(self.symbol)
+
+        super(CompoundUnit, self).save(args, kwargs)
 
     def delete(self, *args, **kwargs):
         # prevent deleting if is standard

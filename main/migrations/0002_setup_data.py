@@ -116,6 +116,10 @@ def add_standards(apps, schema_editor):
     User = apps.get_model('auth', 'User')
     Prefix = apps.get_model('main', 'Prefix')
 
+    for name, value, symbol in prefix_list:
+        prefix = Prefix(name=name, value=value, symbol=symbol)
+        prefix.save()
+
     for name, symbol, made_of in standard_unit_list:
         cu = CompoundUnit(name=name, is_standard=True, symbol=symbol)
         cu.save()
@@ -124,10 +128,6 @@ def add_standards(apps, schema_editor):
             if base:
                 u = Unit(exponent=val, parent_cu=cu, child_cu=base, reference=key)
                 u.save()
-
-    for name, value, symbol in prefix_list:
-        prefix = Prefix(name=name, value=value, symbol=symbol)
-        prefix.save()
 
     user = User(username="admin")
     user.save()

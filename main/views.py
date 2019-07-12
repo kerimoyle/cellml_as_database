@@ -15,7 +15,7 @@ from main.defines import MENU_OPTIONS
 from main.forms import ReverseLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import build_tree_from_model, load_model, get_edit_locals_form, get_item_local_attributes, \
     get_child_fields, get_item_child_attributes, get_parent_fields, get_item_parent_attributes, copy_item
-from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, ImportedEntity, Unit
+from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, ImportedEntity, Unit, Prefix
 
 
 def test(request):
@@ -232,6 +232,8 @@ def create_unit(request, cu_id, in_modal):
         form = create_form(request.POST)
         if form.is_valid():
             item = form.save()
+            if item.prefix is None:
+                item.prefix = Prefix.objects.get(name="")
             item.owner = person
             item.parent_cu = cu
             item.save()
@@ -677,7 +679,7 @@ def display_compoundunit(request, item_id):
     multiplier = 0
     for u in item.product_of.all():
         multiplier += u.multiplier
-        if u.exponent == 1 or u.exponent == -1:
+        if u.exponent == 1:
             formula.append("{p}{u} ".format(p=u.prefix.symbol, u=u.child_cu.symbol))
         else:
             formula.append("{p}{u}<sup>{e}</sup>".format(p=u.prefix.symbol, u=u.child_cu.symbol, e=u.exponent))
