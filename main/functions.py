@@ -146,17 +146,24 @@ def load_model(in_model, owner):
             in_variable = in_component.variable(variable.cellml_index)
             in_units = in_variable.units()
             if type(in_units).__name__ == 'str':
-                # not sure how to deal with base units here ...
-                # Set unit as the CompoundUnit(is_standard=True) with the same name
-                try:
-                    u = CompoundUnit.objects.get(is_standard=True, name=in_units)
+                u = CompoundUnit.objects.filter(is_standard=True, name=in_units).first()
+                if u is not None:
+                    # Then is built-in unit
                     variable.compoundunit = u
                     variable.save()
-                except Exception as e:
-                    pass
-
+                else:
+                    # Then is new base unit.  Create compound unit with no children
+                    u_new = CompoundUnit(
+                        name=in_units,
+                        symbol=in_units,
+                        is_standard=False,
+                        model=model
+                    )
+                    u_new.save()
+                    variable.compoundunits = u_new
+                    variable.save()
             else:
-                variable.units = model.units.filter(name=in_units.name()).first()
+                variable.compoundunits = model.compoundunits.filter(name=in_units.name()).first()
                 variable.save()
 
             # Set equivalent variables
@@ -317,8 +324,8 @@ def load_variable(index, in_component, out_component, owner):
         # interface_type=in_variable.interfaceType(),  # TODO get dictionary of interfaceTypes ...
         owner=owner,
     )
+    out_variable.component = out_component
     out_variable.save()
-    out_variable.components.add(out_component)
 
 
 def load_reset(index, in_component, out_component, owner):

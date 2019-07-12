@@ -88,7 +88,7 @@ class Variable(NamedCellMLEntity):
 
     initial_value = CharField(max_length=100, null=True)
     interface_type = CharField(max_length=2, choices=INTERFACE_TYPE, default="NA", null=True, blank=True)
-    compoundunit = ForeignKey("CompoundUnit", related_name="variables", on_delete=SET_NULL, null=True, blank=True)
+
     component = ForeignKey("Component", related_name="variables", blank=True, null=True, on_delete=SET_NULL)
 
     def __str__(self):
@@ -116,8 +116,10 @@ class CompoundUnit(NamedCellMLEntity):
     is_standard = BooleanField(default=False)
     symbol = CharField(max_length=100, null=True, blank=True)
 
+    variables = ManyToManyField("Variable", related_name="compoundunits", blank=True)
+
     def __str__(self):
-        return "{n} ({s})".format(n=self.name, s=self.symbol)
+        return "{n}".format(n=self.name)
 
     def save(self, *args, **kwargs):
         # If there is no symbol defined for this compound unit then use the product of the children
