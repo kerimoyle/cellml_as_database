@@ -5,19 +5,80 @@
             src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
     </script>
 {% endblock head_includes %}
+{% block todo %}
+    <br>- need to include editing
+    <br>- need to decide what language this will be best suited to
+    <br>- find a better renderer ...
+{% endblock todo %}
+
+
+{% block title %}Math{% endblock title %}
+{% block title_buttons %}
+    {% if can_edit %}
+        <a onclick="LoadModalData('Create a copy?','{% url 'main:copy' item_type='math' item_id=math.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration:none;">
+            <button class="btn btn-primary">
+                <i class="fa fa-plus"></i>&nbsp;&nbsp;Copy
+            </button>
+        </a>
+        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type='math' item_id=math.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration: none;">
+            <button class="btn btn-default"><i class="fa fa-trash"></i> Delete</button>
+        </a>
+    {% else %}
+        <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type='math' item_id=math.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration:none;">
+            <button class="btn btn-primary">
+                <i class="fa fa-send"></i>&nbsp;&nbsp;Send
+            </button>
+        </a>
+    {% endif %}
+{% endblock %}
 
 {% block content %}
-
-    {{ math.math_ml|safe }}
     <div class="row">
-        <div class="col-sm-6">
-              When \(a \ne 0\), there are two solutions to \(ax^2 + bx + c = 0\) and they are
-  $$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
+        <div class="col-sm-4">
+            <table class="datatables display table table-hover" id="table-connections">
+                <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    {% if can_edit %}
+                        <th></th>
+                    {% endif %}
+                </tr>
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for c in math.components.all %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'main:display' item_type='component' item_id=c.id %}"></a>
+                            {{ c.name }}
+                        </td>
+                        <td>{{ obj }}</td>
+                        {% if can_edit %}
+                            <td class="rowlink-skip">
+                                <a onclick="Unlink('{{ field }}','{{ obj.id }}');">Unlink</a>
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="col-sm-4">
+            {{ math.math_ml|linebreaksbr }}
+        </div>
+        <div class="col-sm-4">
+            {{ math.math_ml|safe }}
         </div>
     </div>
-    <p>
-
-</p>
-
 {% endblock content %}
 

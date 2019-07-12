@@ -217,7 +217,17 @@ def load_component(index, in_model, model, owner):
     for r in range(in_component.resetCount()):
         load_reset(r, in_component, out_component, owner)
 
+    # Load math in this component
+    if in_component.math():
+        math = Math(
+            math_ml=in_component.math(),
+            owner=owner,
+        )
+        math.save()
+        math.components.add(out_component)
+
     return
+
 
 
 def load_compound_units(index, in_model, model, owner):

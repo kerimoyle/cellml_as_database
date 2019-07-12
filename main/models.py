@@ -151,7 +151,7 @@ class CompoundUnit(NamedCellMLEntity):
 
 
 class Math(NamedCellMLEntity):
-    models = ManyToManyField("CellModel", related_name="maths", blank=True)
+    components = ManyToManyField("Component", related_name="maths", blank=True)
     math_ml = TextField(blank=True)
 
     # TODO how to make a parent fk to *either* model or reset?
