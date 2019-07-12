@@ -14,7 +14,7 @@ from django.urls import reverse
 from main.defines import MENU_OPTIONS
 from main.forms import ReverseLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import build_tree_from_model, load_model, get_edit_locals_form, get_item_local_attributes, \
-    get_child_fields, get_item_child_attributes, get_parent_fields, get_item_parent_attributes, copy_item
+    get_child_fields, get_item_child_attributes, get_parent_fields, get_item_parent_attributes, copy_item, delete_item
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, ImportedEntity, Unit, Prefix
 
 
@@ -631,7 +631,9 @@ def delete(request, item_type, item_id):
         if form.is_valid():
             name = item.name
             id = item.id
-            m = item.delete()
+            options = form.cleaned_data['options']
+            m = delete_item(request, item, options)
+
             try:
                 item_model.get_object_for_this_type(id=item_id)
                 messages.error(request, m)

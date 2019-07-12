@@ -650,6 +650,51 @@ def copy_item(request, from_item, options, exclude=[]):
 
     return to_item
 
+
+def delete_item(request, item, options):
+    item_type = type(item).__name__.lower()
+    try:
+        item_model = ContentType.objects.get(app_label='main', model=item_type)
+    except Exception as e:
+        messages.error(request, "Could not find class with name '{t}'".format(t=item_type))
+        messages.error(request, "{t}: {a}".format(t=type(e).__name__, a=e.args))
+        return redirect('main:error')
+    
+    if options == 'deep':
+        m = delete_deep(request, item)
+    else:
+        m = item.delete()
+        
+    return m
+
+
+def delete_deep(request, item):
+    """
+    Deletes this item as well as any child items included in it.
+    :param request: 
+    :param item: 
+    :return: 
+    """
+
+    if item.owner != request.user.person:
+        return "{} skipped - not yours to delete".format(item.name)
+    
+    m2o_fields = [x.name for x in item._meta.get_fields() if type(x) == ManyToOneRel]
+    for f in m2o_fields:
+        for related_object in getattr(item, f).all():
+            # Create new related object
+            delete_deep(request, related_object)
+
+    m2mr_fields = [(x.name, x.field.name) for x in item._meta.get_fields() if type(x) == ManyToManyRel]
+    for f, r in m2mr_fields:
+        for related_object in getattr(item, f).all():
+            # Create new related object
+            delete_deep(request, related_object)
+
+    return item.delete()
+
+    
+
 # --------------------- Others ----------------------------------
 
 

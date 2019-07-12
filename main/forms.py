@@ -30,7 +30,7 @@ class CopyForm(forms.Form):
 
 class DeleteForm(forms.Form):
     class Meta:
-        fields = ['item_type', 'item_id']
+        fields = ['item_type', 'item_id', 'options']
 
     def __init__(self, *args, **kwargs):
         super(DeleteForm, self).__init__(*args, **kwargs)
@@ -40,6 +40,12 @@ class DeleteForm(forms.Form):
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
         self.helper.add_input(Submit('submit', 'Delete'))
+
+        self.fields['options'] = forms.ChoiceField(
+            widget=forms.RadioSelect(),
+            choices=[('base', 'Delete item only'),
+                     ('deep', 'Delete related items'), ],
+        )
 
 
 class LoginForm(forms.Form):
