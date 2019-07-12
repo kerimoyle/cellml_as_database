@@ -673,10 +673,21 @@ def display_compoundunit(request, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
+    formula = []
+    multiplier = 0
+    for u in item.product_of.all():
+        multiplier += u.multiplier
+        if u.exponent == 1 or u.exponent == -1:
+            formula.append("{p}{u} ".format(p=u.prefix.symbol, u=u.child_cu.symbol))
+        else:
+            formula.append("{p}{u}<sup>{e}</sup>".format(p=u.prefix.symbol, u=u.child_cu.symbol, e=u.exponent))
+
     context = {
         'item': item,
         'menu': MENU_OPTIONS['display'],
-        'can_edit': request.user.person == item.owner
+        'can_edit': request.user.person == item.owner,
+        'formula': formula,
+        'multiplier': multiplier
     }
     return render(request, 'main/display_compoundunit.html', context)
 

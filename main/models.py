@@ -52,6 +52,7 @@ class Person(DjangoModel):
 class Prefix(DjangoModel):
     value = IntegerField(default=0)
     name = CharField(max_length=20)
+    symbol = CharField(max_length=10)
 
     def __str__(self):
         return self.name
@@ -94,26 +95,29 @@ class Variable(NamedCellMLEntity):
         return self.name
 
 
+def get_default_prefix():
+    p = Prefix.objects.get(name="")
+    return p
+
+
 class Unit(NamedCellMLEntity):
-    prefix = ForeignKey("Prefix", on_delete=SET_NULL, null=True, blank=True)
+    prefix = ForeignKey("Prefix", on_delete=get_default_prefix, null=True, blank=True)
 
     parent_cu = ForeignKey("CompoundUnit", related_name='product_of', blank=True, null=True, on_delete=SET_NULL)
     child_cu = ForeignKey("CompoundUnit", related_name='part_of', blank=True, null=True, on_delete=SET_NULL)
 
-    multiplier = FloatField(default=0.0, null=True)
-    exponent = FloatField(default=0.0, null=True)
-    reference = CharField(max_length=100, null=True)  # TODO Reference is stored as a string, will be processed into fks
-
-    def __str__(self):
-        return self.child_cu.name
+    multiplier = IntegerField(default=0, null=True)
+    exponent = IntegerField(default=0, null=True)
+    reference = CharField(max_length=100, null=True)
 
 
 class CompoundUnit(NamedCellMLEntity):
     models = ManyToManyField("CellModel", related_name="compoundunits", blank=True)
     is_standard = BooleanField(default=False)
+    symbol = CharField(max_length=20, null=True)
 
     def __str__(self):
-        return self.name
+        return "{n} ({s})".format(n=self.name, s=self.symbol)
 
     def delete(self, *args, **kwargs):
         # prevent deleting if is standard

@@ -59,6 +59,19 @@ iframe {
     margin-right: 0px;
 }
 
+.denominator {
+    font-family: "Times New Roman";
+    font-style: italic;
+    font-size: larger;
+    text-align:center;
+}
+.numerator {
+    font-family: "Times New Roman";
+    font-style: italic;
+    font-size: larger;
+    text-align: center;
+}
+
 
 .success {
     background-color: #dbf1cf;

@@ -90,6 +90,16 @@
                 {% endif %}
             </div>
 
+            <div class="row">
+                <br>
+                <div class="numerator"
+                     style="font-family: 'Times New Roman'; font-size: larger; font-style: italic; text-align: center;">
+                    {% if multiplier %}(10<sup>{{ multiplier }}</sup>) {% endif %}
+                    {% for f in formula %}{{ f|safe }}{% endfor %}
+
+                </div>
+            </div>
+
             <table class="datatables display table table-hover">
                 <thead>
                 <tr>
@@ -97,7 +107,8 @@
                     <th>Multiplier</th>
                     <th>Base</th>
                     <th>Exponent</th>
-                    {% if can_edit %}<th></th>{% endif %}
+                    {% if can_edit %}
+                        <th></th>{% endif %}
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
@@ -112,9 +123,9 @@
                         <td>{{ u.exponent }}</td>
                         {% if can_edit %}
                             <td class="rowlink-skip">
-                            <a onclick="LoadModalData('Delete unit factor?','{% url 'main:delete' item_type='unit' item_id=u.id %}');"
-                           data-toggle="modal"
-                           data-target="#formModal">Remove</a>
+                                <a onclick="LoadModalData('Delete unit factor?','{% url 'main:delete' item_type='unit' item_id=u.id %}');"
+                                   data-toggle="modal"
+                                   data-target="#formModal">Remove</a>
                             </td>
                         {% endif %}
                     </tr>
