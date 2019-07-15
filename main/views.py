@@ -735,9 +735,9 @@ def display_compoundunit(request, item_id):
         return redirect('main:error')
 
     formula = []
-    multiplier = 0
+    multiplier = 1
     for u in item.product_of.all():
-        multiplier += u.multiplier
+        multiplier *= u.multiplier
         if u.exponent == 1:
             formula.append("{p}{u} ".format(p=u.prefix.symbol, u=u.child_cu.symbol))
         else:
