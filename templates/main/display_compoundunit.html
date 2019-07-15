@@ -71,6 +71,33 @@
                 </tr>
                 </tbody>
             </table>
+
+            <h3>Used by variables</h3>
+            {% if item.variables.count %}
+                <table class="datatables display table table-hover">
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Component</th>
+                    </tr>
+                    </thead>
+                    <tbody class="rowlink" data-link="row">
+                    {% for variable in item.variables.all %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'main:display' item_type='variable' item_id=variable.id %}"></a>
+                                {{ variable.name }}</td>
+                            <td>
+                                {{ variable.component.name }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty">Not connected to any variables</div>
+            {% endif %}
+
         </div>
 
         <div class="col-md-8 table-responsive">
@@ -93,21 +120,21 @@
 
             <div class="row">
                 <br>
-            {% if formula.count %}
-                <div class="numerator"
-                     style="font-family: 'Times New Roman'; font-size: x-large; font-style: italic; text-align: center;">
-                    {% if multiplier %}(10<sup>{{ multiplier }}</sup>) {% endif %}
-                    {% for f in formula %}{{ f|safe }}{% endfor %}
-                    <br>
-                </div>
-            {% else %}
-                <div class="numerator"
-                     style="font-family: 'Times New Roman'; font-size: x-large; font-style: italic; text-align: center;">
-                    {% if multiplier %}(10<sup>{{ multiplier }}</sup>) {% endif %}
-                    {{ item.symbol|safe }}
-                    <br>
-                </div>
-            {% endif %}
+                {% if formula.count %}
+                    <div class="numerator"
+                         style="font-family: 'Times New Roman'; font-size: x-large; font-style: italic; text-align: center;">
+                        {% if multiplier %}(10<sup>{{ multiplier }}</sup>) {% endif %}
+                        {% for f in formula %}{{ f|safe }}{% endfor %}
+                        <br>
+                    </div>
+                {% else %}
+                    <div class="numerator"
+                         style="font-family: 'Times New Roman'; font-size: x-large; font-style: italic; text-align: center;">
+                        {% if multiplier %}(10<sup>{{ multiplier }}</sup>) {% endif %}
+                        {{ item.symbol|safe }}
+                        <br>
+                    </div>
+                {% endif %}
             </div>
 
             {% if item.product_of.count %}
@@ -132,7 +159,7 @@
                                     {% if u.multiplier %}(10<sup>{{ u.multiplier }}</sup>) {% endif %}
                                     {% if u.prefix %}{{ u.prefix.symbol }}{% endif %}{% if u.child_cu %}
                                         {% if u.child_cu.symbol %}{{ u.child_cu.symbol }}{% endif %}{% endif %}
-                                            {% if u.exponent != 1 %}<sup> {{ u.exponent }}</sup>{% endif %}
+                                    {% if u.exponent != 1 %}<sup> {{ u.exponent }}</sup>{% endif %}
                                     <br>
                                 </div>
                             </td>

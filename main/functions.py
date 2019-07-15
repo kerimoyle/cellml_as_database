@@ -149,9 +149,15 @@ def load_model(in_model, owner):
                 u = CompoundUnit.objects.filter(is_standard=True, name=in_units).first()
                 if u is not None:
                     # Then is built-in unit
-                    variable.compoundunit = u
-                    variable.save()
+                    variable.compoundunits.add(u)
+                    break
+
+                u = CompoundUnit.objects.filter(name=in_units, models=model).first()
+                if u is not None:
+                    variable.compoundunits.add(u)
+
                 else:
+
                     # Then is new base unit.  Create compound unit with no children
                     # TODO Check whether this can be linked to existing units?  Currently creates many copies, eg see
                     # NiedererHunterSmith model duplication ms etc.
