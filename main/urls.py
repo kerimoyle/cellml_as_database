@@ -38,8 +38,8 @@ urlpatterns = [
     path('register/', views.register, name='register'),
 
     path('upload/', views.upload, name='upload'),
-    path('upload_check/<int:item_id>/', views.upload_check, name='upload_check'),
-    path('upload_model/', views.upload_model, name='upload_model'),
+    # path('upload_check/<int:item_id>/', views.upload_check, name='upload_check'),
+    # path('upload_model/', views.upload_model, name='upload_model'),
 
     path('', views.home, name='home'),
 
