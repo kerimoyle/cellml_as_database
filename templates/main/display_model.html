@@ -9,26 +9,25 @@
 {% block title %}Model <b>{{ model.name }}</b>{% endblock title %}
 {% block title_buttons %}
     {% if can_edit %}
-        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type="cellmodel" item_id=model.id %}');"
-           data-toggle="modal"
-           data-target="#formModal"
-           style="text-decoration: none;">
-            <button class="btn btn-default pull-right"><i class="fa fa-trash"></i> Delete</button>
-        </a>
-
         <a onclick="LoadModalData('Copy into your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
            data-toggle="modal"
            data-target="#formModal"
            style="text-decoration: none;">
-            <button class="btn btn-primary pull-right"><i class="fa fa-plus"></i> Copy
+            <button class="btn btn-primary"><i class="fa fa-plus"></i> Copy
             </button>
+        </a>
+        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type="cellmodel" item_id=model.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration: none;">
+            <button class="btn btn-default "><i class="fa fa-trash"></i> Delete</button>
         </a>
     {% else %}
         <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
            data-toggle="modal"
            data-target="#formModal"
            style="text-decoration: none;">
-            <button class="btn btn-primary pull-right"><i class="fa fa-send"></i> Send
+            <button class="btn btn-primary"><i class="fa fa-send"></i> Send
             </button>
         </a>
     {% endif %}

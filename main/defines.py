@@ -18,9 +18,9 @@ MODEL_CLASSES = {
     'component': 'component',
     'math': 'maths',
     'compoundunit': 'compound unit',
-    'unit': 'unit',
+    # 'unit': 'unit',
     'variable': 'variable',
-    'reset': 'reset',
+    # 'reset': 'reset',
 }
 
 MENU_OPTIONS = {

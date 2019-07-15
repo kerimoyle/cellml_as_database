@@ -27,6 +27,7 @@
 {% block todo %}
     <br>- Introduce markup for abbreviations/symbols (micro, ohms)
     <br>- Clarify whether multiplier is log or not ...?
+    <br>- why doesn't the uploader own all compound units?
 {% endblock todo %}
 
 {% block content %}
@@ -92,60 +93,76 @@
 
             <div class="row">
                 <br>
+            {% if formula.count %}
                 <div class="numerator"
                      style="font-family: 'Times New Roman'; font-size: x-large; font-style: italic; text-align: center;">
                     {% if multiplier %}(10<sup>{{ multiplier }}</sup>) {% endif %}
                     {% for f in formula %}{{ f|safe }}{% endfor %}
                     <br>
                 </div>
+            {% else %}
+                <div class="numerator"
+                     style="font-family: 'Times New Roman'; font-size: x-large; font-style: italic; text-align: center;">
+                    {% if multiplier %}(10<sup>{{ multiplier }}</sup>) {% endif %}
+                    {{ item.symbol|safe }}
+                    <br>
+                </div>
+            {% endif %}
             </div>
 
-            <table class="datatables display table table-hover">
-                <thead>
-                <tr>
-                    <th></th>
-                    <th>Prefix</th>
-                    <th>Multiplier</th>
-                    <th>Base</th>
-                    <th>Exponent</th>
-                    {% if can_edit %}
-                        <th></th>{% endif %}
-                </tr>
-                </thead>
-                <tbody class="rowlink" data-link="row">
-                {% for u in item.product_of.all %}
+            {% if item.product_of.count %}
+                <table class="datatables display table table-hover">
+                    <thead>
                     <tr>
-                        <td>
-                            <a href="{% url 'main:display' item_type='compoundunit' item_id=u.child_cu.id %}"></a>
-
-                            <div style="font-family: 'Times New Roman'; font-size: large; font-style: italic; text-align: center;">
-                                {% if u.multiplier %}(10<sup>{{ u.multiplier }}</sup>) {% endif %}
-                                {% if u.prefix %}{{ u.prefix.symbol }}{% endif %}{% if u.child_cu %}{% if u.child_cu.symbol %}{{ u.child_cu.symbol }}{% endif %}{% endif %}{% if u.exponent != 1 %}<sup> {{ u.exponent }}</sup>{% endif %}
-                                <br>
-                            </div>
-                        </td>
-                        <td>{{ u.prefix }}</td>
-                        <td>{{ u.multiplier }}</td>
-                        <td>{{ u.child_cu.name }}</td>
-                        <td>{{ u.exponent }}</td>
+                        <th></th>
+                        <th>Prefix</th>
+                        <th>Multiplier</th>
+                        <th>Base</th>
+                        <th>Exponent</th>
                         {% if can_edit %}
-                            <td class="rowlink-skip">
-
-                                <a onclick="LoadModalData('Edit unit factor','{% url 'main:edit_unit' item_id=u.id %}');"
-                                   data-toggle="modal"
-                                   data-target="#formModal">Edit</a>
-
-                                &nbsp;&nbsp;
-
-                                <a onclick="LoadModalData('Delete unit factor?','{% url 'main:delete' item_type='unit' item_id=u.id %}');"
-                                   data-toggle="modal"
-                                   data-target="#formModal">Remove</a>
-                            </td>
-                        {% endif %}
+                            <th></th>{% endif %}
                     </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody class="rowlink" data-link="row">
+                    {% for u in item.product_of.all %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'main:display' item_type='compoundunit' item_id=u.child_cu.id %}"></a>
+                                <div style="font-family: 'Times New Roman'; font-size: large; font-style: italic; text-align: center;">
+                                    {% if u.multiplier %}(10<sup>{{ u.multiplier }}</sup>) {% endif %}
+                                    {% if u.prefix %}{{ u.prefix.symbol }}{% endif %}{% if u.child_cu %}
+                                        {% if u.child_cu.symbol %}{{ u.child_cu.symbol }}{% endif %}{% endif %}
+                                            {% if u.exponent != 1 %}<sup> {{ u.exponent }}</sup>{% endif %}
+                                    <br>
+                                </div>
+                            </td>
+                            <td>{{ u.prefix }}</td>
+                            <td>{{ u.multiplier }}</td>
+                            <td>{{ u.child_cu.name }}</td>
+                            <td>{{ u.exponent }}</td>
+                            {% if can_edit %}
+                                <td class="rowlink-skip">
+
+                                    <a onclick="LoadModalData('Edit unit factor','{% url 'main:edit_unit' item_id=u.id %}');"
+                                       data-toggle="modal"
+                                       data-target="#formModal">Edit</a>
+
+                                    &nbsp;&nbsp;
+
+                                    <a onclick="LoadModalData('Delete unit factor?','{% url 'main:delete' item_type='unit' item_id=u.id %}');"
+                                       data-toggle="modal"
+                                       data-target="#formModal">Remove</a>
+                                </td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty">
+                    This item has no further base units.
+                </div>
+            {% endif %}
         </div>
     </div>
 {% endblock content %}

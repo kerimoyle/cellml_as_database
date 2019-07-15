@@ -153,15 +153,18 @@ def load_model(in_model, owner):
                     variable.save()
                 else:
                     # Then is new base unit.  Create compound unit with no children
+                    # TODO Check whether this can be linked to existing units?  Currently creates many copies, eg see
+                    # NiedererHunterSmith model duplication ms etc.
                     u_new = CompoundUnit(
                         name=in_units,
                         symbol=in_units,
                         is_standard=False,
-                        model=model
+                        owner=owner,
                     )
                     u_new.save()
-                    variable.compoundunits = u_new
+                    u_new.models.add(model)
                     variable.save()
+                    u_new.variables.add(variable)
             else:
                 variable.compoundunits = model.compoundunits.filter(name=in_units.name()).first()
                 variable.save()
@@ -227,7 +230,6 @@ def load_component(index, in_model, model, owner):
         math.components.add(out_component)
 
     return
-
 
 
 def load_compound_units(index, in_model, model, owner):
@@ -601,8 +603,6 @@ def deep_copy(request, from_item, to_item, exclude=[]):
     #     new_related_object, related_object = create_by_shallow_copy(request, related_object)
     #     deep_copy(request, related_object, new_related_object)
     #     setattr(to_item, f, new_related_object)
-        
-        
 
     m2o_fields = [x.name for x in from_item._meta.get_fields() if type(x) == ManyToOneRel]
     for f in m2o_fields:
@@ -612,8 +612,6 @@ def deep_copy(request, from_item, to_item, exclude=[]):
             deep_copy(request, related_object, new_related_object)
             getattr(to_item, f).add(new_related_object)
 
-
-
     m2mr_fields = [(x.name, x.field.name) for x in from_item._meta.get_fields() if type(x) == ManyToManyRel]
     for f, r in m2mr_fields:
         for related_object in getattr(from_item, f).all():
@@ -621,9 +619,6 @@ def deep_copy(request, from_item, to_item, exclude=[]):
             new_related_object, related_object = create_by_shallow_copy(request, related_object)
             deep_copy(request, related_object, new_related_object)
             getattr(to_item, f).add(new_related_object)
-            
-            
-
 
     # # Upstream manytomany fields still copied as links - have to link to new items
     # m2mf_fields = [x.name for x in from_item._meta.get_fields() if type(x) == ManyToManyField]
@@ -663,12 +658,12 @@ def delete_item(request, item, options):
         messages.error(request, "Could not find class with name '{t}'".format(t=item_type))
         messages.error(request, "{t}: {a}".format(t=type(e).__name__, a=e.args))
         return redirect('main:error')
-    
+
     if options == 'deep':
         m = delete_deep(request, item)
     else:
         m = item.delete()
-        
+
     return m
 
 
@@ -682,7 +677,7 @@ def delete_deep(request, item):
 
     if item.owner != request.user.person:
         return "{} skipped - not yours to delete".format(item.name)
-    
+
     m2o_fields = [x.name for x in item._meta.get_fields() if type(x) == ManyToOneRel]
     for f in m2o_fields:
         for related_object in getattr(item, f).all():
@@ -696,8 +691,6 @@ def delete_deep(request, item):
             delete_deep(request, related_object)
 
     return item.delete()
-
-    
 
 # --------------------- Others ----------------------------------
 

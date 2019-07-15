@@ -64,10 +64,12 @@
                 {% endif %}
             </div>
             <p class="info">
-                <b>Relations</b> are those parts of an item which are links to other items, ie: the children or parents
-                of the current item. Clicking on a row in the table below will open the detailed description page for
+                <b>Upstream</b> relationships link to items which could be thought to own this current item. They are
+                the container for the current item. You can change upstream links to this item here, but to change the
+                upstream item itself you will need to go to its homepage.<br>
+                Clicking on a row in the table below will open the detailed description page for
                 each of the related items. To remove an external connection, click the delete button on that row. To
-                add a new connection, click the <b>Add new</b> button.
+                add a new connection, click the <b>Add link to</b> button.
             </p>
             <table class="datatables display table table-hover" id="table-connections">
                 <thead>
@@ -128,12 +130,11 @@
 
             <p class="info"><b>Local</b> attributes are those specifically owned by this type of object, ie:
                 the {{ item_type }}.
-                These are distinct from links or connections to other objects, which are the <b>Externals</b> in the
-                other column. You can edit the local attributes of any items which you own by clicking the <b>Edit</b>
-                button at the bottom of the list.</p>
-            <p class="info">
+                These are distinct from links or connections to other objects, which are shown in the
+                other columns. You can edit the local attributes of any items which you own by clicking the <b>Edit</b>
+                button at the bottom of the list.<br<br>
                 If you need to edit the local attributes of an item which you don't own, you will need to first create
-                your own copy using the <b>Create</b> page.
+                your own copy using the <b>Send to my library</b> button.
             </p>
             {% if item.notes %}<p>{{ item.notes|linebreaks }}</p>{% endif %}
 
@@ -206,10 +207,10 @@
                 {% endif %}
             </div>
             <p class="info">
-                <b>Relations</b> are those parts of an item which are links to other items, ie: the children or parents
-                of the current item. Clicking on a row in the table below will open the detailed description page for
-                each of the related items. To remove an external connection, click the delete button on that row. To
-                add a new connection, click the <b>Add new</b> button.
+                <b>Downstream</b> items are the children or depenedants of the current item. Clicking on a row in the
+                table below will open the detailed description page for each of the related items. To remove an
+                external connection, click the <b>Unlink</b> button on that row.  To add a new connection, click the
+                <b>Add link to</b> button.
             </p>
             <table class="datatables display table table-hover" id="table-connections">
                 <thead>

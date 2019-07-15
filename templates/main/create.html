@@ -3,7 +3,11 @@
 
 {% block title %}Create a new <b>{{ item_type }}</b> item{% endblock title %}
 
-{% block todo %} - make possible to convert xml field into model  ... {% endblock todo %}
+{% block todo %}
+    <br>- make possible to convert xml field into model  ... danger, will robinson ...
+    <br>- limit queryset for related objects to those allowed to be linked in that manner
+    <br>- suppress "imported_from" field when creating from scratch
+{% endblock todo %}
 
 {% block content %}
     <div class="row">
@@ -20,21 +24,22 @@
                 </li>
                 <li>
                     Upload a CellML 2.0 file and selectively import some or all of its items. Use the
-                    <a>import</a> menu for this.
+                    <a>upload</a> menu for this.
                 </li>
                 <li>
                     Create a copy of an existing {{ item_type }} item which you own and can edit. This process will
                     keep the attribution of the copied item, but changes to the original item will not be
-                    propagated to your copy or vice versa.
+                    propagated to your copy or vice versa. Use the "Duplicate related items" option on the copy page.
                 </li>
                 <li>
                     Import a reference to an item which already exists in the database - you do not need to own this
                     other item. This process simply references the other item in the same way as it would reference
                     an item which you owned. The only difference is that you will not be able to edit items which
-                    you do not own, and changes to the original item will be propagated to your copy.
+                    you do not own, and changes to the original item will be propagated to your copy. Use the "Link to
+                    realted items" option on the copy page.
                 </li>
             </ul>
-            
+
             </p>
         </div>
 
@@ -59,13 +64,13 @@
                     <tr>
                         <td>
                             <a onclick="LoadModalData('Edit information',
-                                '{% url 'main:copy' item_type=item_type item_id=eg.id %}');"
-                           data-toggle="modal"
-                           data-target="#formModal"
-                           style="text-decoration: none;">
-{#                            <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit information#}
-{#                            </button>#}
-                        </a>
+                                    '{% url 'main:copy' item_type=item_type item_id=eg.id %}');"
+                               data-toggle="modal"
+                               data-target="#formModal"
+                               style="text-decoration: none;">
+                                {#                            <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit information#}
+                                {#                            </button>#}
+                            </a>
                             {{ eg.name }}
                         </td>
                         <td>{{ eg.notes|linebreaks }}</td>
