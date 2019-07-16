@@ -293,6 +293,7 @@ def copy(request, item_type, item_id):
         if form.is_valid():
             options = form.cleaned_data['options']
             item_copy = copy_item(request, item, options)
+            item_copy.privacy = 'private'  # TODO Check if this is wanted or not ...
             if item_copy:
                 return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_copy.id}))
 

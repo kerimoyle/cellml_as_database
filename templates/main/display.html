@@ -12,13 +12,6 @@
                 <i class="fa fa-plus"></i>&nbsp;&nbsp;Copy
             </button>
         </a>
-        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type=item_type item_id=item.id %}');"
-           data-toggle="modal"
-           data-target="#formModal"
-           style="text-decoration: none;">
-            <button class="btn btn-default"><i class="fa fa-trash"></i> Delete</button>
-        </a>
-
         {% if can_change_privacy %}
             {% if item.privacy == "public" %}
                 <a onclick="SetPrivate()">
@@ -29,8 +22,16 @@
                     <button class="btn btn-primary"><i class="fa fa-unlock"></i> Set public</button>
                 </a>
             {% endif %}
+        {% else %}
+            Privacy: {{ item.privacy }}
         {% endif %}
 
+        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type=item_type item_id=item.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration: none;">
+            <button class="btn btn-default"><i class="fa fa-trash"></i> Delete</button>
+        </a>
     {% else %}
         <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type=item_type item_id=item.id %}');"
            data-toggle="modal"
@@ -73,6 +74,7 @@
                                 {% endfor %}
                             </ul>
                         </div>
+
                     </div>
                 {% endif %}
             </div>

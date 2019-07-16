@@ -121,7 +121,7 @@ def add_standards(apps, schema_editor):
         prefix.save()
 
     for name, symbol, made_of in standard_unit_list:
-        cu = CompoundUnit(name=name, is_standard=True, symbol=symbol)
+        cu = CompoundUnit(name=name, is_standard=True, symbol=symbol, privacy='public')
         cu.save()
         for key, val in made_of:
             base = CompoundUnit.objects.filter(name=key).first()
