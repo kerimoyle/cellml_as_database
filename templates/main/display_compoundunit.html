@@ -11,6 +11,17 @@
            style="text-decoration: none;">
             <button class="btn btn-default pull-right"><i class="fa fa-trash"></i> Delete</button>
         </a>
+
+        {% if item.privacy == "public" %}
+            <a onclick="SetPrivate()">
+                <button class="btn btn-primary"><i class="fa fa-lock"></i> Set private</button>
+            </a>
+        {% else %}
+            <a onclick="SetPublic()">
+                <button class="btn btn-primary"><i class="fa fa-unlock"></i> Set public</button>
+            </a>
+        {% endif %}
+
     {% else %}
         <a onclick="LoadModalData('Send a copy to your library?',
                 '{% url 'main:copy' item_type="compoundunit" item_id=item.id %}');"
@@ -193,9 +204,32 @@
             {% endif %}
         </div>
     </div>
+
+    <form id="privacy_form" action="{% url 'main:set_privacy' %}" method='POST' hidden>
+        {% csrf_token %}
+        <input type="text" name="item_type" id="item_type" value="">
+        <input type="text" name="item_id" id="item_id" value="">
+        <input type="text" name="privacy_level" id="privacy_level" value="">
+    </form>
 {% endblock content %}
 
 
+{% block end_scripts %}
+    <script>
+        function SetPrivate() {
+            $('input[name="item_type"]').val("{{ item_type }}");
+            $('input[name="item_id"]').val("{{ item.id }}");
+            $('input[name="privacy_level"]').val("private");
+            $("form#privacy_form ").submit();
+        }
 
+        function SetPublic() {
+            $('input[name="item_type"]').val("{{ item_type }}");
+            $('input[name="item_id"]').val("{{ item.id }}");
+            $('input[name="privacy_level"]').val("public");
+            $("form#privacy_form ").submit();
+        }
+    </script>
+{% endblock end_scripts %}
 
 

@@ -22,6 +22,16 @@
            style="text-decoration: none;">
             <button class="btn btn-default "><i class="fa fa-trash"></i> Delete</button>
         </a>
+
+        {% if model.privacy == "public" %}
+            <a onclick="SetPrivate()">
+                <button class="btn btn-primary"><i class="fa fa-lock"></i> Set private</button>
+            </a>
+        {% else %}
+            <a onclick="SetPublic()">
+                <button class="btn btn-primary"><i class="fa fa-unlock"></i> Set public</button>
+            </a>
+        {% endif %}
     {% else %}
         <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
            data-toggle="modal"
@@ -189,7 +199,8 @@
                 <tr>
                     <th>Compound units</th>
                     <th>Unit</th>
-                    {% if can_edit %}<th></th>{% endif %}
+                    {% if can_edit %}
+                        <th></th>{% endif %}
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
@@ -224,6 +235,13 @@
         <input type="text" name="unlink_related_id" id="unlink_related_id" value="">
     </form>
 
+    <form id="privacy_form" action="{% url 'main:set_privacy' %}" method='POST' hidden>
+        {% csrf_token %}
+        <input type="text" name="item_type" id="item_type" value="cellmodel">
+        <input type="text" name="item_id" id="item_id" value="{{ model.id }}">
+        <input type="text" name="privacy_level" id="privacy_level" value="">
+    </form>
+
 {% endblock content %}
 
 {% block end_scripts %}
@@ -241,6 +259,17 @@
             $('input[name="unlink_related_id"]').val(related_id);
             $("form#unlink_form ").submit();
         }
+
+        function SetPrivate() {
+            $('input[name="privacy_level"]').val("private");
+            $("form#privacy_form ").submit();
+        }
+
+        function SetPublic() {
+            $('input[name="privacy_level"]').val("public");
+            $("form#privacy_form ").submit();
+        }
     </script>
 {% endblock end_scripts %}
+
 

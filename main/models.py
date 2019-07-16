@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import (IntegerField, ManyToManyField, CharField, TextField, ForeignKey,
                               NullBooleanField, URLField, FileField, CASCADE, OneToOneField, EmailField,
-                              BooleanField, SET_NULL)
+                              BooleanField, SET_NULL, ManyToOneRel, ManyToManyRel)
 from django.db.models import Model as DjangoModel
 # -------------------- ABSTRACT MODELS --------------------
 from django.db.models.signals import post_delete
@@ -19,9 +19,9 @@ from django.dispatch import receiver
 
 class NamedCellMLEntity(DjangoModel):
     PRIVACY_LEVELS = [
-        ("Everyone", "Everyone"),
-        ("Only me", "Only me"),
-    #     ("Selected ", "SU"),
+        ("Public", "Public"),
+        ("Private", "Private"),
+        #     ("Selected ", "SU"),
     ]
 
     # These are the dynamic parts of a model which can be changed by the users
@@ -45,6 +45,17 @@ class NamedCellMLEntity(DjangoModel):
 
     # def is_visible_to_user(self, person):
     #     return self.privacy == 2 or self.owner == person
+
+    # def save(self, *args, **kwargs):
+    #     # want to propagate privacy settings to all self-owned downstream items
+    #     children = get_item_parent_attributes_for_model(self)
+    #     # Relies on checking for ability to save this model being done elsewhere ...
+    #     for c in children:
+    #         if self.owner == c.owner:
+    #             c.privacy = self.privacy
+    #             c.save()
+    #
+    #     super(NamedCellMLEntity, self).save(args, kwargs)
 
 
 # -------------------- UTILITY MODELS ---------------------
@@ -218,6 +229,27 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
     if instance.file:
         if os.path.isfile(instance.file.path):
             os.remove(instance.file.path)
+
+
+def get_parent_fields_for_model(item_model):
+    parent_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
+                     type(x) == ManyToOneRel or type(x) == ManyToManyRel]
+
+    return parent_fields
+
+
+def get_item_parent_attributes_for_model(item):
+    parent_fields = get_parent_fields_for_model(ContentType.objects.get_for_model(item))
+
+    item_parents = []
+
+    for l in parent_fields:
+        m2m = getattr(item, l)
+        m2m_2 = getattr(m2m, 'all')()
+        for m in m2m_2:
+            item_parents.append(m)
+
+    return item_parents
 
 # @receiver(pre_save, sender=TemporaryStorage)
 # def auto_delete_file_on_change(sender, instance, **kwargs):

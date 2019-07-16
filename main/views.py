@@ -693,15 +693,14 @@ def display(request, item_type, item_id):
         return redirect('main:error')
 
     # Check visibility for user
-    if not (item.owner == person or item.privacy == 'Everyone'):
+    if not (item.owner == person or item.privacy == 'public'):
         messages.error("Sorry, you do not have permission to view this {i}.  "
                        "Please contact the owner ({f} {l})for access.".format(
-                        i=item.item_type,
-                        f=item.owner.first_name,
-                        l=item.owner.last_name))
+            i=item.item_type,
+            f=item.owner.first_name,
+            l=item.owner.last_name))
 
         return redirect('main: error')
-
 
     # todo filter by visibility too?
 
@@ -813,7 +812,6 @@ def display_math(request, item_id):
 
 @login_required
 def browse(request, item_type):
-
     try:
         person = request.user.person
     except Exception as e:
@@ -839,7 +837,7 @@ def browse(request, item_type):
     # data = serializers.serialize('python', item_model.model_class().objects.all(), fields=fields)
     # data = zip(ids, data)
 
-    items = item_model.model_class().objects.filter(Q(owner=person)|Q(privacy='Everyone'))
+    items = item_model.model_class().objects.filter(Q(owner=person) | Q(privacy='public'))
 
     context = {
         'item_type': item_type,
@@ -1043,3 +1041,42 @@ def check_ownership(request, item):
         return False
 
     return True
+
+
+# -------------------------------- PRIVACY FUNCTIONS --------------------------------------
+
+def set_privacy(request):
+    if request.method == "POST":
+
+        item_id = request.POST.get('item_id')
+        item_type = request.POST.get('item_type')
+        privacy_level = request.POST.get('privacy_level')
+
+        try:
+            item_model = ContentType.objects.get(app_label="main", model=item_type)
+        except Exception as e:
+            messages.error(request, "Couldn't find an object type called '{}'".format(item_type))
+            messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+            return redirect('main:error')
+
+        try:
+            item = item_model.get_object_for_this_type(id=item_id)
+        except Exception as e:
+            messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+            messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+            return redirect('main:error')
+
+        item.privacy = privacy_level
+        item.save()
+
+        item_list = get_item_parent_attributes(item)
+        for name, model_name, child in item_list:
+            if child.owner == item.owner:
+                child.privacy = item.privacy
+                child.save()
+
+        return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_id}))
+
+    else:
+        messages.error("Did not get POST request")
+        return redirect('main:error')

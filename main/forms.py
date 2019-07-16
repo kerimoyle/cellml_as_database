@@ -28,6 +28,26 @@ class CopyForm(forms.Form):
         )
 
 
+class PrivacyForm(forms.Form):
+    class Meta:
+        fields = ['privacy']
+
+    def __init__(self, *args, **kwargs):
+        super(PrivacyForm, self).__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.form_id = 'id-privacy_form'
+        self.helper.form_class = 'blueForms'
+        self.helper.form_method = 'post'
+        self.helper.add_input(Submit('submit', 'Save'))
+
+        self.fields['options'] = forms.ChoiceField(
+            widget=forms.RadioSelect(),
+            choices=[('Only me', 'Only me'),
+                     ('Everyone', 'Everyone'), ],
+        )
+
+
 class DeleteForm(forms.Form):
     class Meta:
         fields = ['item_type', 'item_id', 'options']

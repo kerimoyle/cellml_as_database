@@ -397,6 +397,8 @@ def get_local_fields(item_model):
         local_fields.remove('ready')
     if 'is_standard' in local_fields:
         local_fields.remove('is_standard')
+    if 'privacy' in local_fields:
+        local_fields.remove('privacy')
 
     return local_fields
 
