@@ -22,7 +22,7 @@ def test(request):
     context = {
         'menu': MENU_OPTIONS['home']
     }
-    return render(request, 'main/test.html', context)
+    return render(request, 'main/test_drag_and_drop.html', context)
 
 
 def intro(request):
@@ -735,9 +735,9 @@ def display_compoundunit(request, item_id):
         return redirect('main:error')
 
     formula = []
-    multiplier = 0
+    multiplier = 1
     for u in item.product_of.all():
-        multiplier += u.multiplier
+        multiplier *= u.multiplier
         if u.exponent == 1:
             formula.append("{p}{u} ".format(p=u.prefix.symbol, u=u.child_cu.symbol))
         else:
@@ -825,17 +825,57 @@ def browse(request, item_type):
 # -------------------- UPLOAD VIEWS --------------------
 @login_required
 def upload(request):
+    try:
+        person = request.user.person
+    except Exception as e:
+        messages.error(request, "Could not get an authenticated user.  Please login or register.")
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
     # Set up import form for cellml text input:
     form_type = modelform_factory(TemporaryStorage, exclude=('tree', 'owner'))
 
     if request.POST:
         form = form_type(request.POST, request.FILES)
         if form.is_valid():
-            item = form.save()
-            item.owner = request.user.person
-            item.save()
-            return redirect(reverse('main:upload_check',
-                                    kwargs={'item_id': item.id}))
+            storage = form.save()
+            storage.owner = request.user.person
+            storage.save()
+
+            try:
+                f = open(storage.file.path, "r")
+                cellml_text = f.read()
+            except Exception as e:
+                messages.error(request, "Could not read the file at '{}'".format(storage.file.path))
+                messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+                return redirect('main:error')
+
+            # Parse the model using libcellml:
+            parser = libcellml.Parser()
+            in_model = parser.parseModel(cellml_text)
+
+            # Load into database
+            model = load_model(in_model, person)
+
+            imported_from = ImportedEntity(
+                source_type="temporarystorage",
+                source_id=storage.id,
+                attribution="Uploaded from {}".format(storage.file.name)
+            )
+            imported_from.save()
+
+            model.uploaded_from = storage.file.name
+            model.name = storage.model_name
+            model.owner = request.user.person
+            model.imported_from = imported_from
+            model.save()
+
+            # Delete the TemporaryStorage object, also deletes the uploaded file
+            storage.delete()
+
+            return redirect(reverse('main:display', kwargs={'item_type': 'model', 'item_id': model.id}))
+
+        return redirect(reverse('main:error', kwargs={'message': "Did not receive POST request"}))
 
     else:
         form = form_type()
@@ -852,105 +892,105 @@ def upload(request):
     return render(request, 'main/upload.html', context)
 
 
-@login_required
-def upload_check(request, item_id):
-    # This view makes a scratchpad from the uploaded file, and allows users to select which parts to save
-    # retrieve the file
-    try:
-        storage = TemporaryStorage.objects.get(id=item_id)
-    except Exception as e:
-        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
-        return redirect('main:error')
-
-    # open the file from memory
-    try:
-        f = open(storage.file.path, "r")
-        cellml_text = f.read()
-    except Exception as e:
-        messages.error("{t}: {a}".format(t=type(e).__name__, a=e.args))
-        return redirect('main:error')
-
-    # Parse the model using libcellml:
-    parser = libcellml.Parser()
-    model = parser.parseModel(cellml_text)
-
-    build_tree_from_model(storage, model)
-
-    context = {
-        'storage': storage,
-        'model_name': storage.model_name,
-        'tree': storage.tree,
-        'menu': MENU_OPTIONS['upload'],
-    }
-
-    return render(request, 'main/upload_check.html', context)
-
-
-@login_required
-def upload_model(request):
-    try:
-        person = request.user.person
-    except Exception as e:
-        messages.error(request, "Could not get an authenticated user.  Please login or register.")
-        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
-        return redirect('main:error')
-
-    # TODO should be cached or pickled instead of parsing->loading again?
-
-    storage_id = None
-    storage = None
-
-    if request.method == 'POST':
-        try:
-            storage_id = request.POST.get('storage_id')
-        except Exception as e:
-            messages.error(request, "Could not get 'storage_id' from request.POST")
-            messages.error(request, "{}: {}".format(type(e).__name__, e.args))
-            return redirect('main:error')
-
-        try:
-            storage = TemporaryStorage.objects.get(id=storage_id)
-        except Exception as e:
-            messages.error(request, "Could not find storage with id of {}".format(storage_id))
-            messages.error(request, "{}: {}".format(type(e).__name__, e.args))
-            return redirect('main:error')
-
-        try:
-            f = open(storage.file.path, "r")
-            cellml_text = f.read()
-        except Exception as e:
-            messages.error(request, "Could not read the file at '{}'".format(storage.file.path))
-            messages.error(request, "{}: {}".format(type(e).__name__, e.args))
-            return redirect('main:error')
-
-        # Parse the model using libcellml:
-        parser = libcellml.Parser()
-        in_model = parser.parseModel(cellml_text)
-
-        # Load into database
-        model = load_model(in_model, person)
-
-        imported_from = ImportedEntity(
-            source_type="temporarystorage",
-            source_id=storage.id,
-            attribution="Uploaded from {}".format(storage.file.name)
-        )
-        imported_from.save()
-
-        # TODO Need to draw the loaded detailed tree properly, including href components.  Will copy for now ...
-        model.tree = storage.tree
-        model.uploaded_from = storage.file.name
-        model.name = storage.model_name
-        model.owner = request.user.person
-        model.imported_from = imported_from
-        model.save()
-
-        # Delete the TemporaryStorage object, also deletes the uploaded file
-        storage.delete()  # TODO Removed this for now ... not sure how best to handle it wrt import references?
-
-        return redirect(reverse('main:display', kwargs={'item_type': 'model', 'item_id': model.id}))
-
-    return redirect(reverse('main:error', kwargs={'message': "Did not receive POST request"}))
+# @login_required
+# def upload_check(request, item_id):
+#     # This view makes a scratchpad from the uploaded file, and allows users to select which parts to save
+#     # retrieve the file
+#     try:
+#         storage = TemporaryStorage.objects.get(id=item_id)
+#     except Exception as e:
+#         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+#         return redirect('main:error')
+#
+#     # open the file from memory
+#     try:
+#         f = open(storage.file.path, "r")
+#         cellml_text = f.read()
+#     except Exception as e:
+#         messages.error("{t}: {a}".format(t=type(e).__name__, a=e.args))
+#         return redirect('main:error')
+#
+#     # Parse the model using libcellml:
+#     parser = libcellml.Parser()
+#     model = parser.parseModel(cellml_text)
+#
+#     build_tree_from_model(storage, model)
+#
+#     context = {
+#         'storage': storage,
+#         'model_name': storage.model_name,
+#         'tree': storage.tree,
+#         'menu': MENU_OPTIONS['upload'],
+#     }
+#
+#     return render(request, 'main/upload_check.html', context)
+#
+#
+# @login_required
+# def upload_model(request):
+#     try:
+#         person = request.user.person
+#     except Exception as e:
+#         messages.error(request, "Could not get an authenticated user.  Please login or register.")
+#         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+#         return redirect('main:error')
+#
+#     # TODO should be cached or pickled instead of parsing->loading again?
+#
+#     storage_id = None
+#     storage = None
+#
+#     if request.method == 'POST':
+#         try:
+#             storage_id = request.POST.get('storage_id')
+#         except Exception as e:
+#             messages.error(request, "Could not get 'storage_id' from request.POST")
+#             messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+#             return redirect('main:error')
+#
+#         try:
+#             storage = TemporaryStorage.objects.get(id=storage_id)
+#         except Exception as e:
+#             messages.error(request, "Could not find storage with id of {}".format(storage_id))
+#             messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+#             return redirect('main:error')
+#
+#         try:
+#             f = open(storage.file.path, "r")
+#             cellml_text = f.read()
+#         except Exception as e:
+#             messages.error(request, "Could not read the file at '{}'".format(storage.file.path))
+#             messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+#             return redirect('main:error')
+#
+#         # Parse the model using libcellml:
+#         parser = libcellml.Parser()
+#         in_model = parser.parseModel(cellml_text)
+#
+#         # Load into database
+#         model = load_model(in_model, person)
+#
+#         imported_from = ImportedEntity(
+#             source_type="temporarystorage",
+#             source_id=storage.id,
+#             attribution="Uploaded from {}".format(storage.file.name)
+#         )
+#         imported_from.save()
+#
+#         # TODO Need to draw the loaded detailed tree properly, including href components.  Will copy for now ...
+#         model.tree = storage.tree
+#         model.uploaded_from = storage.file.name
+#         model.name = storage.model_name
+#         model.owner = request.user.person
+#         model.imported_from = imported_from
+#         model.save()
+#
+#         # Delete the TemporaryStorage object, also deletes the uploaded file
+#         storage.delete()  # TODO Removed this for now ... not sure how best to handle it wrt import references?
+#
+#         return redirect(reverse('main:display', kwargs={'item_type': 'model', 'item_id': model.id}))
+#
+#     return redirect(reverse('main:error', kwargs={'message': "Did not receive POST request"}))
 
 
 # --------------------- ERRORS & MESSAGES ---------------
