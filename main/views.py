@@ -702,8 +702,6 @@ def display(request, item_type, item_id):
 
         return redirect('main: error')
 
-    # todo filter by visibility too?
-
     child_fields = get_child_fields(item_model)
     local_attrs = get_item_local_attributes(item, ['notes', 'name'])
     children = get_item_child_attributes(item)
@@ -720,7 +718,8 @@ def display(request, item_type, item_id):
         'downstream_fields': parent_fields,
         'downstream': parents,
         'menu': MENU_OPTIONS['display'],
-        'can_edit': request.user.person == item.owner
+        'can_edit': request.user.person == item.owner,
+        'can_change_privacy': len(children) == 0,
     }
     return render(request, 'main/display.html', context)
 
@@ -768,7 +767,8 @@ def display_compoundunit(request, item_id):
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
         'formula': formula,
-        'multiplier': multiplier
+        'multiplier': multiplier,
+        'can_change_privacy': len(get_item_child_attributes(item)) == 0,
     }
     return render(request, 'main/display_compoundunit.html', context)
 
@@ -1065,6 +1065,15 @@ def set_privacy(request):
             messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
             messages.error(request, "{}: {}".format(type(e).__name__, e.args))
             return redirect('main:error')
+
+        # Check item for parents - if the item has upstream items then can't set its privacy indenependently
+
+        upstream = get_item_child_attributes(item)
+        if len(upstream):
+            # then cannot set the privacy here, need to do it at the upstream item instead
+            messages.error(request, "Privacy cannot be set for this item here, please set it at the "
+                                    "upstream item instead.")
+            return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_id}))
 
         item.privacy = privacy_level
         item.save()
