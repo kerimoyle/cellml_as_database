@@ -37,6 +37,8 @@ urlpatterns = [
 
     path('register/', views.register, name='register'),
 
+    path('set_privacy/', views.set_privacy, name='set_privacy'),
+
     path('upload/', views.upload, name='upload'),
     # path('upload_check/<int:item_id>/', views.upload_check, name='upload_check'),
     # path('upload_model/', views.upload_model, name='upload_model'),

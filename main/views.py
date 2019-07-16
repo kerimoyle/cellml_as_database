@@ -6,14 +6,14 @@ from django.contrib.auth import logout, authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import ForeignKey, ManyToManyField, ManyToOneRel, ManyToManyRel
+from django.db.models import ForeignKey, ManyToManyField, ManyToOneRel, ManyToManyRel, Q
 from django.forms import modelform_factory, CheckboxSelectMultiple, RadioSelect
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
 from main.defines import MENU_OPTIONS
 from main.forms import ReverseLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
-from main.functions import build_tree_from_model, load_model, get_edit_locals_form, get_item_local_attributes, \
+from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
     get_child_fields, get_item_child_attributes, get_parent_fields, get_item_parent_attributes, copy_item, delete_item
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, ImportedEntity, Unit, Prefix
 
@@ -168,6 +168,8 @@ def create(request, item_type, in_modal):
         exclude_fields += ('ready',)
     if 'is_standard' in all_fields:
         exclude_fields += ('is_standard',)
+    if 'imported_from' in all_fields:
+        exclude_fields += ('imported_From',)
 
     create_form = modelform_factory(item_model.model_class(), exclude=exclude_fields)
 
@@ -187,7 +189,7 @@ def create(request, item_type, in_modal):
     form.helper.add_input(Submit('submit', "Save"))
     form.helper.form_action = reverse('main:create', kwargs={'item_type': item_type})
 
-    existing_items = item_model.model_class().objects.all()
+    existing_items = item_model.model_class().objects.filter(privacy=2)
 
     context = {
         'item_type': item_type,
@@ -291,6 +293,7 @@ def copy(request, item_type, item_id):
         if form.is_valid():
             options = form.cleaned_data['options']
             item_copy = copy_item(request, item, options)
+            item_copy.privacy = 'private'  # TODO Check if this is wanted or not ...
             if item_copy:
                 return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_copy.id}))
 
@@ -551,7 +554,6 @@ def link_backwards(request, item_type, item_id, related_name):
 
     # Want to have levels of suggestion and ability to search the queryset passed.
 
-
     context = {
         'item_type': item_type,
         'item': item,
@@ -671,6 +673,13 @@ def display(request, item_type, item_id):
     item = None
 
     try:
+        person = request.user.person
+    except Exception as e:
+        messages.error(request, "Couldn't find a registered user.  Please login.")
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
         item_model = ContentType.objects.get(app_label="main", model=item_type)
     except Exception as e:
         messages.error(request, "Couldn't find an object type called '{}'".format(item_type))
@@ -683,6 +692,16 @@ def display(request, item_type, item_id):
         messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
+
+    # Check visibility for user
+    if not (item.owner == person or item.privacy == 'public'):
+        messages.error("Sorry, you do not have permission to view this {i}.  "
+                       "Please contact the owner ({f} {l})for access.".format(
+            i=item.item_type,
+            f=item.owner.first_name,
+            l=item.owner.last_name))
+
+        return redirect('main: error')
 
     child_fields = get_child_fields(item_model)
     local_attrs = get_item_local_attributes(item, ['notes', 'name'])
@@ -700,7 +719,8 @@ def display(request, item_type, item_id):
         'downstream_fields': parent_fields,
         'downstream': parents,
         'menu': MENU_OPTIONS['display'],
-        'can_edit': request.user.person == item.owner
+        'can_edit': request.user.person == item.owner,
+        'can_change_privacy': len(children) == 0,
     }
     return render(request, 'main/display.html', context)
 
@@ -748,7 +768,8 @@ def display_compoundunit(request, item_id):
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
         'formula': formula,
-        'multiplier': multiplier
+        'multiplier': multiplier,
+        'can_change_privacy': len(get_item_child_attributes(item)) == 0,
     }
     return render(request, 'main/display_compoundunit.html', context)
 
@@ -792,6 +813,13 @@ def display_math(request, item_id):
 
 @login_required
 def browse(request, item_type):
+    try:
+        person = request.user.person
+    except Exception as e:
+        messages.error(request, "Cannot find registered user.  Please create a login for yourself.")
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
     item_model = None
     try:
         item_model = ContentType.objects.get(app_label="main", model=item_type)
@@ -810,7 +838,7 @@ def browse(request, item_type):
     # data = serializers.serialize('python', item_model.model_class().objects.all(), fields=fields)
     # data = zip(ids, data)
 
-    items = item_model.model_class().objects.all()
+    items = item_model.model_class().objects.filter(Q(owner=person) | Q(privacy='public'))
 
     context = {
         'item_type': item_type,
@@ -1014,3 +1042,51 @@ def check_ownership(request, item):
         return False
 
     return True
+
+
+# -------------------------------- PRIVACY FUNCTIONS --------------------------------------
+
+def set_privacy(request):
+    if request.method == "POST":
+
+        item_id = request.POST.get('item_id')
+        item_type = request.POST.get('item_type')
+        privacy_level = request.POST.get('privacy_level')
+
+        try:
+            item_model = ContentType.objects.get(app_label="main", model=item_type)
+        except Exception as e:
+            messages.error(request, "Couldn't find an object type called '{}'".format(item_type))
+            messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+            return redirect('main:error')
+
+        try:
+            item = item_model.get_object_for_this_type(id=item_id)
+        except Exception as e:
+            messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+            messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+            return redirect('main:error')
+
+        # Check item for parents - if the item has upstream items then can't set its privacy indenependently
+
+        upstream = get_item_child_attributes(item)
+        if len(upstream):
+            # then cannot set the privacy here, need to do it at the upstream item instead
+            messages.error(request, "Privacy cannot be set for this item here, please set it at the "
+                                    "upstream item instead.")
+            return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_id}))
+
+        item.privacy = privacy_level
+        item.save()
+
+        item_list = get_item_parent_attributes(item)
+        for name, model_name, child in item_list:
+            if child.owner == item.owner:
+                child.privacy = item.privacy
+                child.save()
+
+        return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_id}))
+
+    else:
+        messages.error("Did not get POST request")
+        return redirect('main:error')

@@ -19,6 +19,7 @@
                     <th>Name</th>
                     <th>Notes</th>
                     <th>Owner</th>
+                    <th>Privacy</th>
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
@@ -36,6 +37,7 @@
                             {% else %}<p class="empty">None</p>
                             {% endif %}
                         </td>
+                        <td>{{ item.privacy|title }}</td>
                     </tr>
                 {% endfor %}
                 </tbody>
