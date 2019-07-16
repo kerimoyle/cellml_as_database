@@ -6,14 +6,14 @@ from django.contrib.auth import logout, authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import ForeignKey, ManyToManyField, ManyToOneRel, ManyToManyRel
+from django.db.models import ForeignKey, ManyToManyField, ManyToOneRel, ManyToManyRel, Q
 from django.forms import modelform_factory, CheckboxSelectMultiple, RadioSelect
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
 from main.defines import MENU_OPTIONS
 from main.forms import ReverseLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
-from main.functions import build_tree_from_model, load_model, get_edit_locals_form, get_item_local_attributes, \
+from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
     get_child_fields, get_item_child_attributes, get_parent_fields, get_item_parent_attributes, copy_item, delete_item
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, ImportedEntity, Unit, Prefix
 
@@ -168,6 +168,8 @@ def create(request, item_type, in_modal):
         exclude_fields += ('ready',)
     if 'is_standard' in all_fields:
         exclude_fields += ('is_standard',)
+    if 'imported_from' in all_fields:
+        exclude_fields += ('imported_From',)
 
     create_form = modelform_factory(item_model.model_class(), exclude=exclude_fields)
 
@@ -187,7 +189,7 @@ def create(request, item_type, in_modal):
     form.helper.add_input(Submit('submit', "Save"))
     form.helper.form_action = reverse('main:create', kwargs={'item_type': item_type})
 
-    existing_items = item_model.model_class().objects.all()
+    existing_items = item_model.model_class().objects.filter(privacy=2)
 
     context = {
         'item_type': item_type,
@@ -551,7 +553,6 @@ def link_backwards(request, item_type, item_id, related_name):
 
     # Want to have levels of suggestion and ability to search the queryset passed.
 
-
     context = {
         'item_type': item_type,
         'item': item,
@@ -671,6 +672,13 @@ def display(request, item_type, item_id):
     item = None
 
     try:
+        person = request.user.person
+    except Exception as e:
+        messages.error(request, "Couldn't find a registered user.  Please login.")
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
         item_model = ContentType.objects.get(app_label="main", model=item_type)
     except Exception as e:
         messages.error(request, "Couldn't find an object type called '{}'".format(item_type))
@@ -683,6 +691,19 @@ def display(request, item_type, item_id):
         messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
+
+    # Check visibility for user
+    if not (item.owner == person or item.privacy == 'Everyone'):
+        messages.error("Sorry, you do not have permission to view this {i}.  "
+                       "Please contact the owner ({f} {l})for access.".format(
+                        i=item.item_type,
+                        f=item.owner.first_name,
+                        l=item.owner.last_name))
+
+        return redirect('main: error')
+
+
+    # todo filter by visibility too?
 
     child_fields = get_child_fields(item_model)
     local_attrs = get_item_local_attributes(item, ['notes', 'name'])
@@ -792,6 +813,14 @@ def display_math(request, item_id):
 
 @login_required
 def browse(request, item_type):
+
+    try:
+        person = request.user.person
+    except Exception as e:
+        messages.error(request, "Cannot find registered user.  Please create a login for yourself.")
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
     item_model = None
     try:
         item_model = ContentType.objects.get(app_label="main", model=item_type)
@@ -810,7 +839,7 @@ def browse(request, item_type):
     # data = serializers.serialize('python', item_model.model_class().objects.all(), fields=fields)
     # data = zip(ids, data)
 
-    items = item_model.model_class().objects.all()
+    items = item_model.model_class().objects.filter(Q(owner=person)|Q(privacy='Everyone'))
 
     context = {
         'item_type': item_type,

@@ -18,9 +18,16 @@ from django.dispatch import receiver
 
 
 class NamedCellMLEntity(DjangoModel):
+    PRIVACY_LEVELS = [
+        ("Everyone", "Everyone"),
+        ("Only me", "Only me"),
+    #     ("Selected ", "SU"),
+    ]
+
     # These are the dynamic parts of a model which can be changed by the users
     name = CharField(blank=False, max_length=100)  # The name of the entity
     ready = NullBooleanField()  # object in database has all fields completed TODO not working yet
+    privacy = CharField(max_length=9, choices=PRIVACY_LEVELS, default="Only me", null=True, blank=True)
     notes = TextField(blank=True)
     owner = ForeignKey('Person', blank=True, null=True, on_delete=SET_NULL)  # TODO set to admin
     imported_from = ForeignKey('ImportedEntity', on_delete=SET_NULL, related_name="imported_%(class)s_objects",
@@ -35,6 +42,9 @@ class NamedCellMLEntity(DjangoModel):
 
     def __str__(self):
         return self.name
+
+    # def is_visible_to_user(self, person):
+    #     return self.privacy == 2 or self.owner == person
 
 
 # -------------------- UTILITY MODELS ---------------------
