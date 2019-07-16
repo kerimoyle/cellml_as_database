@@ -13,6 +13,7 @@
                 <tr>
                     <th>Type</th>
                     <th>Name</th>
+                    <th>Privacy</th>
                     <th></th>
                 </tr>
                 </thead>
@@ -28,6 +29,7 @@
                                 <b>{{ item.name }}</b><br>
                                 <p>{{ item.notes|linebreaks }}</p>
                             </td>
+                            <td>{{ item.privacy|title }}</td>
                             <td class="rowlink-skip">
                                 <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type=type item_id=item.id %}');"
                                    data-toggle="modal"
@@ -42,7 +44,6 @@
                 {% endfor %}
                 </tbody>
             </table>
-
         </div>
     </div>
 
