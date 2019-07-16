@@ -164,7 +164,7 @@ class Math(NamedCellMLEntity):
     components = ManyToManyField("Component", related_name="maths", blank=True)
     math_ml = TextField(blank=True)
 
-    # TODO how to make a parent fk to *either* model or reset?
+    # TODO how to make a parent fk to *either* model or reset - should be generic fk?
     def __str__(self):
         return self.name
 
