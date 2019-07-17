@@ -41,6 +41,16 @@
             </button>
         </a>
     {% endif %}
+
+    <a onclick="LoadModalData('CellML2.0 markup','{% url 'main:export_model' item_id=model.id %}');"
+       data-toggle="modal"
+       data-target="#formModal"
+       style="text-decoration:none;">
+        <button class="btn btn-primary">
+            <i class="fa fa-download"></i>&nbsp;&nbsp;Export
+        </button>
+    </a>
+
 {% endblock %}
 
 

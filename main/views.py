@@ -14,7 +14,8 @@ from django.urls import reverse
 from main.defines import MENU_OPTIONS
 from main.forms import ReverseLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
-    get_child_fields, get_item_child_attributes, get_parent_fields, get_item_parent_attributes, copy_item, delete_item
+    get_upstream_fields, get_item_upstream_attributes, copy_item, \
+    delete_item, export_to_cellml_model, get_downstream_fields, get_item_downstream_attributes
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, ImportedEntity, Unit, Prefix
 
 
@@ -228,7 +229,7 @@ def create_unit(request, cu_id, in_modal):
         messages.error(request, "{t}: {a}".format(t=type(e).__name__, a=e.args))
         return redirect('main:error')
 
-    create_form = modelform_factory(Unit, fields=('prefix', 'child_cu', 'multiplier', 'exponent'))
+    create_form = modelform_factory(Unit, fields=('prefix', 'upstream_cu', 'multiplier', 'exponent'))
 
     if request.POST:
         form = create_form(request.POST)
@@ -392,7 +393,7 @@ def edit_unit(request, item_id):
         }
         return render(request, 'main/form_modal.html', context)
 
-    edit_form = modelform_factory(Unit, fields=('prefix', 'child_cu', 'multiplier', 'exponent'))
+    edit_form = modelform_factory(Unit, fields=('prefix', 'upstream_cu', 'multiplier', 'exponent'))
 
     if request.POST:
         form = edit_form(request.POST, instance=item)
@@ -422,13 +423,13 @@ def link_forwards(request, item_type, item_id, related_name):
     :param request: request
     :param item_type: the type of the parent item
     :param item_id: the id of the parent item
-    :param related_name: the type of the child item to include in the parent
+    :param related_name: the type of the upstream item to include in the parent
     :return:
     """
 
     item_model = None
     item = None
-    child_model = None
+    upstream_model = None
 
     try:
         item_model = ContentType.objects.get(app_label="main", model=item_type)
@@ -703,24 +704,24 @@ def display(request, item_type, item_id):
 
         return redirect('main: error')
 
-    child_fields = get_child_fields(item_model)
+    upstream_fields = get_upstream_fields(item_model)
     local_attrs = get_item_local_attributes(item, ['notes', 'name'])
-    children = get_item_child_attributes(item)
+    upstream = get_item_upstream_attributes(item)
 
-    parent_fields = get_parent_fields(item_model)
-    parents = get_item_parent_attributes(item)
+    downstream_fields = get_downstream_fields(item_model)
+    downstream = get_item_downstream_attributes(item)
 
     context = {
         'item': item,
         'item_type': item_type,
-        'upstream_fields': child_fields,
+        'upstream_fields': upstream_fields,
         'locals': local_attrs,
-        'upstream': children,
-        'downstream_fields': parent_fields,
-        'downstream': parents,
+        'upstream': upstream,
+        'downstream_fields': downstream_fields,
+        'downstream': downstream,
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
-        'can_change_privacy': len(children) == 0,
+        'can_change_privacy': len(upstream) == 0,
     }
     return render(request, 'main/display.html', context)
 
@@ -759,9 +760,9 @@ def display_compoundunit(request, item_id):
     for u in item.product_of.all():
         multiplier *= u.multiplier
         if u.exponent == 1:
-            formula.append("{p}{u} ".format(p=u.prefix.symbol, u=u.child_cu.symbol))
+            formula.append("{p}{u} ".format(p=u.prefix.symbol, u=u.upstream_cu.symbol))
         else:
-            formula.append("{p}{u}<sup>{e}</sup>".format(p=u.prefix.symbol, u=u.child_cu.symbol, e=u.exponent))
+            formula.append("{p}{u}<sup>{e}</sup>".format(p=u.prefix.symbol, u=u.upstream_cu.symbol, e=u.exponent))
 
     context = {
         'item': item,
@@ -769,7 +770,7 @@ def display_compoundunit(request, item_id):
         'can_edit': request.user.person == item.owner,
         'formula': formula,
         'multiplier': multiplier,
-        'can_change_privacy': len(get_item_child_attributes(item)) == 0,
+        'can_change_privacy': len(get_item_upstream_attributes(item)) == 0,
     }
     return render(request, 'main/display_compoundunit.html', context)
 
@@ -1027,6 +1028,55 @@ def error(request):
     return render(request, 'main/error.html', {'menu': MENU_OPTIONS['display']})
 
 
+# ------------------------- EXPORT VIEWS ----------------------------
+
+def export_model(request, item_id):
+    # want to make sure that we can write valid cellml from a linked model
+    model = None
+
+    try:
+        person = request.user.person
+    except Exception as e:
+        messages.error(request, "Couldn't find a registered user.  Please login.")
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        model = CellModel.objects.get(id=item_id)
+    except Exception as e:
+        messages.error(request, "Could not find model with id={id}.".format(id=item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    # Have to convert to a libcellml model before we can print it
+
+    cellml_model = export_to_cellml_model(model)
+
+    printer = libcellml.Printer()
+    cellml_text = printer.printModel(cellml_model)
+
+    #
+    # temp_path = '{}/{}'.format(settings.MEDIA_ROOT, 'temp')
+    # temp_file = '{}/{}/{}'.format(settings.MEDIA_ROOT, 'temp', file_name)
+    #
+    # if not os.path.exists(temp_path):
+    #     os.makedirs(temp_path)
+    #
+    # document.save(temp_file)
+    #
+    # response = HttpResponse(open(temp_file, 'rb').read())
+    # response['Content-Type'] = 'mimetype/submimetype'
+    # response['Content-Disposition'] = 'attachment; filename={filename}'.format(filename=file_name)
+    #
+    # return response
+
+    context = {
+        'cellml_text': cellml_text,
+        'model': model
+    }
+    return render(request, 'main/export.html', context)
+
+
 # ------------------------------------ PERMISSIONS ------------------------------------------
 def check_ownership(request, item):
     try:
@@ -1069,7 +1119,7 @@ def set_privacy(request):
 
         # Check item for parents - if the item has upstream items then can't set its privacy indenependently
 
-        upstream = get_item_child_attributes(item)
+        upstream = get_item_upstream_attributes(item)
         if len(upstream):
             # then cannot set the privacy here, need to do it at the upstream item instead
             messages.error(request, "Privacy cannot be set for this item here, please set it at the "
@@ -1079,11 +1129,11 @@ def set_privacy(request):
         item.privacy = privacy_level
         item.save()
 
-        item_list = get_item_parent_attributes(item)
-        for name, model_name, child in item_list:
-            if child.owner == item.owner:
-                child.privacy = item.privacy
-                child.save()
+        item_list = get_item_downstream_attributes(item)
+        for name, model_name, downstream in item_list:
+            if downstream.owner == item.owner:
+                downstream.privacy = item.privacy
+                downstream.save()
 
         return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_id}))
 

@@ -1,3 +1,4 @@
+import libcellml
 from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import ForeignKey, ManyToManyField, AutoField, ManyToOneRel, ManyToManyRel
@@ -157,10 +158,7 @@ def load_model(in_model, owner):
                     variable.compoundunits.add(u)
 
                 else:
-
-                    # Then is new base unit.  Create compound unit with no children
-                    # TODO Check whether this can be linked to existing units?  Currently creates many copies, eg see
-                    # NiedererHunterSmith model duplication ms etc.
+                    # Then is new base unit.  Create compound unit with no downstream
                     u_new = CompoundUnit(
                         name=in_units,
                         symbol=in_units,
@@ -372,6 +370,108 @@ def load_reset(index, in_component, out_component, owner):
     out_reset.save()
 
 
+# -------------------------------- EXPORTING FUNCTIONS ---------------------------------
+
+def export_to_cellml_model(in_model):
+    """
+    Function to create an instance of a CellML model which can then be printed
+    :param model: CellModel instance
+    :return: libcellml->Model instance
+    """
+
+    model = libcellml.Model()
+
+    export_components(in_model, model)
+
+    export_compoundunits(in_model, model)
+
+    return model
+
+
+def export_components(in_model, model):
+    for c in in_model.components.all():
+        component = libcellml.Component()
+        component.setName(c.name)
+        if c.cellml_id is not None:
+            component.setId(c.cellml_id)
+
+        for v in c.variables.all():
+            variable = libcellml.Variable()
+
+            variable.setName(v.name)
+            variable.setId(v.cellml_id)
+            if v.compoundunits.count() > 0:
+                # many to many field ... which one to set here?
+                variable.setUnits(v.compoundunits.all()[0].name)
+
+            # TODO print equivalent variables
+            # for e in v.equivalent_variables.all():
+            #     variable.addEquivalence(e.name)
+
+            component.addVariable(variable)
+
+        # TODO add resets resets: need to wait for new format to be in libcellml
+
+        # TODO add maths
+        if c.maths is not None:
+            component.setMath("")
+            for m_in in c.maths.all():
+                component.appendMath(m_in.math_ml)
+
+        model.addComponent(component)
+    return
+
+
+def export_compoundunits(in_model, model):
+    for cu in in_model.compoundunits.all():
+        compoundunit = libcellml.Units()
+        compoundunit.setName(cu.name)
+        compoundunit.setId(cu.cellml_id)
+
+        for u in cu.product_of.all():
+            compoundunit.addUnit(
+                u.name,
+                u.prefix.name,
+                u.exponent,
+                u.multiplier
+            )
+
+        model.addUnits(compoundunit)
+    return
+
+
+
+# void addUnit(const std::string &reference, const std::string &prefix,
+#   double exponent=1.0, double multiplier=1.0)
+# u.addUnit('blabla', 'hello', 1.2, 3.4, 'unitid')
+
+
+# def load_compound_units(index, in_model, model, owner):
+#     in_units = in_model.units(index)
+#
+#     if in_units.isBaseUnit():  # TODO check why libcellml has this as *base* unit not *standard* unit?
+#         # then don't need to add to the database, but do need to reference from model
+#         try:
+#             base_unit = CompoundUnit.objects.get(name=in_units.name(), is_standard=True)
+#         except CompoundUnit.DoesNotExist:
+#             # TODO must make sure that this is populated through initial data migration?
+#             return
+#
+#         model.units.add(base_unit)
+#
+#         return
+#
+#     out_compound_units = CompoundUnit(
+#         name=in_units.name(),
+#         cellml_index=index,
+#         owner=owner,
+#     )
+#     out_compound_units.save()
+#     out_compound_units.models.add(model)
+#
+#     return
+
+
 # ------------------------------------ EDIT FUNCTIONS ----------------------------------------
 
 def get_edit_locals_form(item_model):
@@ -403,7 +503,7 @@ def get_local_fields(item_model):
     return local_fields
 
 
-def get_child_connection_fields(item_model):
+def get_upstream_connection_fields(item_model):
     m2m_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
                   type(x) == ManyToManyField]
 
@@ -418,53 +518,53 @@ def get_child_connection_fields(item_model):
     return fk_fields, m2m_fields
 
 
-def get_child_fields(item_model):
-    child_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
-                    (type(x) == ForeignKey and x.name != 'owner' and x.name != 'imported_from') or
-                    (type(x) == ManyToManyField)]
+def get_upstream_fields(item_model):
+    upstream_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
+                       (type(x) == ForeignKey and x.name != 'owner' and x.name != 'imported_from') or
+                       (type(x) == ManyToManyField)]
 
-    return child_fields
+    return upstream_fields
 
 
-def get_item_child_attributes(item):
-    fk_fields, m2m_fields = get_child_connection_fields(ContentType.objects.get_for_model(item))
+def get_item_upstream_attributes(item):
+    fk_fields, m2m_fields = get_upstream_connection_fields(ContentType.objects.get_for_model(item))
 
-    item_children = []
+    upstream = []
     for l in m2m_fields:
         m2m = getattr(item, l)
         m2m_2 = getattr(m2m, 'all')()
         for m in m2m_2:
-            item_children.append((l, m._meta.model_name, m))
+            upstream.append((l, m._meta.model_name, m))
 
     for l in fk_fields:
         m = getattr(item, l)
         if m is not None:
-            item_children.append((l, m._meta.model_name, m))
+            upstream.append((l, m._meta.model_name, m))
         else:
             pass
 
-    return item_children
+    return upstream
 
 
-def get_parent_fields(item_model):
-    parent_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
-                     type(x) == ManyToOneRel or type(x) == ManyToManyRel]
+def get_downstream_fields(item_model):
+    downstream_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
+                         type(x) == ManyToOneRel or type(x) == ManyToManyRel]
 
-    return parent_fields
+    return downstream_fields
 
 
-def get_item_parent_attributes(item):
-    parent_fields = get_parent_fields(ContentType.objects.get_for_model(item))
+def get_item_downstream_attributes(item):
+    downstream_fields = get_downstream_fields(ContentType.objects.get_for_model(item))
 
-    item_parents = []
+    downstream = []
 
-    for l in parent_fields:
+    for l in downstream_fields:
         m2m = getattr(item, l)
         m2m_2 = getattr(m2m, 'all')()
         for m in m2m_2:
-            item_parents.append((l, m._meta.model_name, m))
+            downstream.append((l, m._meta.model_name, m))
 
-    return item_parents
+    return downstream
 
 
 def get_item_local_attributes(item, excluding=[]):
@@ -677,7 +777,7 @@ def delete_item(request, item, options):
 
 def delete_deep(request, item):
     """
-    Deletes this item as well as any child items included in it.
+    Deletes this item as well as any downstream items included in it.
     :param request: 
     :param item: 
     :return: 
