@@ -920,7 +920,6 @@ def upload(request):
     }
     return render(request, 'main/upload.html', context)
 
-
 # @login_required
 # def upload_check(request, item_id):
 #     # This view makes a scratchpad from the uploaded file, and allows users to select which parts to save
@@ -1048,10 +1047,7 @@ def export_model(request, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
-    # Have to convert to a libcellml model before we can print it
-
     cellml_model = export_to_cellml_model(model)
-
     printer = libcellml.Printer()
     cellml_text = printer.printModel(cellml_model)
 
@@ -1077,7 +1073,9 @@ def export_model(request, item_id):
     return render(request, 'main/export.html', context)
 
 
-# ------------------------------------ PERMISSIONS ------------------------------------------
+# TODO write to file view
+
+# ------------------------------------ PERMISSIONS & PRIVACY ---------------------------------
 def check_ownership(request, item):
     try:
         is_owner = item.owner == request.user.person
@@ -1093,8 +1091,6 @@ def check_ownership(request, item):
 
     return True
 
-
-# -------------------------------- PRIVACY FUNCTIONS --------------------------------------
 
 def set_privacy(request):
     if request.method == "POST":

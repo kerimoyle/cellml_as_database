@@ -32,6 +32,7 @@ class NamedCellMLEntity(DjangoModel):
     owner = ForeignKey('Person', blank=True, null=True, on_delete=SET_NULL)  # TODO set to admin
     imported_from = ForeignKey('ImportedEntity', on_delete=SET_NULL, related_name="imported_%(class)s_objects",
                                blank=True, null=True)
+    annotations = ManyToManyField('Annotation', blank=True, related_name="used_by_%(class)s_objects")
 
     # CellML and libCellML fields:
     cellml_id = CharField(blank=True, max_length=100)  # Mimics the cellml field 'id', not needed here
@@ -97,6 +98,12 @@ class ImportedEntity(DjangoModel):
         return self.attribution
 
 
+class Annotation(DjangoModel):
+    name = TextField(blank=True, null=True)
+    code = CharField(max_length=100, blank=True, null=True)
+    source = URLField(blank=True, null=True)
+
+
 class Variable(NamedCellMLEntity):
     INTERFACE_TYPE = [
         ("Public", "PU"),
@@ -106,10 +113,8 @@ class Variable(NamedCellMLEntity):
     ]
 
     equivalent_variables = ManyToManyField("Variable", symmetrical=True, blank=True)
-
     initial_value = CharField(max_length=100, null=True)
     interface_type = CharField(max_length=2, choices=INTERFACE_TYPE, default="NA", null=True, blank=True)
-
     component = ForeignKey("Component", related_name="variables", blank=True, null=True, on_delete=SET_NULL)
 
     def __str__(self):
