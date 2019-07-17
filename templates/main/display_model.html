@@ -7,49 +7,113 @@
 {% endblock todo %}
 
 {% block title %}Model <b>{{ model.name }}</b>{% endblock title %}
-{% block title_buttons %}
-    {% if can_edit %}
-        <a onclick="LoadModalData('Copy into your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
-           data-toggle="modal"
-           data-target="#formModal"
-           style="text-decoration: none;">
-            <button class="btn btn-primary"><i class="fa fa-plus"></i> Copy
-            </button>
-        </a>
-        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type="cellmodel" item_id=model.id %}');"
-           data-toggle="modal"
-           data-target="#formModal"
-           style="text-decoration: none;">
-            <button class="btn btn-default "><i class="fa fa-trash"></i> Delete</button>
-        </a>
-
-        {% if model.privacy == "public" %}
-            <a onclick="SetPrivate()">
-                <button class="btn btn-primary"><i class="fa fa-lock"></i> Set private</button>
-            </a>
-        {% else %}
-            <a onclick="SetPublic()">
-                <button class="btn btn-primary"><i class="fa fa-unlock"></i> Set public</button>
-            </a>
-        {% endif %}
+{% block privacy_symbol %}
+    {% if model.privacy == 'private' %}
+        <i class="fa fa-lock"></i>
     {% else %}
-        <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
-           data-toggle="modal"
-           data-target="#formModal"
-           style="text-decoration: none;">
-            <button class="btn btn-primary"><i class="fa fa-send"></i> Send
-            </button>
-        </a>
+        <i class="fa fa-unlock"></i>
     {% endif %}
+{% endblock privacy_symbol %}
+{% block title_buttons %}
+    <div class="button_bar" style="padding-top:15px;">
+        {% if can_edit %}
+            <div class="dropdown">
+                <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                    <i class="fa fa-wrench"></i> Actions ...
+                    <span class="caret"></span></button>
+                <ul class="dropdown-menu dropdown-menu-right">
+                    <li>
+                        <a onclick="LoadModalData('Edit information','{% url 'main:edit_locals' item_type="cellmodel" item_id=model.id %}');"
+                           data-toggle="modal"
+                           data-target="#formModal"
+                           style="text-decoration: none;">
+                            <i class="fa fa-pencil"></i> Edit information
+                        </a>
+                    </li>
+                    <li>
+                        <a onclick="LoadModalData('Create a copy?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
+                           data-toggle="modal"
+                           data-target="#formModal"
+                           style="text-decoration:none;">
+                            <i class="fa fa-plus"></i>&nbsp;&nbsp;Copy
+                        </a></li>
 
-    <a onclick="LoadModalData('CellML2.0 markup','{% url 'main:export_model' item_id=model.id %}');"
-       data-toggle="modal"
-       data-target="#formModal"
-       style="text-decoration:none;">
-        <button class="btn btn-primary">
-            <i class="fa fa-download"></i>&nbsp;&nbsp;Export
-        </button>
-    </a>
+                    {% if item.privacy == "public" %}
+                        <li><a onclick="SetPrivate()">
+                            <i class="fa fa-lock"></i> Set private
+                        </a></li>
+                    {% else %}
+                        <li><a onclick="SetPublic()">
+                            <i class="fa fa-unlock"></i> Set public
+                        </a></li>
+                    {% endif %}
+
+                    <li>
+                        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type="cellmodel" item_id=model.id %}');"
+                           data-toggle="modal"
+                           data-target="#formModal"
+                           style="text-decoration: none;">
+                            <i class="fa fa-trash"></i> Delete
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        {% else %}
+
+            <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
+               data-toggle="modal"
+               data-target="#formModal"
+               style="text-decoration:none;">
+                <button class="btn btn-primary"><i class="fa fa-send"></i> Send to my library</button>
+            </a>
+
+        {% endif %}
+    </div>
+
+
+
+    {#    {% if can_edit %}#}
+    {#        <a onclick="LoadModalData('Copy into your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"#}
+    {#           data-toggle="modal"#}
+    {#           data-target="#formModal"#}
+    {#           style="text-decoration: none;">#}
+    {#            <button class="btn btn-primary"><i class="fa fa-plus"></i> Copy#}
+    {#            </button>#}
+    {#        </a>#}
+    {#        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type="cellmodel" item_id=model.id %}');"#}
+    {#           data-toggle="modal"#}
+    {#           data-target="#formModal"#}
+    {#           style="text-decoration: none;">#}
+    {#            <button class="btn btn-default "><i class="fa fa-trash"></i> Delete</button>#}
+    {#        </a>#}
+    {##}
+    {#        {% if model.privacy == "public" %}#}
+    {#            <a onclick="SetPrivate()">#}
+    {#                <button class="btn btn-primary"><i class="fa fa-lock"></i> Set private</button>#}
+    {#            </a>#}
+    {#        {% else %}#}
+    {#            <a onclick="SetPublic()">#}
+    {#                <button class="btn btn-primary"><i class="fa fa-unlock"></i> Set public</button>#}
+    {#            </a>#}
+    {#        {% endif %}#}
+    {#    {% else %}#}
+    {#        <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"#}
+    {#           data-toggle="modal"#}
+    {#           data-target="#formModal"#}
+    {#           style="text-decoration: none;">#}
+    {#            <button class="btn btn-primary"><i class="fa fa-send"></i> Send#}
+    {#            </button>#}
+    {#        </a>#}
+    {#    {% endif %}#}
+    {##}
+    {#    <a onclick="LoadModalData('CellML2.0 markup','{% url 'main:export_model' item_id=model.id %}');"#}
+    {#       data-toggle="modal"#}
+    {#       data-target="#formModal"#}
+    {#       style="text-decoration:none;">#}
+    {#        <button class="btn btn-primary">#}
+    {#            <i class="fa fa-download"></i>&nbsp;&nbsp;Export#}
+    {#        </button>#}
+    {#    </a>#}
 
 {% endblock %}
 

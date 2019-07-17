@@ -100,7 +100,9 @@
 {% endif %}{% endblock messages %}</div>
 <div class="container-fluid" id="main_container">
     <div class="row">
-        <div class="col-sm-8"><h1>{% block title %}{% endblock title %}</h1></div>
+        <div class="col-sm-8">
+            <h1>{% block title %}{% endblock title %} {% block privacy_symbol %}{% endblock privacy_symbol %}</h1>
+        </div>
         <div class="col-sm-4 button_bar">{% block title_buttons %}{% endblock title_buttons %}</div>
     </div>
     {% block content %}{% endblock content %}
