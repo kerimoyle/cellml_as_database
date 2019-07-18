@@ -68,7 +68,7 @@
                     {% if can_edit %}
 
                         <a onclick="LoadModalData('Create link to existing component',
-                                '{% url 'main:link_backwards' item_type=item_type item_id=item.id related_name='components' %}'
+                                '{% url 'main:link_downstream' item_type=item_type item_id=item.id related_name='components' %}'
                                 );"
                            data-toggle="modal"
                            data-target="#formModal"
@@ -125,7 +125,7 @@
                 <div class="col-md-6 button_bar">
                     {% if can_edit %}
                         <a onclick="LoadModalData('Create link to existing compound units',
-                                '{% url 'main:link_backwards' item_type='cellmodel' item_id=item.id related_name='compoundunits' %}'
+                                '{% url 'main:link_downstream' item_type='cellmodel' item_id=item.id related_name='compoundunits' %}'
                                 );"
                            data-toggle="modal"
                            data-target="#formModal"

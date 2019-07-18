@@ -12,7 +12,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 
 from main.defines import MENU_OPTIONS
-from main.forms import ReverseLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
+from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
     get_upstream_fields, get_item_upstream_attributes, copy_item, \
     delete_item, export_to_cellml_model, get_downstream_fields, get_item_downstream_attributes
@@ -417,7 +417,7 @@ def edit_unit(request, item_id):
 
 
 @login_required
-def link_forwards(request, item_type, item_id, related_name):
+def link_upstream(request, item_type, item_id, related_name):
     """
     Generic view to link foreign keys and many-to-many fields into a parent item
     :param request: request
@@ -475,7 +475,7 @@ def link_forwards(request, item_type, item_id, related_name):
     form.fields[related_name].queryset = r.related_model.objects.filter(owner=request.user.person)
     form.helper.attrs = {'target': '_top'}
     form.helper.add_input(Submit('submit', "Save"))
-    form.helper.form_action = reverse('main:link_forwards',
+    form.helper.form_action = reverse('main:link_upstream',
                                       kwargs={'item_type': item_type, 'item_id': item_id, 'related_name': related_name})
 
     context = {
@@ -487,7 +487,7 @@ def link_forwards(request, item_type, item_id, related_name):
 
 
 @login_required
-def link_backwards(request, item_type, item_id, related_name):
+def link_downstream(request, item_type, item_id, related_name):
     """
         Generic view to link parent onetomanyrel fields to the current item
         :param request: request
@@ -531,26 +531,25 @@ def link_backwards(request, item_type, item_id, related_name):
         return redirect('main:error')
 
     if request.POST:
-        form = ReverseLinkForm(request.POST, item_type=item_type, item_id=item_id, parent_type=parent_type)
+        form = DownstreamLinkForm(request.POST, item_type=item_type, item_id=item_id, parent_type=parent_type)
 
         if form.is_valid():
             add_me = form.cleaned_data['link_to_id']
 
             for related_object in add_me:
-                setattr(related_object, parent_field, item)
-                related_object.save()
+                getattr(related_object, parent_field).add(item)
 
             return redirect(reverse('main:display',
                                     kwargs={'item_type': item_type,
                                             'item_id': item.id}))
     else:
-        form = ReverseLinkForm(item_type=item_type, item_id=item_id, parent_type=parent_type)
+        form = DownstreamLinkForm(item_type=item_type, item_id=item_id, parent_type=parent_type)
 
     form.helper = FormHelper()
     form.helper.form_method = 'post'
     form.helper.attrs = {'target': '_top'}
     form.helper.add_input(Submit('submit', "Save"))
-    form.helper.form_action = reverse('main:link_backwards',
+    form.helper.form_action = reverse('main:link_downstream',
                                       kwargs={'item_type': item_type, 'item_id': item_id, 'related_name': related_name})
 
     # Want to have levels of suggestion and ability to search the queryset passed.

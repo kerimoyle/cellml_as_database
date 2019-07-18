@@ -137,7 +137,7 @@ class MathCreateForm(forms.ModelForm):
         self.helper.add_input(Submit('math_create', 'Save'))
 
 
-class ReverseLinkForm(forms.Form):
+class DownstreamLinkForm(forms.Form):
     class Meta:
         fields = ['link_to_id']
 
@@ -149,7 +149,7 @@ class ReverseLinkForm(forms.Form):
 
         queryset = parent_model.get_all_objects_for_this_type()
 
-        super(ReverseLinkForm, self).__init__(*args, **kwargs)
+        super(DownstreamLinkForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_id = 'id-reverse_link_form'
         self.helper.form_class = 'blueForms'

@@ -25,7 +25,7 @@
                             {% for r in child_fields %}
                                 <li>
                                     <a onclick="LoadModalData(
-                                            '{% url 'main:link_forwards' item_type=item_type item_id=item.id related_name=r %}'
+                                            '{% url 'main:link_upstream' item_type=item_type item_id=item.id related_name=r %}'
                                             );"
                                        data-toggle="modal"
                                        data-target="#formModal"
@@ -65,7 +65,7 @@
                             <td>{{ obj }}</td>
                             <td class="rowlink-skip">
                                 <a onclick="LoadModalData(
-                                        '{% url 'main:link_forwards' item_type=item_type item_id=item.id related_name=field %}'
+                                        '{% url 'main:link_upstream' item_type=item_type item_id=item.id related_name=field %}'
                                         );"
                                    data-toggle="modal"
                                    data-target="#formModal"
@@ -167,7 +167,7 @@
                             {% for r in parent_fields %}
                                 <li>
                                     <a onclick="LoadModalData(
-                                            '{% url 'main:link_backwards' item_type=item_type item_id=item.id related_name=r %}'
+                                            '{% url 'main:link_downstream' item_type=item_type item_id=item.id related_name=r %}'
                                             );"
                                        data-toggle="modal"
                                        data-target="#formModal"
@@ -203,7 +203,7 @@
                             <td>{{ obj }}</td>
                             <td class="rowlink-skip">
                                 <a onclick="LoadModalData(
-                                        '{% url 'main:link_forwards' item_type=item_type item_id=item.id related_name=field %}'
+                                        '{% url 'main:link_upstream' item_type=item_type item_id=item.id related_name=field %}'
                                         );"
                                    data-toggle="modal"
                                    data-target="#formModal"

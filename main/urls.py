@@ -31,8 +31,8 @@ urlpatterns = [
     path('home/', views.home, name='home'),
     path('intro/', views.intro, name='intro'),
 
-    path('link_backwards/<item_type>/<int:item_id>/<related_name>', views.link_backwards, name='link_backwards'),
-    path('link_forwards/<item_type>/<int:item_id>/<related_name>', views.link_forwards, name='link_forwards'),
+    path('link_downstream/<item_type>/<int:item_id>/<related_name>', views.link_downstream, name='link_downstream'),
+    path('link_upstream/<item_type>/<int:item_id>/<related_name>', views.link_upstream, name='link_upstream'),
     path('link_remove/', views.link_remove, name='link_remove'),
     path('login_view/', views.login_view, name='login_view'),
     path('logout_view/', views.logout_view, name='logout_view'),
