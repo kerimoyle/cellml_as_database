@@ -4,7 +4,8 @@ body {
 }
 
 h1, h2, h3, h4 {
-    color: #2f557b;
+    /*color: #2f557b;;*/
+    color: #600000;
 }
 
 iframe {
@@ -14,7 +15,7 @@ iframe {
 
 .todo {
     background: #bcc2c8;
-    color: #2f557b;
+    color: #600000;
     padding: 7px;
 }
 
@@ -97,12 +98,12 @@ iframe {
 /* ----------------- NAVIGATION BAR STUFF -------------------- */
 
 .nav-style {
-    background-color: #2f557b;
+    background-color: #600000;
 
 }
 
 .navbar-default {
-    background-color: #2f557b;
+    background-color: #600000;
     border: 0;
     padding-right: 15px;
 }
@@ -152,7 +153,7 @@ iframe {
 /* ---------------------- DATATABLES STYLING ---------------------- */
 td.details-control {
     text-align: center;
-    color: #2f557b;
+    color: #600000;
     cursor: pointer;
 }
 

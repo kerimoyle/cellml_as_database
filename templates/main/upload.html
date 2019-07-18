@@ -1,12 +1,16 @@
 {% extends 'main/base.html' %}
 {% load crispy_forms_tags %}
+{% load static %}
 
-{% block title %}Upload CellML file{% endblock title %}
+{% block title %}Upload a CellML model{% endblock title %}
 
 {% block content %}
     <div class="row">
         <div class="col-md-6">
-            {% lorem %}
+            <img src="{% static '/img/logo-cellml.png' %}"><br><br>
+            <p>Info about CellML format goes here ...</p>
+            <p>{% lorem %}</p>
+
         </div>
         <div class="col-md-6">
             {% crispy form %}
