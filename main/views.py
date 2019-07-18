@@ -190,7 +190,7 @@ def create(request, item_type, in_modal):
     form.helper.add_input(Submit('submit', "Save"))
     form.helper.form_action = reverse('main:create', kwargs={'item_type': item_type})
 
-    existing_items = item_model.model_class().objects.filter(privacy=2)
+    existing_items = item_model.model_class().objects.filter(Q(privacy="public")|Q(owner=person))
 
     context = {
         'item_type': item_type,
@@ -229,7 +229,7 @@ def create_unit(request, cu_id, in_modal):
         messages.error(request, "{t}: {a}".format(t=type(e).__name__, a=e.args))
         return redirect('main:error')
 
-    create_form = modelform_factory(Unit, fields=('prefix', 'upstream_cu', 'multiplier', 'exponent'))
+    create_form = modelform_factory(Unit, fields=('prefix', 'child_cu', 'multiplier', 'exponent'))
 
     if request.POST:
         form = create_form(request.POST)
@@ -393,7 +393,7 @@ def edit_unit(request, item_id):
         }
         return render(request, 'main/form_modal.html', context)
 
-    edit_form = modelform_factory(Unit, fields=('prefix', 'upstream_cu', 'multiplier', 'exponent'))
+    edit_form = modelform_factory(Unit, fields=('prefix', 'child_cu', 'multiplier', 'exponent'))
 
     if request.POST:
         form = edit_form(request.POST, instance=item)
@@ -698,7 +698,7 @@ def display(request, item_type, item_id):
     if not (item.owner == person or item.privacy == 'public'):
         messages.error("Sorry, you do not have permission to view this {i}.  "
                        "Please contact the owner ({f} {l})for access.".format(
-            i=item.item_type,
+            i=item_type,
             f=item.owner.first_name,
             l=item.owner.last_name))
 
@@ -760,12 +760,13 @@ def display_compoundunit(request, item_id):
     for u in item.product_of.all():
         multiplier *= u.multiplier
         if u.exponent == 1:
-            formula.append("{p}{u} ".format(p=u.prefix.symbol, u=u.upstream_cu.symbol))
+            formula.append("{p}{u} ".format(p=u.prefix.symbol, u=u.child_cu.symbol))
         else:
-            formula.append("{p}{u}<sup>{e}</sup>".format(p=u.prefix.symbol, u=u.upstream_cu.symbol, e=u.exponent))
+            formula.append("{p}{u}<sup>{e}</sup>".format(p=u.prefix.symbol, u=u.child_cu.symbol, e=u.exponent))
 
     context = {
         'item': item,
+        'item_type': 'compoundunit',
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
         'formula': formula,
@@ -787,7 +788,8 @@ def display_model(request, item_id):
         return redirect('main:error')
 
     context = {
-        'model': model,
+        'item': model,
+        'item_type': 'cellmodel',
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == model.owner
     }
@@ -897,6 +899,7 @@ def upload(request):
             model.name = storage.model_name
             model.owner = request.user.person
             model.imported_from = imported_from
+            model.privacy = 'private'
             model.save()
 
             # Delete the TemporaryStorage object, also deletes the uploaded file

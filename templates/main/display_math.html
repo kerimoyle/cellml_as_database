@@ -42,7 +42,7 @@
 
 {% block content %}
     <div class="row">
-        <div class="col-sm-4">
+        <div class="col-sm-6">
             <table class="datatables display table table-hover" id="table-connections">
                 <thead>
                 <tr>
@@ -71,13 +71,18 @@
                 </tbody>
             </table>
         </div>
-
-        <div class="col-sm-4">
+        <div class="col-sm-6">
+            <div class="button_bar">
+                <a onclick="LoadModalData('Run maths','https://trinket.io/embed/python3/055c60f8a0');"
+                   data-toggle="modal"
+                   data-target="#formModal"
+                   style="text-decoration: none;">
+                    <i class="fa fa-play"></i> Run maths
+                </a>
+            </div>
             {{ math.math_ml|linebreaksbr }}
         </div>
-        <div class="col-sm-4">
-            {{ math.math_ml|safe }}
-        </div>
+
     </div>
 {% endblock content %}
 

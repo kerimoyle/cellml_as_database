@@ -37,6 +37,16 @@ iframe {
     display: none;
 }
 
+.privacy-private {
+    color: #47322e;
+    font-style: italic;
+}
+
+.public {
+    color: #2e4935;
+    font-style: italic;
+}
+
 .button_bar {
     padding-top: 15px;
     text-align: right;

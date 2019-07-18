@@ -6,139 +6,13 @@
     - make links to imported files better
 {% endblock todo %}
 
-{% block title %}Model <b>{{ model.name }}</b>{% endblock title %}
-{% block privacy_symbol %}
-    {% if model.privacy == 'private' %}
-        <i class="fa fa-lock"></i>
-    {% else %}
-        <i class="fa fa-unlock"></i>
-    {% endif %}
-{% endblock privacy_symbol %}
-{% block title_buttons %}
-    <div class="button_bar" style="padding-top:15px;">
-        {% if can_edit %}
-            <div class="dropdown">
-                <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
-                    <i class="fa fa-wrench"></i> Actions ...
-                    <span class="caret"></span></button>
-                <ul class="dropdown-menu dropdown-menu-right">
-                    <li>
-                        <a onclick="LoadModalData('Edit information','{% url 'main:edit_locals' item_type="cellmodel" item_id=model.id %}');"
-                           data-toggle="modal"
-                           data-target="#formModal"
-                           style="text-decoration: none;">
-                            <i class="fa fa-pencil"></i> Edit information
-                        </a>
-                    </li>
-                    <li>
-                        <a onclick="LoadModalData('Create a copy?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
-                           data-toggle="modal"
-                           data-target="#formModal"
-                           style="text-decoration:none;">
-                            <i class="fa fa-plus"></i>&nbsp;&nbsp;Copy
-                        </a></li>
-
-                    {% if item.privacy == "public" %}
-                        <li><a onclick="SetPrivate()">
-                            <i class="fa fa-lock"></i> Set private
-                        </a></li>
-                    {% else %}
-                        <li><a onclick="SetPublic()">
-                            <i class="fa fa-unlock"></i> Set public
-                        </a></li>
-                    {% endif %}
-
-                    <li>
-                        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type="cellmodel" item_id=model.id %}');"
-                           data-toggle="modal"
-                           data-target="#formModal"
-                           style="text-decoration: none;">
-                            <i class="fa fa-trash"></i> Delete
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        {% else %}
-
-            <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"
-               data-toggle="modal"
-               data-target="#formModal"
-               style="text-decoration:none;">
-                <button class="btn btn-primary"><i class="fa fa-send"></i> Send to my library</button>
-            </a>
-
-        {% endif %}
-    </div>
-
-
-
-    {#    {% if can_edit %}#}
-    {#        <a onclick="LoadModalData('Copy into your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"#}
-    {#           data-toggle="modal"#}
-    {#           data-target="#formModal"#}
-    {#           style="text-decoration: none;">#}
-    {#            <button class="btn btn-primary"><i class="fa fa-plus"></i> Copy#}
-    {#            </button>#}
-    {#        </a>#}
-    {#        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type="cellmodel" item_id=model.id %}');"#}
-    {#           data-toggle="modal"#}
-    {#           data-target="#formModal"#}
-    {#           style="text-decoration: none;">#}
-    {#            <button class="btn btn-default "><i class="fa fa-trash"></i> Delete</button>#}
-    {#        </a>#}
-    {##}
-    {#        {% if model.privacy == "public" %}#}
-    {#            <a onclick="SetPrivate()">#}
-    {#                <button class="btn btn-primary"><i class="fa fa-lock"></i> Set private</button>#}
-    {#            </a>#}
-    {#        {% else %}#}
-    {#            <a onclick="SetPublic()">#}
-    {#                <button class="btn btn-primary"><i class="fa fa-unlock"></i> Set public</button>#}
-    {#            </a>#}
-    {#        {% endif %}#}
-    {#    {% else %}#}
-    {#        <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type="cellmodel" item_id=model.id %}');"#}
-    {#           data-toggle="modal"#}
-    {#           data-target="#formModal"#}
-    {#           style="text-decoration: none;">#}
-    {#            <button class="btn btn-primary"><i class="fa fa-send"></i> Send#}
-    {#            </button>#}
-    {#        </a>#}
-    {#    {% endif %}#}
-    {##}
-    {#    <a onclick="LoadModalData('CellML2.0 markup','{% url 'main:export_model' item_id=model.id %}');"#}
-    {#       data-toggle="modal"#}
-    {#       data-target="#formModal"#}
-    {#       style="text-decoration:none;">#}
-    {#        <button class="btn btn-primary">#}
-    {#            <i class="fa fa-download"></i>&nbsp;&nbsp;Export#}
-    {#        </button>#}
-    {#    </a>#}
-
-{% endblock %}
+{% block title %}Model <b>{{ item.name }}</b>{% endblock title %}
 
 
 {% block content %}
     <div class="row">
         <div class="col-md-12">
-            <div class="row">
-                <div class="col-sm-6">
-                    <h3>Information</h3>
-                </div>
-                {% if can_edit %}
-                    <div class="col-sm-6 button_bar">
-                        <a onclick="LoadModalData('Edit information',
-                                '{% url 'main:edit_locals' item_type="cellmodel" item_id=model.id %}');"
-                           data-toggle="modal"
-                           data-target="#formModal"
-                           style="text-decoration: none;">
-                            <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit information
-                            </button>
-                        </a>
-                    </div>
-                {% endif %}
-            </div>
-
+            <h3>Information</h3>
             <table class="display table" id="table-info">
                 <thead>
                 <tr>
@@ -150,7 +24,7 @@
                 <tr>
                     <td>CellML ID</td>
                     <td>
-                        {% if model.cellml_id %}{{ model.cellml_id }}
+                        {% if item.cellml_id %}{{ item.cellml_id }}
                         {% else %}<p class="empty">None</p>
                         {% endif %}
                     </td>
@@ -158,7 +32,7 @@
                 <tr>
                     <td>Owner</td>
                     <td>
-                        {% if model.owner %}{{ model.owner|title }}
+                        {% if item.owner %}{{ item.owner|title }}
                         {% else %}<p class="empty">None</p>
                         {% endif %}
                     </td>
@@ -166,9 +40,9 @@
                 <tr>
                     <td>Imported from</td>
                     <td>
-                        {% if model.imported_from %}
-                            <a href="{% url 'main:display' item_type=model.imported_from.source_type item_id=model.imported_from.source_id %}">
-                                {{ model.imported_from }}
+                        {% if item.imported_from %}
+                            <a href="{% url 'main:display' item_type=item.imported_from.source_type item_id=item.imported_from.source_id %}">
+                                {{ item.imported_from }}
                             </a>
                         {% else %}<p class="empty">None</p>
                         {% endif %}
@@ -176,7 +50,7 @@
                 </tr>
                 </tbody>
             </table>
-            <div>{{ model.notes|linebreaks }}</div>
+            <div>{{ item.notes|linebreaks }}</div>
         </div>
     </div>
 
@@ -192,7 +66,7 @@
                     {% if can_edit %}
 
                         <a onclick="LoadModalData('Create link to existing component',
-                                '{% url 'main:link_backwards' item_type='cellmodel' item_id=model.id related_name='components' %}'
+                                '{% url 'main:link_backwards' item_type=item_type item_id=item.id related_name='components' %}'
                                 );"
                            data-toggle="modal"
                            data-target="#formModal"
@@ -224,7 +98,7 @@
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
-                {% for c in model.components.all %}
+                {% for c in item.components.all %}
                     <tr>
                         <td>
                             <a href="{% url 'main:display' item_type='component' item_id=c.id %}"></a>
@@ -249,7 +123,7 @@
                 <div class="col-md-6 button_bar">
                     {% if can_edit %}
                         <a onclick="LoadModalData('Create link to existing compound units',
-                                '{% url 'main:link_backwards' item_type='cellmodel' item_id=model.id related_name='compoundunits' %}'
+                                '{% url 'main:link_backwards' item_type='cellmodel' item_id=item.id related_name='compoundunits' %}'
                                 );"
                            data-toggle="modal"
                            data-target="#formModal"
@@ -278,7 +152,7 @@
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
-                {% for cu in model.compoundunits.all %}
+                {% for cu in item.compoundunits.all %}
                     <tr>
                         <td>
                             <a href="{% url 'main:display' item_type='compoundunit' item_id=cu.id %}"></a>
@@ -311,8 +185,8 @@
 
     <form id="privacy_form" action="{% url 'main:set_privacy' %}" method='POST' hidden>
         {% csrf_token %}
-        <input type="text" name="item_type" id="item_type" value="cellmodel">
-        <input type="text" name="item_id" id="item_id" value="{{ model.id }}">
+        <input type="text" name="item_type" id="item_type" value="{{ item_type }}">
+        <input type="text" name="item_id" id="item_id" value="{{ item.id }}">
         <input type="text" name="privacy_level" id="privacy_level" value="">
     </form>
 
@@ -327,8 +201,8 @@
         });
 
         function Unlink(related_name, related_id) {
-            $('input[name="unlink_item_type"]').val("cellmodel");
-            $('input[name="unlink_item_id"]').val("{{ model.id }}");
+            $('input[name="unlink_item_type"]').val({{ item_type }});
+            $('input[name="unlink_item_id"]').val("{{ item.id }}");
             $('input[name="unlink_related_name"]').val(related_name);
             $('input[name="unlink_related_id"]').val(related_id);
             $("form#unlink_form ").submit();

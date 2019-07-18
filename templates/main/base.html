@@ -101,9 +101,69 @@
 <div class="container-fluid" id="main_container">
     <div class="row">
         <div class="col-sm-8">
-            <h1>{% block title %}{% endblock title %} {% block privacy_symbol %}{% endblock privacy_symbol %}</h1>
+            <h1>{% block title %}{% endblock title %}</h1>
+            <span class="privacy {{ item.privacy }}"><b>Privacy:</b> {{ item.privacy|title }}{% if not can_change_privacy %} (inherited){% endif %}</span>
         </div>
-        <div class="col-sm-4 button_bar">{% block title_buttons %}{% endblock title_buttons %}</div>
+        <div class="col-sm-4 button_bar">
+            {% block title_buttons %}
+                <div class="button_bar" style="padding-top:15px;">
+                    {% if item %}
+                        {% if can_edit %}
+                            <div class="dropdown">
+                                <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                                    <i class="fa fa-wrench"></i> Actions ...
+                                    <span class="caret"></span></button>
+                                <ul class="dropdown-menu dropdown-menu-right">
+                                    <li>
+                                        <a onclick="LoadModalData('Edit information','{% url 'main:edit_locals' item_type=item_type item_id=item.id %}');"
+                                           data-toggle="modal"
+                                           data-target="#formModal"
+                                           style="text-decoration: none;">
+                                            Edit information
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a onclick="LoadModalData('Create a copy?','{% url 'main:copy' item_type=item_type item_id=item.id %}');"
+                                           data-toggle="modal"
+                                           data-target="#formModal"
+                                           style="text-decoration:none;">
+                                            Copy
+                                        </a></li>
+
+                                    {% if can_change_privacy %}
+                                        {% if item.privacy == "public" %}
+                                            <li><a onclick="SetPrivate()">
+                                                <i class="fa fa-lock"></i> Set private
+                                            </a></li>
+                                        {% else %}
+                                            <li><a onclick="SetPublic()">
+                                                <i class="fa fa-unlock"></i> Set public
+                                            </a></li>
+                                        {% endif %}
+                                    {% endif %}
+
+                                    <li>
+                                        <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type=item_type item_id=item.id %}');"
+                                           data-toggle="modal"
+                                           data-target="#formModal"
+                                           style="text-decoration: none;">
+                                            Delete
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        {% else %}
+                            <a onclick="LoadModalData('Send a copy to your library?','{% url 'main:copy' item_type=item_type item_id=item.id %}');"
+                               data-toggle="modal"
+                               data-target="#formModal"
+                               style="text-decoration:none;">
+                                <button class="btn btn-primary"><i class="fa fa-send"></i> Send to my library</button>
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% endblock title_buttons %}
+        </div>
     </div>
     {% block content %}{% endblock content %}
     {% block modals %}

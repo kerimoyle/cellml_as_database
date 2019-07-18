@@ -43,8 +43,8 @@ class PrivacyForm(forms.Form):
 
         self.fields['options'] = forms.ChoiceField(
             widget=forms.RadioSelect(),
-            choices=[('Only me', 'Only me'),
-                     ('Everyone', 'Everyone'), ],
+            choices=[('private', 'private'),
+                     ('public', 'public'), ],
         )
 
 

@@ -24,7 +24,7 @@ standard_unit_list = [
     ["lumen", "lm", [["candela", 1.0]]],
     ["lux", "lx", [["candela", 1.0], ["metre", -2.0]]],
     ["newton", "N", [["kilogram", 1.0], ["metre", 1.0], ["second", -2.0]]],
-    ["ohm", "\\Omega\\", [["ampere", -2.0], ["kilogram", 1.0], ["metre", 2.0], ["second", -3.0]]],
+    ["ohm", "&Omega;", [["ampere", -2.0], ["kilogram", 1.0], ["metre", 2.0], ["second", -3.0]]],
     ["pascal", "Pa", [["kilogram", 1.0], ["metre", -1.0], ["second", -2.0]]],
     ["radian", "rad", [["dimensionless", 1.0]]],
     ["siemens", "S", [["ampere", 2.0], ["kilogram", -1.0], ["metre", -2.0], ["second", 3.0]]],
@@ -51,7 +51,7 @@ prefix_list = [
     ["deci", -1, "d"],
     ["centi", -2, "c"],
     ["milli", -3, "m"],
-    ["micro", -6, "\\mu\\"],
+    ["micro", -6, "&mu;"],
     ["nano", -9, "n"],
     ["pico", -12, "p"],
     ["femto", -15, "f"],
@@ -116,19 +116,6 @@ def add_standards(apps, schema_editor):
     User = apps.get_model('auth', 'User')
     Prefix = apps.get_model('main', 'Prefix')
 
-    for name, value, symbol in prefix_list:
-        prefix = Prefix(name=name, value=value, symbol=symbol)
-        prefix.save()
-
-    for name, symbol, made_of in standard_unit_list:
-        cu = CompoundUnit(name=name, is_standard=True, symbol=symbol, privacy='public')
-        cu.save()
-        for key, val in made_of:
-            base = CompoundUnit.objects.filter(name=key).first()
-            if base:
-                u = Unit(exponent=val, parent_cu=cu, child_cu=base, reference=key)
-                u.save()
-
     user = User(username="admin")
     user.save()
 
@@ -139,6 +126,21 @@ def add_standards(apps, schema_editor):
         email="noEmail@noEmail.com",
     )
     admin_person.save()
+
+    for name, value, symbol in prefix_list:
+        prefix = Prefix(name=name, value=value, symbol=symbol)
+        prefix.save()
+
+    for name, symbol, made_of in standard_unit_list:
+        cu = CompoundUnit(name=name, is_standard=True, symbol=symbol, privacy='public', owner=admin_person)
+        cu.save()
+        for key, val in made_of:
+            base = CompoundUnit.objects.filter(name=key).first()
+            if base:
+                u = Unit(exponent=val, parent_cu=cu, child_cu=base, reference=key, privacy='public', owner=admin_person)
+                u.save()
+
+
 
 
 def remove_standards(apps, schema_editor):

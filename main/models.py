@@ -27,7 +27,7 @@ class NamedCellMLEntity(DjangoModel):
     # These are the dynamic parts of a model which can be changed by the users
     name = CharField(blank=False, max_length=100)  # The name of the entity
     ready = NullBooleanField()  # object in database has all fields completed TODO not working yet
-    privacy = CharField(max_length=9, choices=PRIVACY_LEVELS, default="Only me", null=True, blank=True)
+    privacy = CharField(max_length=9, choices=PRIVACY_LEVELS, default="private", null=True, blank=True)
     notes = TextField(blank=True)
     owner = ForeignKey('Person', blank=True, null=True, on_delete=SET_NULL)  # TODO set to admin
     imported_from = ForeignKey('ImportedEntity', on_delete=SET_NULL, related_name="imported_%(class)s_objects",
@@ -215,6 +215,9 @@ class CellModel(NamedCellMLEntity):
 
     def __str__(self):
         return self.name
+
+
+
 
 
 class TemporaryStorage(DjangoModel):
