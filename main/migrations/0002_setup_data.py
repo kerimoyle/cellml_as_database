@@ -33,7 +33,10 @@ standard_unit_list = [
     ["tesla", "T", [["ampere", -1.0], ["kilogram", 1.0], ["second", -2.0]]],
     ["volt", "V", [["ampere", -1.0], ["kilogram", 1.0], ["metre", 2.0], ["second", -3.0]]],
     ["watt", "W", [["kilogram", 1.0], ["metre", 2.0], ["second", -3.0]]],
-    ["weber", "Wb", [["ampere", -1.0], ["kilogram", 1.0], ["metre", 2.0], ["second", -2.0]]]
+    ["weber", "Wb", [["ampere", -1.0], ["kilogram", 1.0], ["metre", 2.0], ["second", -2.0]]],
+
+    ["liter", "l", [["litre", 1.0]]],
+    ["meter", "m", [["metre", 1.0]]]
 ]
 
 prefix_list = [
@@ -139,8 +142,6 @@ def add_standards(apps, schema_editor):
             if base:
                 u = Unit(exponent=val, parent_cu=cu, child_cu=base, reference=key, privacy='public', owner=admin_person)
                 u.save()
-
-
 
 
 def remove_standards(apps, schema_editor):

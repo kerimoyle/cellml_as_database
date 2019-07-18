@@ -8,6 +8,30 @@ h1, h2, h3, h4 {
     color: #600000;
 }
 
+
+/*.btn-primary {*/
+/*    background-color: #888888;*/
+/*    border: none;*/
+/*    color:white;*/
+/*}*/
+
+/*.btn-primary:hover {*/
+/*    background-color: #666666;*/
+/*    border: none;*/
+
+/*}*/
+
+/*.btn-default {*/
+/*    background-color: #888888;*/
+/*    border: none;*/
+/*    color:white;*/
+/*}*/
+
+/*.btn-default:hover {*/
+/*    background-color: #666666;*/
+/*    border: none;*/
+/*}*/
+
 iframe {
     border: 0;
 }
@@ -39,14 +63,43 @@ iframe {
 }
 
 .privacy-private {
-    color: #47322e;
-    font-style: italic;
+    color: #333333;
+    position: relative;
+    border: none;
+    padding: 10px 10px 10px 32px;
 }
 
-.public {
-    color: #2e4935;
-    font-style: italic;
+.privacy-public {
+    color: #333333;
+    position: relative;
+    border: none;
+    padding: 10px 10px 10px 32px;
 }
+
+
+.privacy-private:before {
+    font-style:normal;
+    content:"\f21b";
+    font-family: FontAwesome;
+    left: 10px;
+    top: 7px;
+    position:absolute;
+    font-size: large;
+    color: #333;
+}
+
+.privacy-public:before {
+    font-style:normal;
+    content:"\f0ac";
+    font-family: FontAwesome;
+    left: 10px;
+    top: 7px;
+    position:absolute;
+    font-size: large;
+    color: #333;
+}
+
+
 
 .button_bar {
     padding-top: 15px;
@@ -74,8 +127,9 @@ iframe {
     font-family: "Times New Roman";
     font-style: italic;
     font-size: larger;
-    text-align:center;
+    text-align: center;
 }
+
 .numerator {
     font-family: "Times New Roman";
     font-style: italic;

@@ -2,12 +2,19 @@
 {% load crispy_forms_tags %}
 {% load static %}
 
-{% block todo %}
-    - make links to imported files better
-{% endblock todo %}
+{% block todo %}{% endblock todo %}
 
 {% block title %}Model <b>{{ item.name }}</b>{% endblock title %}
-
+{% block export %}
+    <li>
+        <a onclick="LoadModalData('Export CellML','{% url 'main:export_model' item_id=item.id %}');"
+           data-toggle="modal"
+           data-target="#formModal"
+           style="text-decoration:none;">
+            Export as CellML
+        </a>
+    </li>
+{% endblock export %}
 
 {% block content %}
     <div class="row">
@@ -38,12 +45,9 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>Imported from</td>
+                    <td>Origin</td>
                     <td>
-                        {% if item.imported_from %}
-                            <a href="{% url 'main:display' item_type=item.imported_from.source_type item_id=item.imported_from.source_id %}">
-                                {{ item.imported_from }}
-                            </a>
+                        {% if item.imported_from %}{{ item.imported_from }}
                         {% else %}<p class="empty">None</p>
                         {% endif %}
                     </td>
@@ -54,10 +58,8 @@
         </div>
     </div>
 
-
     <div class="row">
         <div class="col-md-6">
-
             <div class="row">
                 <div class="col-md-6">
                     <h3>Components</h3>
@@ -102,7 +104,7 @@
                     <tr>
                         <td>
                             <a href="{% url 'main:display' item_type='component' item_id=c.id %}"></a>
-                            <b>{{ c.name }}</b> {{ c.notes|linebreaks }}
+                            <i>{{ c.name }}</i> {{ c.notes|linebreaks }}
                         </td>
                         {% if can_edit %}
                             <td class="rowlink-skip">
@@ -148,7 +150,8 @@
                     <th>Compound units</th>
                     <th>Unit</th>
                     {% if can_edit %}
-                        <th></th>{% endif %}
+                        <th></th>
+                    {% endif %}
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
@@ -156,7 +159,7 @@
                     <tr>
                         <td>
                             <a href="{% url 'main:display' item_type='compoundunit' item_id=cu.id %}"></a>
-                            <b>{{ cu.name }}</b> {{ cu.notes|linebreaksbr }}
+                            <i>{{ cu.name }}</i> {{ cu.notes|linebreaksbr }}
                         </td>
                         <td>
                             {% for u in cu.units.all %}
@@ -201,7 +204,7 @@
         });
 
         function Unlink(related_name, related_id) {
-            $('input[name="unlink_item_type"]').val({{ item_type }});
+            $('input[name="unlink_item_type"]').val("{{ item_type }}");
             $('input[name="unlink_item_id"]').val("{{ item.id }}");
             $('input[name="unlink_related_name"]').val(related_name);
             $('input[name="unlink_related_id"]').val(related_id);

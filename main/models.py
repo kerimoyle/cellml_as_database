@@ -217,9 +217,6 @@ class CellModel(NamedCellMLEntity):
         return self.name
 
 
-
-
-
 class TemporaryStorage(DjangoModel):
     # This is the storage and reading of the initial cellml file
     file = FileField(blank=False)

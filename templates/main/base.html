@@ -102,15 +102,18 @@
     <div class="row">
         <div class="col-sm-8">
             <h1>{% block title %}{% endblock title %}</h1>
-        {% if item %}
-            <span class="privacy-{{ item.privacy }}"><b>Privacy:</b> {{ item.privacy|title }}{% if not can_change_privacy %} (inherited){% endif %}</span>
-        {% endif %}
+            {% if item %}
+                <span class="privacy-{{ item.privacy }}"><b>Visibility:</b> {{ item.privacy|title }}
+                        {% if not can_change_privacy %} (inherited){% endif %}</span>
+            {% endif %}
         </div>
         <div class="col-sm-4 button_bar">
-            {% block title_buttons %}
-                <div class="button_bar" style="padding-top:15px;">
+
+            <div class="button_bar" style="padding-top:15px;">
+                {% block title_buttons %}
                     {% if item %}
                         {% if can_edit %}
+
                             <div class="dropdown">
                                 <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
                                     <i class="fa fa-wrench"></i> Actions ...
@@ -130,16 +133,19 @@
                                            data-target="#formModal"
                                            style="text-decoration:none;">
                                             Copy
-                                        </a></li>
+                                        </a>
+                                    </li>
+
+                                    {% block export %}{% endblock export %}
 
                                     {% if can_change_privacy %}
                                         {% if item.privacy == "public" %}
                                             <li><a onclick="SetPrivate()">
-                                                <i class="fa fa-lock"></i> Set private
+                                                Set private
                                             </a></li>
                                         {% else %}
                                             <li><a onclick="SetPublic()">
-                                                <i class="fa fa-unlock"></i> Set public
+                                                Set public
                                             </a></li>
                                         {% endif %}
                                     {% endif %}
@@ -162,9 +168,10 @@
                                 <button class="btn btn-primary"><i class="fa fa-send"></i> Send to my library</button>
                             </a>
                         {% endif %}
+
                     {% endif %}
-                </div>
-            {% endblock title_buttons %}
+                {% endblock title_buttons %}
+            </div>
         </div>
     </div>
     {% block content %}{% endblock content %}
