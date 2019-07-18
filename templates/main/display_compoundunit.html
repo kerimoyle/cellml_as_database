@@ -136,13 +136,12 @@
                         <tr>
                             <td>
                                 <a href="{% url 'main:display' item_type='compoundunit' item_id=u.child_cu.id %}"></a>
-                                {#                                <span style="font-family: 'Times New Roman'; font-size: large; font-style: italic; text-align: center;">#}
-                                {#                                    {% if u.multiplier != 1 %}{{ u.multiplier }}{% endif %}#}
-                                {#                                    {% if u.prefix %}{{ u.prefix.symbol }}{% endif %}{% if u.child_cu %}#}
-                                {#                                        {% if u.child_cu.symbol %}{{ u.child_cu.symbol|safe }}{% endif %}{% endif %}#}
-                                {#                                    {% if u.exponent != 1 %}<sup> {{ u.exponent }}</sup>{% endif %}#}
-                                {#                                    <br>#}
-                                {#                                </span>#}
+                                <span style="font-family: 'Times New Roman'; font-size: large; font-style: italic; text-align: center;">
+                                    {% if u.multiplier != 1 %}{{ u.multiplier }}{% endif %}
+                                    {% if u.prefix %}{{ u.prefix.symbol }}{% endif %}
+                                    {% if u.child_cu %}{% if u.child_cu.symbol %}{{ u.child_cu.symbol|safe }}{% endif %}{% endif %}
+                                    {% if u.exponent != 1 %}<sup> {{ u.exponent }}</sup>{% endif %}
+                                </span>
                             </td>
                             <td>{{ u.prefix }}</td>
                             <td>{{ u.multiplier }}</td>
