@@ -190,7 +190,7 @@ def create(request, item_type, in_modal):
     form.helper.add_input(Submit('submit', "Save"))
     form.helper.form_action = reverse('main:create', kwargs={'item_type': item_type})
 
-    existing_items = item_model.model_class().objects.filter(Q(privacy="public")|Q(owner=person))
+    existing_items = item_model.model_class().objects.filter(Q(privacy="public") | Q(owner=person))
 
     context = {
         'item_type': item_type,
@@ -696,13 +696,13 @@ def display(request, item_type, item_id):
 
     # Check visibility for user
     if not (item.owner == person or item.privacy == 'public'):
-        messages.error("Sorry, you do not have permission to view this {i}.  "
-                       "Please contact the owner ({f} {l})for access.".format(
+        messages.error(request, "Sorry, you do not have permission to view this {i}.  "
+                                "Please contact the owner ({f} {l})for access.".format(
             i=item_type,
             f=item.owner.first_name,
             l=item.owner.last_name))
 
-        return redirect('main: error')
+        return redirect('main:error')
 
     upstream_fields = get_upstream_fields(item_model)
     local_attrs = get_item_local_attributes(item, ['notes', 'name'])
@@ -791,7 +791,8 @@ def display_model(request, item_id):
         'item': model,
         'item_type': 'cellmodel',
         'menu': MENU_OPTIONS['display'],
-        'can_edit': request.user.person == model.owner
+        'can_edit': request.user.person == model.owner,
+        'can_change_privacy': True,
     }
     return render(request, 'main/display_model.html', context)
 
@@ -922,6 +923,7 @@ def upload(request):
         'menu': MENU_OPTIONS['upload']
     }
     return render(request, 'main/upload.html', context)
+
 
 # @login_required
 # def upload_check(request, item_id):
