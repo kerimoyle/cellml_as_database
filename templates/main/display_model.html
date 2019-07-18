@@ -104,7 +104,7 @@
                     <tr>
                         <td>
                             <a href="{% url 'main:display' item_type='component' item_id=c.id %}"></a>
-                            <i>{{ c.name }}</i> {{ c.notes|linebreaks }}
+                            <b>{{ c.name }}</b>: {{ c.notes|linebreaks }}
                         </td>
                         {% if can_edit %}
                             <td class="rowlink-skip">
@@ -159,12 +159,15 @@
                     <tr>
                         <td>
                             <a href="{% url 'main:display' item_type='compoundunit' item_id=cu.id %}"></a>
-                            <i>{{ cu.name }}</i> {{ cu.notes|linebreaksbr }}
+                            <b>{{ cu.name }}</b> {{ cu.notes|linebreaksbr }}
                         </td>
-                        <td>
-                            {% for u in cu.units.all %}
-                                {{ u }}<br>
-                            {% endfor %}
+                        <td class="numerator">
+
+                            {{ cu.symbol|safe }}
+{#                            {% for u in cu.product_of.all %}#}
+{#                                {{ u.child_cu.symbol|safe }}<br>#}
+{#                            {% endfor %}#}
+
                         </td>
                         {% if can_edit %}
                             <td class="rowlink-skip">
