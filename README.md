@@ -10,69 +10,95 @@ This idea differs in pradigm from the current libCellML and OpenCOR implementati
 
 ## Use cases
 
-1. Upload existing **unannotated** CellML2.0 model:
-    1. Upload and read *.cellml file
-    2. Save content as distinct but linked items in own library
-        - **NB** Default privacy is private for the highest level of the imported item (probably the model) and inherited by its children.  
-        -  **NB** The user is set as the original creator of the model and its constituent items 
-        
-2. Upload existing **annotated** CellML2.0 model (ie: *.cellml and *.rdf files together)
-    1. Upload and read *.cellml file
-    2. Upload and read *.rdf file
-    2. Save content as distinct but linked items in user's own library, where the annotations are stored as links to the appropriate items
-        - **NB** Default privacy is private for the highest level of the imported item (probably the model) and inherited by its children.  
-        -  **NB** The user is set as the original creator of the model unless the annotations indicate provenance.  The provenance will not be a link to an item in the database but will preserve the appropriate referencing text, if found.  **NB** need to check if this is standardised beyond just the semsim:hasCellMLdocumentation block?
-        
-3. Upload existing CellML1.0/1.1 model:
-    1. Upload and read file
-    2. Save content as distinct but linked items in own library where possible, return parse warnings where items are cannot be stored because of their version/format (old resets, old unit spellings, offsets, etc)
-    3. Save comment blocks into the notes field of relevant items
+Glossary:
+-	Item: The database contains a table for each kind of CellML object (eg: variable, units, etc).  Because this software is built around reusing templates, they’re all referred to as “items” in this list: that is, creating an item of any flavour reuses the same code.
+-	Compound Unit: Referred to in the CellML specifications as “Units” these are a collection of child unit items through a multiplier, exponent, and prefix.  I changed their name for clarity as the plural of an item type name has meaning in the code.
+-	Owner: This is not the same as provenance, it refers only to the ability of the user to edit or delete an item.
+-	Privacy/visibility: Whether or not an item is visible to users other than its owner is decided by its privacy settings.  Currently these are only public (ie: all users) and private (ie: the owner only) but it would be good to be able to share items with selected users.
+-	Public library:  All items in the database which have a “public” visibility status
+-	Frozen/archived:  When an item or model is published and stable it can be frozen.  This passes the ownership to a curator instead of the original creator and the item is no longer editable.
 
-2. Create new item (model/component/units/variable etc) from scratch
-    1. Fill in form of required fields
-    2. Save item to own library
-        - Note that creation from scratch using the form will set the user to be the original owner of the item, the root of the provenance tree.
-        
-3. Create annotations for item   
-    1. Search annotation ontologies for appropriate languages and codes and select
-        - **NB** Suggestions from learned behaviours/smart searches/interpreted uses could be used here
-    2. Enter freeform comments and text as required
-    3. Save annotation for item
+1.	Create
+    1.	Create a concrete item from scratch using the form interface
+        1.	Compound unit
+        2.	Base unit
+        3.	Variable
+        4.	Component
+        5.	Reset
+        6.	Encapsulation
+        7.	MathML block
+        8.	Model
+    2.	Create a concrete item from scratch using XML interface
+        1.	(as above)
+    3.	Upload CellML2.0 file and save into items
+    4.	Upload CellML1.0/1.1 file and save into items
+    5.	Upload annotations *.rdf file and save against model
 
-3. Locate items for inclusion in model
-    1. Informed search based on annotations, previous usage, recommender system (from Dewan)
-    2. Indexes all public items in database, could also include PMR/Weblab contents?
-
-3. Import existing item from public library
-    1. If the item is to be used 'as-is' then it can be imported as a **link** to the public original.  The rationale of this setup is that items are distinct-but-linked: models are formed by the relationships between items, and whether those items are concrete and "owned" by the user or linked from elsewhere has no impact on their use.
-        - Note that linked items are susceptible to changes in the item to which they link: if the owner of the item changes it then the user's linked copy will also be changed.
-    2. If the item is to be edited by the user, it can be **duplicated** into the user's library.  This allows the user to be safe from upstream changes (as above) and also to edit any part of the item.  
-        - They now "own" their own concrete instance of the item, but the provenance (the fact that it was copied from someone else's item) remains.
-    - **NB** The item to be imported could be an annotation instance as well as a model item, though annotation instances would be imported as concrete (cf links).
-    
-4. Understand model syntactic validity 
-    1. During the process of creating the model the user can see a "todo" list of actions needed before the model is valid.  The import/creation/editing/export of an *invalid* model is permitted, but the user will see where and how it needs fixing.
-    - **NB** This checks _only_ the requirements of the validator against the model.  It does not check whether the operation of the model is reasonable or sensible.
-    2. Users will see a list of non-critical warnings, such as mismatched prefix/multipliers between units of equivalent variables, deprecation of American spellings, etc.
-    
-5. Prepare/debug/tune model
-    1. Before exporting the user can debug the model by:
-        1. plotting the behaviour of mathml blocks
-        2. rendering the mathml blocks to display format
-        2. tracing dependency relationships of variables and units in a visual way
-        3. ... etc ...?
-    2. The user can upload data to the math blocks to estimate parameter values and see how they fit the data
-    3. Link to the Weblab for comparison or searching for similar items and their parameters?
-    2. Non-critical warnings/hints from the valdiator shown
-    
-6. Export the model for simulation
-    1. Export the model into the language of choice (using the new code generation part of libcellml) for simulation.  
-    - **NB** the model, its annotations and notes **remain** in the database, they do not need to be reuploaded later on.
-    2. Generate a persistent URL to the model location for reference from other places
+    6.	NB: For all items which are “created” from scratch as above, the user who created them will be listed as the root of the provenance tree.  If there are data in the annotation field which say otherwise (the 
 
 
+2.	Discover
+    1.	Search public library:
+        1.	Search notes, annotations, names, other usages etc
+    2.	Browse public library
+    3.	Browse other repositories – weblab? PMR? Etc etc?
+    4.	Use recommender system
+    5.	Search ontology libraries by annotations and annotated items
 
-    
-    
+3.	Import to owner’s library
+    1.	Import public item as link (pointer)
+    2.	Import public item as local copy (duplicate instance)
+
+4.	Edit
+    1.	Edit owned item
+        1.	Edit local attributes (name, notes, symbol, etc)
+        2.	Edit links to child items
+        3.	Edit links to parent items
+    2.	Change privacy settings on owned item
+        1.	Private is visible only to owner
+        2.	Public is visible to everyone
+    3.	Plot mathml block against nominal variable(s) for debugging
+    4.	Upload data to mathml block and plot for parameter tuning
+    5.	Render mathml block as equation for debugging
+    6.	Freeze/publish item to archive
+        1.	Ownership passed to a curator/superuser
+        2.	Editing is frozen
+        3.	Item will stay public at permanent URL
+
+5.	Propagate changes
+    1.	When an item to which I have links is deleted
+        1.	Create a local copy of the item in my library, maintaining provenance
+        2.	Alert the owner of the original item that I have a copy
+    2.	When a public item to which I have links is made private:
+        1.	Create a local copy of the item in my library, maintaining provenance
+        2.	Alert the owner of the original item that I have a copy
+    3.	When an item to which I have links is changed
+        1.	Alert me that it’s changed
+        2.	Alert the owner of the item that it has external links
+    4.	When a public item which I own is linked to by another user:
+        1.	Alert me
+        2.	Propagate provenance chain to the other user’s item
+
+6.	Validate
+    1.	Validate items in a model 
+        1.	Homepage to show to-do list of items and attributes which need addressing before the model is valid
+    2.	Visualise dependencies of items 
+        1.	Highlight circular units
+        2.	Highlight circular variable definitions
+        3.	Highlight circular links between items
+    3.	Retrieve non-fatal warnings and hints about model composition
+        1.	Mis-matched factors in units in variable equivalences
+        2.	Mis-matched units in mathml statements
+        3.	Deprecated American spellings (liter, meter, deka)
+        4.	Deprecated built-in units (Celsius)
+        5.	Any conversion from CellML1.0/1.1 to 2.0 for database storage at the time of upload
+        6.	… etc … 
+
+
+7.	Export
+    1.	Export model to file in selected format using the code generation part of libcellml
+    2.	Send to a run platform (gigantum or similar?) for online model simulation
+    3.	Create permanent URL for model identification and referencing(?)
+
   
 
