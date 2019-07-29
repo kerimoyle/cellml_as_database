@@ -64,6 +64,7 @@ Glossary:
         1.	Ownership passed to a curator/superuser
         2.	Editing is frozen
         3.	Item will stay public at permanent URL
+    7. Allow roll-back changes on items
 
 5.	**Propagate changes**
     1.	When an item to which I have links is deleted
