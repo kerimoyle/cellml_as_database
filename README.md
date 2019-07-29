@@ -18,7 +18,7 @@ Glossary:
 -	Public library:  All items in the database which have a “public” visibility status
 -	Frozen/archived:  When an item or model is published and stable it can be frozen.  This passes the ownership to a curator instead of the original creator and the item is no longer editable.
 
-1.	Create
+1.	**Create**
     1.	Create a concrete item from scratch using the form interface
         1.	Compound unit
         2.	Base unit
@@ -37,7 +37,7 @@ Glossary:
     6.	NB: For all items which are “created” from scratch as above, the user who created them will be listed as the root of the provenance tree.  If there are data in the annotation field which say otherwise (the 
 
 
-2.	Discover
+2.	**Discover**
     1.	Search public library:
         1.	Search notes, annotations, names, other usages etc
     2.	Browse public library
@@ -45,11 +45,11 @@ Glossary:
     4.	Use recommender system
     5.	Search ontology libraries by annotations and annotated items
 
-3.	Import to owner’s library
+3.	**Import to owner’s library**
     1.	Import public item as link (pointer)
     2.	Import public item as local copy (duplicate instance)
 
-4.	Edit
+4.	**Edit**
     1.	Edit owned item
         1.	Edit local attributes (name, notes, symbol, etc)
         2.	Edit links to child items
@@ -65,7 +65,7 @@ Glossary:
         2.	Editing is frozen
         3.	Item will stay public at permanent URL
 
-5.	Propagate changes
+5.	**Propagate changes**
     1.	When an item to which I have links is deleted
         1.	Create a local copy of the item in my library, maintaining provenance
         2.	Alert the owner of the original item that I have a copy
@@ -79,7 +79,8 @@ Glossary:
         1.	Alert me
         2.	Propagate provenance chain to the other user’s item
 
-6.	Validate
+
+6.	**Validate**
     1.	Validate items in a model 
         1.	Homepage to show to-do list of items and attributes which need addressing before the model is valid
     2.	Visualise dependencies of items 
@@ -95,8 +96,11 @@ Glossary:
         6.	… etc … 
 
 
-7.	Export
+7.	**Export**
     1.	Export model to file in selected format using the code generation part of libcellml
+        1. Export the model to a *.cellml file
+        2. Export the model to a Python file
+        3. Export the model to a Matlab file
     2.	Send to a run platform (gigantum or similar?) for online model simulation
     3.	Create permanent URL for model identification and referencing(?)
 
