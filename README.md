@@ -34,7 +34,7 @@ Glossary:
     4.	Upload CellML1.0/1.1 file and save into items
     5.	Upload annotations *.rdf file and save against model
 
-    6.	NB: For all items which are “created” from scratch as above, the user who created them will be listed as the root of the provenance tree.  If there are data in the annotation field which say otherwise (the 
+NB: For all items which are “created” from scratch as above, the user who created them will be listed as the root of the provenance tree.  If there are data in the annotation field which say otherwise then they should be identified and used instead.
 
 
 2.	**Discover**
@@ -45,15 +45,17 @@ Glossary:
     4.	Use recommender system
     5.	Search ontology libraries by annotations and annotated items
 
+
 3.	**Import to owner’s library**
     1.	Import public item as link (pointer)
     2.	Import public item as local copy (duplicate instance)
 
-4.	**Edit**
+
+4.	**Edit individual item**
     1.	Edit owned item
         1.	Edit local attributes (name, notes, symbol, etc)
-        2.	Edit links to child items
-        3.	Edit links to parent items
+        2.	Edit individual links to child items
+        3.	Edit individual links to parent items
     2.	Change privacy settings on owned item
         1.	Private is visible only to owner
         2.	Public is visible to everyone
@@ -65,6 +67,13 @@ Glossary:
         2.	Editing is frozen
         3.	Item will stay public at permanent URL
     7. Allow roll-back changes on items
+    
+    
+5. **Edit relationships**
+    1. Use drag-and-drop or other visual tool to create relationships between existing items
+    2. Trigger edit of individual items from interface
+    3. Trigger search from interface
+
 
 5.	**Propagate changes**
     1.	When an item to which I have links is deleted
