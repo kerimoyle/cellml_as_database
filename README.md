@@ -2,7 +2,7 @@
  
 This is my scratch pad for seeing how an online database for CellML (and perhaps SBML?) manipulation could work.  
 
-This idea differs in pradigm from the current libCellML and OpenCOR implementations by saving items (units, variables, maths, etc) separately as distinct rows in a relational database rather than text in an XML file.  Each database table is configured to represent a different item type, with fields and relationships as appropriate.  The hope is that:
+This idea differs in pradigm from the current libCellML and OpenCOR implementations by saving items (units, variables, maths, etc) separately as distinct-but-linked rows in a relational database rather than text in an XML file.  Each database table is configured to represent a different item type, with fields and relationships as appropriate.  The hope is that:
 - users will be able to reuse and assemble models faster than currently, as items can be linked into a model without needing to download, copy, paste or reference the entire workspace of the model they are copied from 
 - users will be able to assemble, valdiate, and debug models online before exporting/downloading for simulation.  This means that there is no need to **retranslate** a simulated model (from whatever language it is run in) back into *.cellml format before incluion in the Physiome Model Repository - the model never leaves the database.
 - users will be able to save notes, comments, etc against any part of their model.  Comments are not allowed in CellML 2.0 format so this will preserve their contents while enabling models to be written and run in the 2.0 format.
