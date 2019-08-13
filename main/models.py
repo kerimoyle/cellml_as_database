@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import (IntegerField, ManyToManyField, CharField, TextField, ForeignKey,
                               NullBooleanField, URLField, FileField, CASCADE, OneToOneField, EmailField,
-                              BooleanField, SET_NULL, ManyToOneRel, ManyToManyRel)
+                              BooleanField, SET_NULL, ManyToOneRel, ManyToManyRel, DO_NOTHING)
 from django.db.models import Model as DjangoModel
 # -------------------- ABSTRACT MODELS --------------------
 from django.db.models.signals import post_delete
@@ -30,13 +30,22 @@ class NamedCellMLEntity(DjangoModel):
     privacy = CharField(max_length=9, choices=PRIVACY_LEVELS, default="private", null=True, blank=True)
     notes = TextField(blank=True)
     owner = ForeignKey('Person', blank=True, null=True, on_delete=SET_NULL)  # TODO set to admin
-    imported_from = ForeignKey('ImportedEntity', on_delete=SET_NULL, related_name="imported_%(class)s_objects",
-                               blank=True, null=True)
     annotations = ManyToManyField('Annotation', blank=True, related_name="used_by_%(class)s_objects")
 
     # CellML and libCellML fields:
-    cellml_id = CharField(blank=True, max_length=100)  # Mimics the cellml field 'id', not needed here
-    cellml_index = IntegerField(default=-1, null=True)  # the corresponding item index inside libcellml
+    cellml_id = CharField(blank=True, max_length=100)  # Mimics the cellml field 'id', not really needed here
+    cellml_index = IntegerField(default=-1, null=True)  # The corresponding item index as read by libCellML
+
+    # Import tracking fields
+    # imported_from = ForeignKey('ImportedEntity', on_delete=DO_NOTHING, blank=True, null=True,
+    #                            related_name="imported_into_%(class)s")
+
+    # import_type = ForeignKey(ContentType, on_delete=CASCADE, null=True, blank=True)
+    # import_id = PositiveIntegerField(null=True, blank=True)
+    # import_object = GenericForeignKey('import_type', 'import_id', for_concrete_model=False)
+
+    #
+    # usage = GenericRelation('NamedCellMLEntity', related_query_name='used_by')
 
     class Meta:
         abstract = True
@@ -82,20 +91,23 @@ class Prefix(DjangoModel):
 
 # --------------------- ITEM MODELS ---------------------
 
-class ImportedEntity(DjangoModel):
-    """
-    This class allows models and parts of models to be imported into the database.  Importing will create an instance
-    of the selected item(s) in the database, and return a reference to it.  It can then be accessed using the
-    source_type, source_id combination.
-    """
-    source_type = CharField(max_length=100, null=True, blank=True)  # eg: Component, CompoundUnit etc
-    source_reference = URLField(blank=True, null=True)  # eg: TODO address of file which was imported to generate it
-    source_id = IntegerField(default=-1, blank=True,
-                             null=True)  # eg: The id of the item generated after import in *this* database
-    attribution = TextField(blank=True, null=True)  # the original attribution field
-
-    def __str__(self):
-        return self.attribution
+# class ImportedEntity(DjangoModel):
+#     imported_from_type = ForeignKey(ContentType, on_delete=DO_NOTHING)
+#
+#     imported_from_id = IntegerField(blank=True, null=True)
+#     imported_from = GenericForeignKey('imported_from_type', 'imported_from_id')
+#
+#     # imported_to_type = ForeignKey(ContentType, on_delete=DO_NOTHING)
+#     imported_to_id = IntegerField(blank=True, null=True)
+#     # imported_to = GenericForeignKey('imported_from_type', 'imported_to_id')
+#
+#     attribution = TextField(blank=True, null=True)  # the original attribution field
+#
+#     def __str__(self):
+#         if self.attribution:
+#             return self.attribution
+#         else:
+#             return "None"
 
 
 class Annotation(DjangoModel):
@@ -117,6 +129,9 @@ class Variable(NamedCellMLEntity):
     interface_type = CharField(max_length=2, choices=INTERFACE_TYPE, default="NA", null=True, blank=True)
     component = ForeignKey("Component", related_name="variables", blank=True, null=True, on_delete=SET_NULL)
 
+    # import tracking fields
+    imported_from = ForeignKey('Variable', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
+
     def __str__(self):
         return self.name
 
@@ -135,6 +150,7 @@ class Unit(NamedCellMLEntity):
     multiplier = IntegerField(default=1, null=True)
     exponent = IntegerField(default=1, null=True)
     reference = CharField(max_length=100, null=True, blank=True)
+    imported_from = ForeignKey('Unit', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
 
 class CompoundUnit(NamedCellMLEntity):
@@ -142,6 +158,8 @@ class CompoundUnit(NamedCellMLEntity):
     is_standard = BooleanField(default=False)
     symbol = CharField(max_length=100, null=True, blank=True)
     variables = ManyToManyField("Variable", related_name="compoundunits", blank=True)
+
+    imported_from = ForeignKey('CompoundUnit', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     def __str__(self):
         return "{n}".format(n=self.name)
@@ -179,6 +197,7 @@ class CompoundUnit(NamedCellMLEntity):
 class Math(NamedCellMLEntity):
     components = ManyToManyField("Component", related_name="maths", blank=True)
     math_ml = TextField(blank=True)
+    imported_from = ForeignKey('Math', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     # TODO how to make a parent fk to *either* model or reset - should be generic fk?
     def __str__(self):
@@ -187,12 +206,14 @@ class Math(NamedCellMLEntity):
 
 class Component(NamedCellMLEntity):
     models = ManyToManyField("CellModel", blank=True, related_name="components")
+    imported_from = ForeignKey('Component', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     def __str__(self):
         return self.name
 
 
 class Encapsulation(NamedCellMLEntity):
+    imported_from = ForeignKey('Encapsulation', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
     pass
 
 
@@ -205,12 +226,15 @@ class Reset(NamedCellMLEntity):  # TODO should this be inherited or not?
     test_value = ForeignKey("Math", null=True, blank=True, on_delete=SET_NULL, related_name="test_values")
     component = ForeignKey("Component", null=True, blank=True, on_delete=CASCADE, related_name="resets")
 
+    imported_from = ForeignKey('Reset', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
+
     def __str__(self):
         return self.name
 
 
 class CellModel(NamedCellMLEntity):
     uploaded_from = CharField(max_length=250, blank=True, null=True)
+    imported_from = ForeignKey('CellModel', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
     pass
 
     def __str__(self):
