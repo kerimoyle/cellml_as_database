@@ -29,6 +29,14 @@
                 </thead>
                 <tbody>
                 <tr>
+                    <td>
+                        Validity
+                    </td>
+                    <td>
+                        <p class="todo">This is where the status and date of validity checking for the model will go</p>
+                    </td>
+                    </tr><tr>
+
                     <td>CellML ID</td>
                     <td>
                         {% if item.cellml_id %}{{ item.cellml_id }}
@@ -37,7 +45,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>Owner</td>
+                    <td>Owner of this instance</td>
                     <td>
                         {% if item.owner %}{{ item.owner|title }}
                         {% else %}<p class="empty">None</p>
@@ -52,9 +60,16 @@
                         {% endif %}
                     </td>
                 </tr>
+                <tr>
+                    <td>
+                        Notes
+                    </td>
+                    <td>
+                        {{ item.notes|linebreaks }}
+                    </td>
+                </tr>
                 </tbody>
             </table>
-            <div>{{ item.notes|linebreaks }}</div>
         </div>
     </div>
 
@@ -162,12 +177,7 @@
                             <b>{{ cu.name }}</b> {{ cu.notes|linebreaksbr }}
                         </td>
                         <td class="numerator">
-
-                            {{ cu.symbol|safe }}
-{#                            {% for u in cu.product_of.all %}#}
-{#                                {{ u.child_cu.symbol|safe }}<br>#}
-{#                            {% endfor %}#}
-
+                            {% if cu.symbol %}{{ cu.symbol|safe }}{% endif %}
                         </td>
                         {% if can_edit %}
                             <td class="rowlink-skip">
@@ -179,6 +189,14 @@
                 </tbody>
             </table>
         </div>
+
+        {#        <div class="col-md-4">#}
+        {#            <h3>Validation TODO list</h3>#}
+        {#            <br>#}
+        {#            <p class="todo"> This is where we'll put a list of all the items which return validation errors, so that#}
+        {#                the users are free to load, create, manipulate in-valid models, but can see what needs doing before#}
+        {#                they're ready.</p>#}
+        {#        </div>#}
     </div>
 
     <form id="unlink_form" action="{% url 'main:link_remove' %}" method="POST" hidden>

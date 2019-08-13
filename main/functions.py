@@ -514,6 +514,8 @@ def get_upstream_connection_fields(item_model):
         fk_fields.remove('owner')
     if 'imported_from' in fk_fields:
         fk_fields.remove('imported_from')
+    if 'annotations' in fk_fields:
+        fk_fields.remove('annotations')
 
     return fk_fields, m2m_fields
 
