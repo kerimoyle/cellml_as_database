@@ -35,7 +35,8 @@
                     <td>
                         <p class="todo">This is where the status and date of validity checking for the model will go</p>
                     </td>
-                    </tr><tr>
+                </tr>
+                <tr>
 
                     <td>CellML ID</td>
                     <td>
@@ -53,11 +54,24 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>Origin</td>
+                    <td>Dependent on</td>
                     <td>
-                        {% if item.imported_from %}{{ item.imported_from }}
+                        {% if item.imported_from%}
+                            <a href="{% url 'main:display_model' item_id=item.imported_from.id %}">
+                                {{ item.imported_from.name }} ({{ item.imported_from.owner }})</a>
                         {% else %}<p class="empty">None</p>
                         {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>Included in</td>
+                    <td>
+                        {% for used_by in item.used_by.all|slice:5 %}
+                            <a href="{% url 'main:display_model' item_id=used_by.id %}">
+                                {{ used_by.name }} ({{ used_by.owner }})<br>
+                            </a>
+                        {% empty %}<p class="empty">None</p>
+                        {% endfor %}
                     </td>
                 </tr>
                 <tr>

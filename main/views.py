@@ -16,7 +16,7 @@ from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationFo
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
     get_upstream_fields, get_item_upstream_attributes, copy_item, \
     delete_item, export_to_cellml_model, get_downstream_fields, get_item_downstream_attributes
-from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, ImportedEntity, Unit, Prefix
+from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix
 
 
 def test(request):
@@ -112,15 +112,18 @@ def home(request):
         person = request.user.person
     except Exception as e:
         messages.error(request, "Could not get person instance")
-        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        messages.error(request, "{t}: {a}".format(
+            t=type(e).__name__,
+            a=e.args)
+                       )
         return redirect('main:error')
 
     items = []
     types = ['cellmodel', 'component', 'math', 'compoundunit', 'unit', 'reset', 'variable']
-    for type in types:
+    for t in types:
         items.append((
-            type,
-            ContentType.objects.get(app_label='main', model=type).get_all_objects_for_this_type().filter(owner=person)))
+            t,
+            ContentType.objects.get(app_label='main', model=t).get_all_objects_for_this_type().filter(owner=person)))
 
     context = {
         'person': person,
@@ -293,8 +296,7 @@ def copy(request, item_type, item_id):
         form = CopyForm(request.POST)
         if form.is_valid():
             options = form.cleaned_data['options']
-            item_copy = copy_item(request, item, options)
-            item_copy.privacy = 'private'  # TODO Check if this is wanted or not ...
+            item, item_copy = copy_item(request, item, [], options)
             if item_copy:
                 return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_copy.id}))
 
@@ -643,9 +645,9 @@ def delete(request, item_type, item_id):
 
             try:
                 item_model.get_object_for_this_type(id=item_id)
-                messages.error(request, m)
+                messages.warning(request, m)
                 return redirect(reverse("main:display", kwargs={'item_type': item_type, 'item_id': item_id}))
-            except:
+            except Exception as e:
                 messages.success(request, "The {t} {n} was deleted successfully.".format(t=item_type, n=item.name))
                 return redirect('main:home')
         else:
@@ -888,21 +890,22 @@ def upload(request):
             # Load into database
             model = load_model(in_model, person)
 
-            imported_from = ImportedEntity(
-                source_type="temporarystorage",
-                source_id=storage.id,
-                attribution="Uploaded from {}".format(storage.file.name)
-            )
-            imported_from.save()
+            # Keep track of origins
+            # imported_from = ImportedEntity(
+            #     source_type="temporarystorage",
+            #     source_id=storage.id,
+            #     attribution="Uploaded from {}".format(storage.file.name)
+            # )
+            # imported_from.save()
 
             model.uploaded_from = storage.file.name
             model.name = storage.model_name
             model.owner = request.user.person
-            model.imported_from = imported_from
+            model.imported_from = None
             model.privacy = 'private'
             model.save()
 
-            # Delete the TemporaryStorage object, also deletes the uploaded file
+            # Delete the TemporaryStorage object, also deletes the uploaded file TODO Check what is wanted here?
             storage.delete()
 
             return redirect(reverse('main:display', kwargs={'item_type': 'model', 'item_id': model.id}))

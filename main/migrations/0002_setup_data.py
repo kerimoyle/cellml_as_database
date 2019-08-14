@@ -112,12 +112,9 @@ prefix_list = [
     ["-24", -24, "(1e-24)"]]
 
 
-def add_standards(apps, schema_editor):
-    Unit = apps.get_model('main', 'Unit')
-    CompoundUnit = apps.get_model('main', 'CompoundUnit')
+def add_administrator_accounts(apps, schema_editor):
     Person = apps.get_model('main', 'Person')
     User = apps.get_model('auth', 'User')
-    Prefix = apps.get_model('main', 'Prefix')
 
     user = User(username="admin")
     user.save()
@@ -129,6 +126,26 @@ def add_standards(apps, schema_editor):
         email="noEmail@noEmail.com",
     )
     admin_person.save()
+
+    trash = User(username='trash')
+    trash.save()
+
+    trash_person = Person(
+        user=trash,
+        first_name='Recycle',
+        last_name='Bin',
+        email="noEmailEither@noEmail.com"
+    )
+    trash_person.save()
+
+
+def add_standards(apps, schema_editor):
+    Unit = apps.get_model('main', 'Unit')
+    CompoundUnit = apps.get_model('main', 'CompoundUnit')
+    Prefix = apps.get_model('main', 'Prefix')
+    Person = apps.get_model('main', 'Person')
+
+    admin_person = Person.objects.get(user__username="admin")
 
     for name, value, symbol in prefix_list:
         prefix = Prefix(name=name, value=value, symbol=symbol)
@@ -148,8 +165,6 @@ def remove_standards(apps, schema_editor):
     Unit = apps.get_model('main', 'Unit')
     CompoundUnit = apps.get_model('main', 'CompoundUnit')
     Prefix = apps.get_model('main', 'Prefix')
-    Person = apps.get_model('main', 'Person')
-    User = apps.get_model('auth', 'User')
 
     for name, symbol, made_of in standard_unit_list:
         try:
@@ -169,6 +184,10 @@ def remove_standards(apps, schema_editor):
         except:
             pass
 
+
+def remove_administrator_accounts(apps, schema_editor):
+    Person = apps.get_model('main', 'Person')
+    User = apps.get_model('auth', 'User')
     try:
         u = User.objects.get(username='admin')
         a = u.person
@@ -177,6 +196,24 @@ def remove_standards(apps, schema_editor):
     except:
         pass
 
+    try:
+        u = User.objects.get(username='trash')
+        a = u.person
+        a.delete()
+        u.delete()
+    except:
+        pass
+
+
+def forwards_stuff(apps, schema_editor):
+    add_administrator_accounts(apps, schema_editor)
+    add_standards(apps, schema_editor)
+
+
+def backwards_stuff(apps, schema_editor):
+    remove_standards(apps, schema_editor)
+    remove_administrator_accounts(apps, schema_editor)
+
 
 class Migration(migrations.Migration):
     dependencies = [
@@ -184,5 +221,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(code=add_standards, reverse_code=remove_standards),
+        migrations.RunPython(code=forwards_stuff, reverse_code=backwards_stuff),
     ]

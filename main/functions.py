@@ -6,7 +6,7 @@ from django.forms import modelform_factory
 from django.shortcuts import redirect
 
 from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Unit, \
-    Math, Prefix, ImportedEntity
+    Math, Prefix, Person
 
 
 # ---------------------- CELLML FUNCTIONS -------------------------------------
@@ -440,7 +440,6 @@ def export_compoundunits(in_model, model):
     return
 
 
-
 # void addUnit(const std::string &reference, const std::string &prefix,
 #   double exponent=1.0, double multiplier=1.0)
 # u.addUnit('blabla', 'hello', 1.2, 3.4, 'unitid')
@@ -596,20 +595,20 @@ def get_relationship_menu(item_model):
 
 # ------------------------------- COPY FUNCTIONS ------------------------------------------
 
-def create_by_shallow_copy(request, item, exclude=[]):
+def create_by_shallow_copy(request, item, exclude=[], options=[]):
     """
-    This just copies the local attributes of the item from one to another
+    This just copies the local attributes of the item from one to another. It is used by both the deep and shallow copy
+    functions later on, but the placeholder object creation happens here.
     :param item_type: type of the item
     :param item: source to copy from
     :return: newly created item copied from the from_item
     """
 
-    imported_entity = ImportedEntity(
-        source_type=type(item).__name__.lower(),
-        source_id=item.id,
-        attribution="Copied from: {} ({})".format(item.name, item.owner),
-    )
-    imported_entity.save()
+    # imported_entity = ImportedEntity(
+    #     source_type=type(item).__name__.lower(),
+    #     source_id=item.id,
+    # )
+    # imported_entity.save()
 
     old_id = item.id
     item_type = ContentType.objects.get(app_label='main', model=type(item).__name__.lower())
@@ -619,20 +618,21 @@ def create_by_shallow_copy(request, item, exclude=[]):
     item.save()  # Now this is the new object
 
     item.owner = request.user.person
-    item.imported_from = imported_entity
+
     try:
         item.is_standard = False
     except Exception as e:
         pass
-    item.save()
 
     # Making sure we pass back the reference to the old object too ...
     old_item = item_type.get_object_for_this_type(id=old_id)
+    item.imported_from = old_item
+    item.save()
 
-    return item, old_item
+    return old_item, item
 
 
-def link_copy(request, from_item, to_item, exclude=[]):
+def link_copy(request, from_item, to_item, exclude=[], options=[]):
     """
     Copies the related fields by transferring the existing reference not by creating new objects
     :param request: request (for passing back messages)
@@ -651,50 +651,39 @@ def link_copy(request, from_item, to_item, exclude=[]):
         messages.error(request, "{t}: {a}".format(t=type(e).__name__, a=e.args))
         return redirect('main:error')
 
+    exclude.append('owner')
+    exclude.append('imported_from')
+
     # Get a list of all the relational fields in the model
-    fields = [x.name for x in from_item._meta.get_fields() if type(x) == ForeignKey]
-    for e in exclude:
-        try:
-            fields.remove(e)
-        except KeyError:
-            pass
+    fields = [x.name for x in from_item._meta.get_fields() if type(x) == ForeignKey and x.name not in exclude]
     for f in fields:
         setattr(to_item, f, getattr(from_item, f))
 
-    fields = [(x.name, x.field.name) for x in from_item._meta.get_fields() if type(x) == ManyToManyRel]
-    for e in exclude:
-        try:
-            fields.remove(e)
-        except KeyError:
-            pass
+    fields = [(x.name, x.field.name) for x in from_item._meta.get_fields()
+              if type(x) == ManyToManyRel
+              and x.name not in exclude]
     for f, r in fields:
         for related_object in getattr(from_item, f).all():
             getattr(related_object, r).add(to_item)
 
-    fields = [x.name for x in from_item._meta.get_fields() if type(x) == ManyToManyField]
-    for e in exclude:
-        try:
-            fields.remove(e)
-        except KeyError:
-            pass
+    fields = [x.name for x in from_item._meta.get_fields()
+              if type(x) == ManyToManyField
+              and x.name not in exclude]
     for f in fields:
         for related_object in getattr(from_item, f).all():
             getattr(to_item, f).add(related_object)
 
-    fields = [x.name for x in from_item._meta.get_fields() if type(x) == ManyToOneRel]
-    for e in exclude:
-        try:
-            fields.remove(e)
-        except KeyError:
-            pass
+    fields = [x.name for x in from_item._meta.get_fields() if type(x) == ManyToOneRel and x.name not in exclude]
     for f in fields:
         for related_object in getattr(from_item, f).all():
             getattr(to_item, f).add(related_object)
 
-    return
+    to_item.save()
+
+    return from_item, to_item
 
 
-def deep_copy(request, from_item, to_item, exclude=[]):
+def deep_copy(request, from_item, to_item, exclude=[], options=[]):
     """
     Makes a duplicate of all connected items instead of copying them as a link
     :param request:
@@ -718,16 +707,16 @@ def deep_copy(request, from_item, to_item, exclude=[]):
     for f in m2o_fields:
         for related_object in getattr(from_item, f).all():
             # Create new related object
-            new_related_object, related_object = create_by_shallow_copy(request, related_object)
-            deep_copy(request, related_object, new_related_object)
+            new_related_object, related_object = create_by_shallow_copy(request, related_object, exclude, options)
+            deep_copy(request, related_object, new_related_object, exclude, options)
             getattr(to_item, f).add(new_related_object)
 
     m2mr_fields = [(x.name, x.field.name) for x in from_item._meta.get_fields() if type(x) == ManyToManyRel]
     for f, r in m2mr_fields:
         for related_object in getattr(from_item, f).all():
             # Create new related object
-            new_related_object, related_object = create_by_shallow_copy(request, related_object)
-            deep_copy(request, related_object, new_related_object)
+            new_related_object, related_object = create_by_shallow_copy(request, related_object, exclude, options)
+            deep_copy(request, related_object, new_related_object, exclude, options)
             getattr(to_item, f).add(new_related_object)
 
     # # Upstream manytomany fields still copied as links - have to link to new items
@@ -736,10 +725,10 @@ def deep_copy(request, from_item, to_item, exclude=[]):
     #     for related_object in getattr(from_item, f).all():
     #         getattr(to_item, f).add(related_object)
 
-    return
+    return from_item, to_item
 
 
-def copy_item(request, from_item, options, exclude=[]):
+def copy_item(request, from_item, exclude=[], options=[]):
     item_type = type(from_item).__name__.lower()
     try:
         item_model = ContentType.objects.get(app_label='main', model=item_type)
@@ -748,56 +737,72 @@ def copy_item(request, from_item, options, exclude=[]):
         messages.error(request, "{t}: {a}".format(t=type(e).__name__, a=e.args))
         return redirect('main:error')
 
-    to_item, from_item = create_by_shallow_copy(request, from_item, exclude)
+    from_item, to_item = create_by_shallow_copy(request, from_item, exclude, options)
     # Resetting the "from_item" after the copy as the pointers are changed by the change in pk?
 
     if options == 'link':
-        link_copy(request, from_item, to_item, exclude)
+        from_item, to_item = link_copy(request, from_item, to_item, exclude, options)
 
     if options == 'deep':
-        deep_copy(request, from_item, to_item, exclude)
+        from_item, to_item = deep_copy(request, from_item, to_item, exclude, options)
 
-    return to_item
+    return from_item, to_item
+
+
+def detach_links(request, item):
+
+    m2o_fields = [x.name for x in item._meta.get_fields() if type(x) == ManyToOneRel]
+    if 'used_by' in m2o_fields:
+        m2o_fields.remove('used_by')
+
+    for f in m2o_fields:
+        for related_object in getattr(item, f).all():
+            # Remove related objects
+            detach_links(request, related_object)
+
+    m2mr_fields = [(x.name, x.field.name) for x in item._meta.get_fields() if type(x) == ManyToManyRel]
+    for f, r in m2mr_fields:
+        for related_object in getattr(item, f).all():
+            # Remove related object
+            detach_links(request, related_object)
+
+    item.owner = Person.objects.get(user__username="trash")
+    item.save()
+
+    return "Could not delete completely as the item is linked.  It has been moved to the recycle bin."
 
 
 def delete_item(request, item, options):
-    item_type = type(item).__name__.lower()
-    try:
-        item_model = ContentType.objects.get(app_label='main', model=item_type)
-    except Exception as e:
-        messages.error(request, "Could not find class with name '{t}'".format(t=item_type))
-        messages.error(request, "{t}: {a}".format(t=type(e).__name__, a=e.args))
-        return redirect('main:error')
 
     if options == 'deep':
         m = delete_deep(request, item)
     else:
         m = item.delete()
-
     return m
 
 
 def delete_deep(request, item):
-    """
-    Deletes this item as well as any downstream items included in it.
-    :param request: 
-    :param item: 
-    :return: 
-    """
 
     if item.owner != request.user.person:
-        return "{} skipped - not yours to delete".format(item.name)
+        return "{} skipped - not yours to delete".format(item.name)  # not actually displayed anywhere ... ?
+
+    if item.used_by.count() > 0:
+        m = detach_links(request, item)
+        return m
 
     m2o_fields = [x.name for x in item._meta.get_fields() if type(x) == ManyToOneRel]
+    if 'used_by' in m2o_fields:
+        m2o_fields.remove('used_by')
+
     for f in m2o_fields:
         for related_object in getattr(item, f).all():
-            # Create new related object
+            # Remove related objects
             delete_deep(request, related_object)
 
     m2mr_fields = [(x.name, x.field.name) for x in item._meta.get_fields() if type(x) == ManyToManyRel]
     for f, r in m2mr_fields:
         for related_object in getattr(item, f).all():
-            # Create new related object
+            # Remove related object
             delete_deep(request, related_object)
 
     return item.delete()
