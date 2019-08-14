@@ -502,24 +502,13 @@ def get_local_fields(item_model, excluding=[]):
 
 
 def get_upstream_connection_fields(item_model, excluding=[]):
-    m2m_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
-                  type(x) == ManyToManyField]
+    m2m_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False)
+                  if type(x) == ManyToManyField
+                  and x.name not in excluding]
 
-    fk_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
-                 type(x) == ForeignKey]
-
-    if 'owner' in fk_fields:
-        fk_fields.remove('owner')
-    if 'imported_from' in fk_fields:
-        fk_fields.remove('imported_from')
-    if 'annotations' in fk_fields:
-        fk_fields.remove('annotations')
-
-    for e in excluding:
-        if e in fk_fields:
-            fk_fields.remove(e)
-        if e in m2m_fields:
-            m2m_fields.remove(e)
+    fk_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False)
+                 if type(x) == ForeignKey
+                 and x.name not in excluding]
 
     return fk_fields, m2m_fields
 
@@ -538,7 +527,7 @@ def get_upstream_fields(item_model, excluding=[]):
 
 def get_item_upstream_attributes(item, excluding=[]):
 
-    fk_fields, m2m_fields = get_upstream_connection_fields(ContentType.objects.get_for_model(item), excluding=[])
+    fk_fields, m2m_fields = get_upstream_connection_fields(ContentType.objects.get_for_model(item), excluding)
 
     upstream = []
     for l in m2m_fields:

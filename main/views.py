@@ -351,8 +351,8 @@ def edit_locals(request, item_type, item_id):
         return redirect('main:error')
 
     if check_ownership(request, item):
-        excluding = ['tree', 'cellml_index', 'ready', 'is_standard', 'privacy', 'is_valid', 'last_checked']
-        edit_form = get_edit_locals_form(item_model, excluding=excluding)
+        excluding = ['tree', 'cellml_index', 'ready', 'is_standard', 'privacy', 'is_valid', 'last_checked', 'errors']
+        edit_form = get_edit_locals_form(item_model, excluding)
 
         if request.POST:
             form = edit_form(request.POST, instance=item)
@@ -716,7 +716,7 @@ def display(request, item_type, item_id):
         return redirect('main:error')
 
     upstream_fields = get_upstream_fields(item_model)
-    upstream = get_item_upstream_attributes(item, ['errors'])
+    upstream = get_item_upstream_attributes(item, ['errors', 'owner', 'imported_from', 'annotations'])
 
     downstream_fields = get_downstream_fields(item_model, ['used_by'])
     downstream = get_item_downstream_attributes(item, ['used_by'])
@@ -1131,7 +1131,7 @@ def set_privacy(request):
             messages.error(request, "{}: {}".format(type(e).__name__, e.args))
             return redirect('main:error')
 
-        # Check item for parents - if the item has upstream items then can't set its privacy indenependently
+        # Check item for parents - if the item has upstream items then can't set its privacy independently
 
         upstream = get_item_upstream_attributes(item)
         if len(upstream):
