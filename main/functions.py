@@ -692,6 +692,8 @@ def link_copy(request, from_item, to_item, exclude=[], options=[]):
         for related_object in getattr(from_item, f).all():
             getattr(to_item, f).add(related_object)
 
+    to_item.depends_on = from_item
+    to_item.imported_from = from_item
     to_item.save()
 
     return from_item, to_item
@@ -745,10 +747,14 @@ def deep_copy(request, from_item, to_item, exclude=[], options=[]):
     #     for related_object in getattr(from_item, f).all():
     #         getattr(to_item, f).add(related_object)
 
+    to_item.depends_on = None
+    to_item.imported_from = from_item.imported_from
+    to_item.save()
+
     return from_item, to_item
 
 
-def copy_item(request, from_item, exclude=[], options=[]):
+def copy_item(request, from_item, exclude=[], options=''):
     item_type = type(from_item).__name__.lower()
     try:
         item_model = ContentType.objects.get(app_label='main', model=item_type)
@@ -769,22 +775,24 @@ def copy_item(request, from_item, exclude=[], options=[]):
     return from_item, to_item
 
 
-def detach_links(request, item):
+def detach_links(request, item, exclude=[]):
 
-    m2o_fields = [x.name for x in item._meta.get_fields() if type(x) == ManyToOneRel]
-    if 'used_by' in m2o_fields:
-        m2o_fields.remove('used_by')
+    m2o_fields = [x.name for x in item._meta.get_fields()
+                  if type(x) == ManyToOneRel
+                  and x.name not in exclude]
 
     for f in m2o_fields:
         for related_object in getattr(item, f).all():
             # Remove related objects
-            detach_links(request, related_object)
+            detach_links(request, related_object, exclude)
 
-    m2mr_fields = [(x.name, x.field.name) for x in item._meta.get_fields() if type(x) == ManyToManyRel]
+    m2mr_fields = [(x.name, x.field.name) for x in item._meta.get_fields()
+                   if type(x) == ManyToManyRel
+                   and x.name not in exclude]
     for f, r in m2mr_fields:
         for related_object in getattr(item, f).all():
             # Remove related object
-            detach_links(request, related_object)
+            detach_links(request, related_object, exclude)
 
     item.owner = Person.objects.get(user__username="trash")
     item.save()
@@ -792,38 +800,41 @@ def detach_links(request, item):
     return "Could not delete completely as the item is linked.  It has been moved to the recycle bin."
 
 
-def delete_item(request, item, options):
+def delete_item(request, item, exclude=[], options=''):
 
     if options == 'deep':
-        m = delete_deep(request, item)
+        m = delete_deep(request, item, exclude)
     else:
         m = item.delete()
     return m
 
 
-def delete_deep(request, item):
+def delete_deep(request, item, exclude=[]):
 
     if item.owner != request.user.person:
         return "{} skipped - not yours to delete".format(item.name)  # not actually displayed anywhere ... ?
 
     if item.used_by.count() > 0:
-        m = detach_links(request, item)
+        m = detach_links(request, item, exclude)
         return m
 
-    m2o_fields = [x.name for x in item._meta.get_fields() if type(x) == ManyToOneRel]
-    if 'used_by' in m2o_fields:
-        m2o_fields.remove('used_by')
+    m2o_fields = [x.name for x in item._meta.get_fields()
+                  if type(x) == ManyToOneRel
+                  and x.name not in exclude]
 
     for f in m2o_fields:
         for related_object in getattr(item, f).all():
             # Remove related objects
-            delete_deep(request, related_object)
+            delete_deep(request, related_object, exclude)
 
-    m2mr_fields = [(x.name, x.field.name) for x in item._meta.get_fields() if type(x) == ManyToManyRel]
+    m2mr_fields = [(x.name, x.field.name) for x in item._meta.get_fields()
+                   if type(x) == ManyToManyRel
+                   and x.name not in exclude]
+
     for f, r in m2mr_fields:
         for related_object in getattr(item, f).all():
             # Remove related object
-            delete_deep(request, related_object)
+            delete_deep(request, related_object, exclude)
 
     return item.delete()
 

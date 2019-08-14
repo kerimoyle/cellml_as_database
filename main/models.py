@@ -36,36 +36,11 @@ class NamedCellMLEntity(DjangoModel):
     cellml_id = CharField(blank=True, max_length=100)  # Mimics the cellml field 'id', not really needed here
     cellml_index = IntegerField(default=-1, null=True)  # The corresponding item index as read by libCellML
 
-    # Import tracking fields
-    # imported_from = ForeignKey('ImportedEntity', on_delete=DO_NOTHING, blank=True, null=True,
-    #                            related_name="imported_into_%(class)s")
-
-    # import_type = ForeignKey(ContentType, on_delete=CASCADE, null=True, blank=True)
-    # import_id = PositiveIntegerField(null=True, blank=True)
-    # import_object = GenericForeignKey('import_type', 'import_id', for_concrete_model=False)
-
-    #
-    # usage = GenericRelation('NamedCellMLEntity', related_query_name='used_by')
-
     class Meta:
         abstract = True
 
     def __str__(self):
         return self.name
-
-    # def is_visible_to_user(self, person):
-    #     return self.privacy == 2 or self.owner == person
-
-    # def save(self, *args, **kwargs):
-    #     # want to propagate privacy settings to all self-owned downstream items
-    #     children = get_item_parent_attributes_for_model(self)
-    #     # Relies on checking for ability to save this model being done elsewhere ...
-    #     for c in children:
-    #         if self.owner == c.owner:
-    #             c.privacy = self.privacy
-    #             c.save()
-    #
-    #     super(NamedCellMLEntity, self).save(args, kwargs)
 
 
 # -------------------- UTILITY MODELS ---------------------
@@ -130,7 +105,8 @@ class Variable(NamedCellMLEntity):
     component = ForeignKey("Component", related_name="variables", blank=True, null=True, on_delete=SET_NULL)
 
     # import tracking fields
-    imported_from = ForeignKey('Variable', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
+    imported_from = ForeignKey('Variable', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
+    depends_on = ForeignKey('Variable', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -150,7 +126,9 @@ class Unit(NamedCellMLEntity):
     multiplier = IntegerField(default=1, null=True)
     exponent = IntegerField(default=1, null=True)
     reference = CharField(max_length=100, null=True, blank=True)
-    imported_from = ForeignKey('Unit', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
+
+    imported_from = ForeignKey('Unit', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
+    depends_on = ForeignKey('Unit', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
 
 class CompoundUnit(NamedCellMLEntity):
@@ -159,7 +137,8 @@ class CompoundUnit(NamedCellMLEntity):
     symbol = CharField(max_length=100, null=True, blank=True)
     variables = ManyToManyField("Variable", related_name="compoundunits", blank=True)
 
-    imported_from = ForeignKey('CompoundUnit', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
+    imported_from = ForeignKey('CompoundUnit', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
+    depends_on = ForeignKey('CompoundUnit', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     def __str__(self):
         return "{n}".format(n=self.name)
@@ -197,7 +176,9 @@ class CompoundUnit(NamedCellMLEntity):
 class Math(NamedCellMLEntity):
     components = ManyToManyField("Component", related_name="maths", blank=True)
     math_ml = TextField(blank=True)
-    imported_from = ForeignKey('Math', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
+
+    imported_from = ForeignKey('Math', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
+    depends_on = ForeignKey('MAth', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     # TODO how to make a parent fk to *either* model or reset - should be generic fk?
     def __str__(self):
@@ -206,15 +187,17 @@ class Math(NamedCellMLEntity):
 
 class Component(NamedCellMLEntity):
     models = ManyToManyField("CellModel", blank=True, related_name="components")
-    imported_from = ForeignKey('Component', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
+
+    imported_from = ForeignKey('Component', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
+    depends_on = ForeignKey('Component', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     def __str__(self):
         return self.name
 
 
 class Encapsulation(NamedCellMLEntity):
-    imported_from = ForeignKey('Encapsulation', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
-    pass
+    imported_from = ForeignKey('Encapsulation', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
+    depends_on = ForeignKey('Encapsulation', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
 
 class Reset(NamedCellMLEntity):  # TODO should this be inherited or not?
@@ -226,16 +209,18 @@ class Reset(NamedCellMLEntity):  # TODO should this be inherited or not?
     test_value = ForeignKey("Math", null=True, blank=True, on_delete=SET_NULL, related_name="test_values")
     component = ForeignKey("Component", null=True, blank=True, on_delete=CASCADE, related_name="resets")
 
-    imported_from = ForeignKey('Reset', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
+    imported_from = ForeignKey('Reset', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
+    depends_on = ForeignKey('Reset', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
-    def __str__(self):
+
+def __str__(self):
         return self.name
 
 
 class CellModel(NamedCellMLEntity):
     uploaded_from = CharField(max_length=250, blank=True, null=True)
-    imported_from = ForeignKey('CellModel', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
-    pass
+    imported_from = ForeignKey('CellModel', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
+    depends_on = ForeignKey('CellModel', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     def __str__(self):
         return self.name
