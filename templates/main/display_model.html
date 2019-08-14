@@ -133,7 +133,7 @@
                     <tr>
                         <td>
                             <a href="{% url 'main:display' item_type='component' item_id=c.id %}"></a>
-                            <b>{{ c.name }}</b>: {{ c.notes|linebreaks }}
+                            <b>{{ c.name }}</b> (<i>{{ c.owner }}</i>): {{ c.notes|linebreaks }}
                         </td>
                         {% if can_edit %}
                             <td class="rowlink-skip">

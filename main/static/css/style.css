@@ -143,6 +143,12 @@ iframe {
     padding: 20px;
 }
 
+.warning {
+    background-color: #fcffbe;
+    color: saddlebrown;
+    padding: 20px;
+}
+
 .error {
     background-color: papayawhip;
     color: darkred;
