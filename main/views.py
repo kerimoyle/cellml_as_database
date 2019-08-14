@@ -709,8 +709,8 @@ def display(request, item_type, item_id):
     local_attrs = get_item_local_attributes(item, ['notes', 'name'])
     upstream = get_item_upstream_attributes(item)
 
-    downstream_fields = get_downstream_fields(item_model)
-    downstream = get_item_downstream_attributes(item)
+    downstream_fields = get_downstream_fields(item_model, ['used_by'])
+    downstream = get_item_downstream_attributes(item, ['used_by'])
 
     context = {
         'item': item,
