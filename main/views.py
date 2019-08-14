@@ -296,7 +296,7 @@ def copy(request, item_type, item_id):
         form = CopyForm(request.POST)
         if form.is_valid():
             options = form.cleaned_data['options']
-            item, item_copy = copy_item(request, item, options)
+            item, item_copy = copy_item(request, item, [], options)
             if item_copy:
                 return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_copy.id}))
 
@@ -635,12 +635,6 @@ def delete(request, item_type, item_id):
         return render(request, 'main/form_modal.html',
                       {'modal_text': "Sorry, you don't have permission to delete this item."})
 
-    # If item is linked to into other accounts, create local concrete copies of it and notify all parties
-    # field_name = 'imported_{}_objects'.format(item_type)
-    # for used in getattr(item.imported_objects, field_name).all():
-    # create local copy of the item and send to linked user
-    # notify linked user of deletion (how?)
-
     if request.method == 'POST':
         form = DeleteForm(request.POST)
         if form.is_valid():
@@ -651,9 +645,9 @@ def delete(request, item_type, item_id):
 
             try:
                 item_model.get_object_for_this_type(id=item_id)
-                messages.error(request, m)
+                messages.warning(request, m)
                 return redirect(reverse("main:display", kwargs={'item_type': item_type, 'item_id': item_id}))
-            except:
+            except Exception as e:
                 messages.success(request, "The {t} {n} was deleted successfully.".format(t=item_type, n=item.name))
                 return redirect('main:home')
         else:
