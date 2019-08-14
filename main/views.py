@@ -296,7 +296,9 @@ def copy(request, item_type, item_id):
         form = CopyForm(request.POST)
         if form.is_valid():
             options = form.cleaned_data['options']
-            item, item_copy = copy_item(request, item, [], options)
+            item, item_copy = copy_item(request, item,
+                                        ['used_by', 'depends_on', 'imported_from', 'imported_to'],
+                                        options)
             if item_copy:
                 return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_copy.id}))
 
@@ -641,12 +643,15 @@ def delete(request, item_type, item_id):
             name = item.name
             id = item.id
             options = form.cleaned_data['options']
-            m = delete_item(request, item, options)
+            m = delete_item(request, item, ['used_by', 'imported_from', 'imported_to', 'depends_on'], options)
 
             try:
                 item_model.get_object_for_this_type(id=item_id)
-                messages.warning(request, m)
-                return redirect(reverse("main:display", kwargs={'item_type': item_type, 'item_id': item_id}))
+                messages.success(request,
+                                 "The {t} {n} was moved to the Recycle Bin as it has links to other items.".format(
+                                     t=item_type,
+                                     n=item.name))
+                return redirect('main:home')
             except Exception as e:
                 messages.success(request, "The {t} {n} was deleted successfully.".format(t=item_type, n=item.name))
                 return redirect('main:home')
