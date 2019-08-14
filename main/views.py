@@ -296,7 +296,7 @@ def copy(request, item_type, item_id):
         form = CopyForm(request.POST)
         if form.is_valid():
             options = form.cleaned_data['options']
-            item, item_copy = copy_item(request, item, [], options)
+            item, item_copy = copy_item(request, item, ['used_by'], options)
             if item_copy:
                 return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_copy.id}))
 

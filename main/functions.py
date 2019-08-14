@@ -717,19 +717,25 @@ def deep_copy(request, from_item, to_item, exclude=[], options=[]):
     #     deep_copy(request, related_object, new_related_object)
     #     setattr(to_item, f, new_related_object)
 
-    m2o_fields = [x.name for x in from_item._meta.get_fields() if type(x) == ManyToOneRel]
+    m2o_fields = [x.name for x in from_item._meta.get_fields()
+                  if type(x) == ManyToOneRel
+                  and x.name not in exclude]
+
     for f in m2o_fields:
         for related_object in getattr(from_item, f).all():
             # Create new related object
-            new_related_object, related_object = create_by_shallow_copy(request, related_object, exclude, options)
+            related_object, new_related_object = create_by_shallow_copy(request, related_object, exclude, options)
             deep_copy(request, related_object, new_related_object, exclude, options)
             getattr(to_item, f).add(new_related_object)
 
-    m2mr_fields = [(x.name, x.field.name) for x in from_item._meta.get_fields() if type(x) == ManyToManyRel]
+    m2mr_fields = [(x.name, x.field.name) for x in from_item._meta.get_fields()
+                   if type(x) == ManyToManyRel
+                   and x.name not in exclude]
+
     for f, r in m2mr_fields:
         for related_object in getattr(from_item, f).all():
             # Create new related object
-            new_related_object, related_object = create_by_shallow_copy(request, related_object, exclude, options)
+            related_object, new_related_object = create_by_shallow_copy(request, related_object, exclude, options)
             deep_copy(request, related_object, new_related_object, exclude, options)
             getattr(to_item, f).add(new_related_object)
 
