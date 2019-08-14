@@ -502,7 +502,7 @@ def get_local_fields(item_model):
     return local_fields
 
 
-def get_upstream_connection_fields(item_model):
+def get_upstream_connection_fields(item_model, excluding=[]):
     m2m_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
                   type(x) == ManyToManyField]
 
@@ -516,19 +516,29 @@ def get_upstream_connection_fields(item_model):
     if 'annotations' in fk_fields:
         fk_fields.remove('annotations')
 
+    for e in excluding:
+        if e in fk_fields:
+            fk_fields.remove(e)
+        if e in m2m_fields:
+            m2m_fields.remove(e)
+
     return fk_fields, m2m_fields
 
 
-def get_upstream_fields(item_model):
+def get_upstream_fields(item_model, excluding=[]):
     upstream_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
                        (type(x) == ForeignKey and x.name != 'owner' and x.name != 'imported_from') or
                        (type(x) == ManyToManyField)]
 
+    for e in excluding:
+        if e in upstream_fields:
+            upstream_fields.remove(e)
+
     return upstream_fields
 
 
-def get_item_upstream_attributes(item):
-    fk_fields, m2m_fields = get_upstream_connection_fields(ContentType.objects.get_for_model(item))
+def get_item_upstream_attributes(item, excluding=[]):
+    fk_fields, m2m_fields = get_upstream_connection_fields(ContentType.objects.get_for_model(item), excluding=[])
 
     upstream = []
     for l in m2m_fields:
@@ -547,15 +557,19 @@ def get_item_upstream_attributes(item):
     return upstream
 
 
-def get_downstream_fields(item_model):
+def get_downstream_fields(item_model, excluding=[]):
     downstream_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
                          type(x) == ManyToOneRel or type(x) == ManyToManyRel]
+
+    for e in excluding:
+        if e in downstream_fields:
+            downstream_fields.remove(e)
 
     return downstream_fields
 
 
-def get_item_downstream_attributes(item):
-    downstream_fields = get_downstream_fields(ContentType.objects.get_for_model(item))
+def get_item_downstream_attributes(item, excluding=[]):
+    downstream_fields = get_downstream_fields(ContentType.objects.get_for_model(item), excluding)
 
     downstream = []
 

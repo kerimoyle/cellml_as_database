@@ -188,7 +188,7 @@
                     <tr>
                         <td>
                             <a href="{% url 'main:display' item_type='compoundunit' item_id=cu.id %}"></a>
-                            <b>{{ cu.name }}</b> {{ cu.notes|linebreaksbr }}
+                            <b>{{ cu.name }}</b> (<i>{{ cu.owner }}</i>):{{ cu.notes|linebreaksbr }}
                         </td>
                         <td class="numerator">
                             {% if cu.symbol %}{{ cu.symbol|safe }}{% endif %}

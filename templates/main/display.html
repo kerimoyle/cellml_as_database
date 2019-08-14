@@ -50,6 +50,7 @@
                 <tr>
                     <th>Type</th>
                     <th>Name</th>
+                    <th>Owner</th>
                     {% if can_edit %}
                         <th></th>
                     {% endif %}
@@ -64,6 +65,7 @@
                                 {{ field }}
                             </td>
                             <td>{{ obj }}</td>
+                            <td>{{ obj.owner }}</td>
                             {% if can_edit %}
                                 <td class="rowlink-skip">
                                     <a onclick="Unlink('{{ field }}','{{ obj.id }}');">Unlink</a>
@@ -191,6 +193,7 @@
                 <tr>
                     <th>Type</th>
                     <th>Name</th>
+                    <th>Owner</th>
                     {% if can_edit %}
                         <th></th>
                     {% endif %}
@@ -205,6 +208,7 @@
                                 {{ field }}
                             </td>
                             <td>{{ obj }}</td>
+                            <td>{{ obj.owner }}</td>
                             {% if can_edit %}
                                 <td class="rowlink-skip">
                                     <a onclick="Unlink('{{ field }}','{{ obj.id }}');">Unlink</a>
