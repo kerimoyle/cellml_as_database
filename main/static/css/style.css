@@ -36,7 +36,6 @@ iframe {
     border: 0;
 }
 
-
 .todo {
     background: #bcc2c8;
     color: #600000;
@@ -76,30 +75,27 @@ iframe {
     padding: 10px 10px 10px 32px;
 }
 
-
 .privacy-private:before {
-    font-style:normal;
-    content:"\f21b";
+    font-style: normal;
+    content: "\f21b";
     font-family: FontAwesome;
     left: 10px;
     top: 7px;
-    position:absolute;
+    position: absolute;
     font-size: large;
     color: #333;
 }
 
 .privacy-public:before {
-    font-style:normal;
-    content:"\f0ac";
+    font-style: normal;
+    content: "\f0ac";
     font-family: FontAwesome;
     left: 10px;
     top: 7px;
-    position:absolute;
+    position: absolute;
     font-size: large;
     color: #333;
 }
-
-
 
 .button_bar {
     padding-top: 15px;
@@ -154,6 +150,35 @@ iframe {
     color: darkred;
     padding: 20px;
 }
+
+
+.invalid_item:before {
+    content: "\f00d    ";
+    font-family: FontAwesome;
+    left: 20px;
+    top: 1px;
+    /*position:absolute;*/
+    color: darkred;
+}
+
+.invalid_item {
+    padding: 5px;
+}
+
+.valid_item:before {
+    content: "\f00c    ";
+    font-family: FontAwesome;
+    left: 20px;
+    top: 1px;
+    /*position:absolute;*/
+    color: #2e4935;;
+}
+
+.valid_item {
+    color: #2e4935;
+    padding: 5px;
+}
+
 
 /* ----------------- NAVIGATION BAR STUFF -------------------- */
 

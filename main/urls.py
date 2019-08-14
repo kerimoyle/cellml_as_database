@@ -45,6 +45,8 @@ urlpatterns = [
     # path('upload_check/<int:item_id>/', views.upload_check, name='upload_check'),
     # path('upload_model/', views.upload_model, name='upload_model'),
 
+    path('validate/<item_type>/<int:item_id>/', views.validate, name='validate'),
+
     path('', views.home, name='home'),
 
 ]

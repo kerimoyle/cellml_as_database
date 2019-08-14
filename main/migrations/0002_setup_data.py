@@ -111,6 +111,14 @@ prefix_list = [
     ["-23", -23, "(1e-23)"],
     ["-24", -24, "(1e-24)"]]
 
+error_list = [
+    ['4.2.1', 'Every model must have a name.'],
+    ['4.2.3', 'A model must contain only one encapsulation element.'],
+    ['8.1.1', 'Every units element must have an unprefixed name attribute, which must be a valid CellML identifier.'],
+    ['8.1.2', 'The value of the units\' name attribute must be unique within this infoset.'],
+    ['8.1.3', 'The value of the units\' name must not be the same as any of the built-in units.']
+]
+
 
 def add_administrator_accounts(apps, schema_editor):
     Person = apps.get_model('main', 'Person')
@@ -137,6 +145,17 @@ def add_administrator_accounts(apps, schema_editor):
         email="noEmailEither@noEmail.com"
     )
     trash_person.save()
+
+
+def add_error_codes(apps, schema_editor):
+    CellMLSpecification = apps.get_model('main', 'CellMLSpecification')
+
+    for row in error_list:
+        e = CellMLSpecification(
+            code=row[0],
+            notes=row[1]
+        )
+        e.save()
 
 
 def add_standards(apps, schema_editor):
@@ -181,6 +200,16 @@ def remove_standards(apps, schema_editor):
         try:
             prefix = Prefix.objects.get(name=p[0])
             prefix.delete()
+        except:
+            pass
+
+
+def remove_error_codes(apps, schema_editor):
+    ValidatorMessages = apps.get_model('main', 'ValidatorMessages')
+
+    for e in ValidatorMessages.objects.all():
+        try:
+            e.delete()
         except:
             pass
 

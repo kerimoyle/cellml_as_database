@@ -171,7 +171,15 @@ def load_model(in_model, owner):
                     u_new.variables.add(variable)
             else:
                 variable.compoundunits = model.compoundunits.filter(name=in_units.name()).first()
-                variable.save()
+
+            initial_value = in_variable.initialValue()
+            if type(initial_value).__name__ == 'str':
+                iv = Variable.objects.filter(name=initial_value, component=component).first()
+                variable.initial_value_variable = iv
+            else:
+                variable.initial_value_constant = initial_value
+
+            variable.save()
 
             # Set equivalent variables
             # TODO How to get the parent component of the "other" variable from SWIG?
@@ -336,7 +344,6 @@ def load_variable(index, in_component, out_component, owner):
     out_variable = Variable(
         cellml_index=index,
         name=in_variable.name(),
-        initial_value=in_variable.initialValue(),
         # interface_type=in_variable.interfaceType(),  # TODO get dictionary of interfaceTypes ...
         owner=owner,
     )
@@ -473,8 +480,8 @@ def export_compoundunits(in_model, model):
 
 # ------------------------------------ EDIT FUNCTIONS ----------------------------------------
 
-def get_edit_locals_form(item_model):
-    edit_form = modelform_factory(item_model.model_class(), fields=get_local_fields(item_model))
+def get_edit_locals_form(item_model, excluding=[]):
+    edit_form = modelform_factory(item_model.model_class(), fields=get_local_fields(item_model, excluding))
     return edit_form
 
 
@@ -483,21 +490,13 @@ def get_edit_form(item_model, fields):
     return edit_form
 
 
-def get_local_fields(item_model):
-    local_fields = [x.name for x in item_model.model_class()._meta.fields if
-                    type(x) != ForeignKey and type(x) != ManyToManyField and type(x) != AutoField and
-                    type(x) != ManyToOneRel]
-
-    if 'tree' in local_fields:
-        local_fields.remove('tree')
-    if 'cellml_index' in local_fields:
-        local_fields.remove('cellml_index')
-    if 'ready' in local_fields:
-        local_fields.remove('ready')
-    if 'is_standard' in local_fields:
-        local_fields.remove('is_standard')
-    if 'privacy' in local_fields:
-        local_fields.remove('privacy')
+def get_local_fields(item_model, excluding=[]):
+    local_fields = [x.name for x in item_model.model_class()._meta.fields
+                    if type(x) != ForeignKey
+                    and type(x) != ManyToManyField
+                    and type(x) != AutoField
+                    and type(x) != ManyToOneRel
+                    and x.name not in excluding]
 
     return local_fields
 
@@ -538,6 +537,7 @@ def get_upstream_fields(item_model, excluding=[]):
 
 
 def get_item_upstream_attributes(item, excluding=[]):
+
     fk_fields, m2m_fields = get_upstream_connection_fields(ContentType.objects.get_for_model(item), excluding=[])
 
     upstream = []
@@ -776,7 +776,6 @@ def copy_item(request, from_item, exclude=[], options=''):
 
 
 def detach_links(request, item, exclude=[]):
-
     m2o_fields = [x.name for x in item._meta.get_fields()
                   if type(x) == ManyToOneRel
                   and x.name not in exclude]
@@ -801,7 +800,6 @@ def detach_links(request, item, exclude=[]):
 
 
 def delete_item(request, item, exclude=[], options=''):
-
     if options == 'deep':
         m = delete_deep(request, item, exclude)
     else:
@@ -810,7 +808,6 @@ def delete_item(request, item, exclude=[], options=''):
 
 
 def delete_deep(request, item, exclude=[]):
-
     if item.owner != request.user.person:
         return "{} skipped - not yours to delete".format(item.name)  # not actually displayed anywhere ... ?
 

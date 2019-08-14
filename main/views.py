@@ -1,3 +1,6 @@
+import datetime
+import json
+
 import libcellml
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
@@ -8,6 +11,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import ForeignKey, ManyToManyField, ManyToOneRel, ManyToManyRel, Q
 from django.forms import modelform_factory, CheckboxSelectMultiple, RadioSelect
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
@@ -17,6 +21,7 @@ from main.functions import load_model, get_edit_locals_form, get_item_local_attr
     get_upstream_fields, get_item_upstream_attributes, copy_item, \
     delete_item, export_to_cellml_model, get_downstream_fields, get_item_downstream_attributes
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix
+from main.validate import VALIDATE_DICT
 
 
 def test(request):
@@ -346,8 +351,8 @@ def edit_locals(request, item_type, item_id):
         return redirect('main:error')
 
     if check_ownership(request, item):
-
-        edit_form = get_edit_locals_form(item_model)
+        excluding = ['tree', 'cellml_index', 'ready', 'is_standard', 'privacy', 'is_valid', 'last_checked']
+        edit_form = get_edit_locals_form(item_model, excluding=excluding)
 
         if request.POST:
             form = edit_form(request.POST, instance=item)
@@ -711,11 +716,12 @@ def display(request, item_type, item_id):
         return redirect('main:error')
 
     upstream_fields = get_upstream_fields(item_model)
-    local_attrs = get_item_local_attributes(item, ['notes', 'name'])
-    upstream = get_item_upstream_attributes(item)
+    upstream = get_item_upstream_attributes(item, ['errors'])
 
     downstream_fields = get_downstream_fields(item_model, ['used_by'])
     downstream = get_item_downstream_attributes(item, ['used_by'])
+
+    local_attrs = get_item_local_attributes(item, ['notes', 'name', 'is_valid', 'last_checked', 'privacy'])
 
     context = {
         'item': item,
@@ -1148,3 +1154,55 @@ def set_privacy(request):
     else:
         messages.error("Did not get POST request")
         return redirect('main:error')
+
+
+# ------------------------------- AJAX FUNCTIONS ----------------------------------------
+
+def validate(request, item_type, item_id):
+    """
+    :param request:
+    :param item_type: the name of the item type to be validated
+    :param item_id: the object id
+    :return:
+    """
+
+    item = None
+
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Could not get object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    is_valid = VALIDATE_DICT[item_type](item)
+    item.is_valid = is_valid
+    item.last_checked = datetime.datetime.now()
+    item.save()
+
+    # Select the function to call from the dictionary
+
+    errors = ""
+    for e in item.errors.all():
+        errors += "{}: {}<br>".format(e.spec, e.hints)
+
+    if item.is_valid:
+        style = "valid_item"
+    else:
+        style = "invalid_item"
+
+    data = {
+        'status': 200,
+        'style': style,
+        'last_checked': "{}".format(item.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
+        'errors': errors
+    }
+
+    return JsonResponse(data)

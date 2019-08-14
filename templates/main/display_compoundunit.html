@@ -10,20 +10,8 @@
     <div class="row">
         <div class="col-md-4">
             <div class="row">
-                <div class="col-sm-6">
+                <div class="col-sm-12">
                     <h3>Information</h3>
-                </div>
-                <div class="col-sm-6 button_bar" style="padding-top:15px;">
-                    {% if can_edit %}
-                        <a onclick="LoadModalData('Edit information',
-                                '{% url 'main:edit_locals' item_type=item_type item_id=item.id %}');"
-                           data-toggle="modal"
-                           data-target="#formModal"
-                           style="text-decoration: none;">
-                            <button class="btn btn-primary pull-right"><i class="fa fa-pencil"></i> Edit information
-                            </button>
-                        </a>
-                    {% endif %}
                 </div>
             </div>
             <table class="datatables display table">
@@ -47,7 +35,30 @@
                 </tr>
                 </tbody>
             </table>
+        {% if not item.is_standard %}
+            <hr>
+            <div class="row">
+                <div class="col-sm-6">
+                    <h3>Validity</h3>
+                </div>
+                <div class="col-sm-6 button_bar">
+                    <button id="check_validity" class="btn btn-default"><i class="fa fa-refresh"></i> Check again
+                    </button>
+                </div>
 
+                <div class="col-sm-12">
+                    <div id="validity_div" class="validity_{{ item.is_valid }}">
+                        <b>Last checked:</b> <span id="last_checked">{{ item.last_checked }}</span>
+                        <div id="errors">
+                            {% for e in item.errors.all %}
+                                {{ e.spec }}: {{ e.hints }}<br>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+            <hr>
             <h3>Used by variables</h3>
             {% if item.variables.count %}
                 <table class="datatables display table table-hover" id="table-variables">
@@ -74,7 +85,6 @@
                 <div class="empty">Not connected to any variables</div>
             {% endif %}
         </div>
-
         <div class="col-md-8 table-responsive">
             <div class="row">
                 <div class="col-sm-6">
@@ -135,7 +145,8 @@
                                 <span style="font-family: 'Times New Roman'; font-size: large; font-style: italic; text-align: center;">
                                     {% if u.multiplier != 1 %}{{ u.multiplier }}{% endif %}
                                     {% if u.prefix %}{{ u.prefix.symbol|safe }}{% endif %}
-                                    {% if u.child_cu %}{% if u.child_cu.symbol %}{{ u.child_cu.symbol|safe }}{% endif %}{% endif %}
+                                    {% if u.child_cu %}{% if u.child_cu.symbol %}{{ u.child_cu.symbol|safe }}
+                                    {% endif %}{% endif %}
                                     {% if u.exponent != 1 %}<sup> {{ u.exponent }}</sup>{% endif %}
                                 </span>
                             </td>
@@ -180,15 +191,31 @@
 
 {% block end_scripts %}
     {{ block.super }}
+    {% block datatables %}{% endblock datatables %}
     <script>
-        function SetPrivate() {
 
+        {% if not item.is_standard %}
+            $(document).ready(function () {
+                $("#check_validity").click(function (e) {
+                    e.preventDefault();
+                    $.ajax({
+                        url: "/validate/{{ item_type }}/{{ item.id }}",
+                        success: function (data) {
+                            $('#validity_div').removeClass().addClass(data['style']);
+                            $('#last_checked').text(data['last_checked']);
+                            $('#errors').html(data['errors']);
+                        }
+                    });
+                });
+            });
+        {% endif %}
+
+        function SetPrivate() {
             $('input[name="privacy_level"]').val("private");
             $("form#privacy_form ").submit();
         }
 
         function SetPublic() {
-
             $('input[name="privacy_level"]').val("public");
             $("form#privacy_form ").submit();
         }
