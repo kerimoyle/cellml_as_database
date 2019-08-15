@@ -20,7 +20,7 @@ from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationFo
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
     get_upstream_fields, get_item_upstream_attributes, copy_item, \
     delete_item, export_to_cellml_model, get_downstream_fields, get_item_downstream_attributes
-from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix
+from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset
 from main.validate import VALIDATE_DICT
 
 
@@ -167,6 +167,7 @@ def create(request, item_type, in_modal):
 
     exclude_fields = ()
     all_fields = [x.name for x in item_model.model_class()._meta.fields]
+
     if 'tree' in all_fields:
         exclude_fields += ('tree',)
     if 'cellml_index' in all_fields:
@@ -179,6 +180,9 @@ def create(request, item_type, in_modal):
         exclude_fields += ('is_standard',)
     if 'imported_from' in all_fields:
         exclude_fields += ('imported_From',)
+
+    exclude_fields = ['tree', 'cellml_index', 'owner', 'ready', 'is_standard', 'imported_from', 'depends_on',
+                      'is_valid', 'errors', 'last_checked']
 
     create_form = modelform_factory(item_model.model_class(), exclude=exclude_fields)
 
@@ -826,6 +830,24 @@ def display_math(request, item_id):
     }
     return render(request, 'main/display_math.html', context)
 
+
+@login_required
+def display_reset(request, item_id):
+
+    item = None
+    try:
+        item = Reset.objects.get(id=item_id)
+    except Exception as e:
+        messages.error(request, "Could not find Reset object with id of '{}'".format(item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    context = {
+        'item': item,
+        'menu': MENU_OPTIONS['display'],
+        'can_edit': request.user.person == item.owner
+    }
+    return render(request, 'main/display_reset.html', context)
 
 @login_required
 def browse(request, item_type):

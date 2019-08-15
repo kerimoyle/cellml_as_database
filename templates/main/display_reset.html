@@ -1,0 +1,134 @@
+{% extends 'main/base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Reset <b>{{ item.name }}</b>{% endblock title %}
+
+{% block todo %}{% endblock todo %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-4">
+            <div class="row">
+                <div class="col-sm-12">
+                    <h3>Information</h3>
+                </div>
+            </div>
+            <table class="datatables display table">
+                <tbody>
+                <tr>
+                    <td>Notes</td>
+                    <td>
+                        {% if item.notes %}<p>{{ item.notes|linebreaksbr }}</p>
+                        {% else %}<p class="empty">No notes given</p>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>Owner</td>
+                    <td>
+                        {% if item.owner %}<p>{{ item.owner|title }}</p>
+                        {% else %}<p class="empty">None</p>
+                        {% endif %}
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <div class="row">
+                <div class="col-sm-6">
+                    <h3>Validity</h3>
+                </div>
+                <div class="col-sm-6 button_bar">
+                    <button id="check_validity" class="btn btn-default"><i class="fa fa-refresh"></i> Check again
+                    </button>
+                </div>
+
+                <div class="col-sm-12">
+                    <div id="validity_div" class="validity_{{ item.is_valid }}">
+                        <b>Last checked:</b> <span id="last_checked">{{ item.last_checked }}</span>
+                        <div id="errors">
+                            {% for e in item.errors.all %}
+                                {{ e.spec }}: {{ e.hints }}<br>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        <div class="col-md-8 table-responsive">
+            <div class="row">
+                <div class="col-sm-12">
+                    <h3>Reset operations</h3>
+                </div>
+            </div>
+
+                <table class="datatables display table table-hover" id="table-operations">
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Value</th>
+                        {% if can_edit %}
+                            <th></th>
+                        {% endif %}
+                    </tr>
+                    </thead>
+                    <tbody>
+                        <tr id="variable_valid">
+                            <td>variable</td>
+                            <td>{{ item.variable.name }}, {{ item.variable.component.name }}</td>
+                            <td></td>
+                        </tr>
+
+                        <tr id="test_variable_valid">
+                            <td>test_variable</td>
+                            <td>{{ item.variable.name }}, {{ item.variable.component.name }}</td>
+                            <td></td>
+                        </tr>
+
+                    </tbody>
+                </table>
+        </div>
+    </div>
+
+    <form id="privacy_form" action="{% url 'main:set_privacy' %}" method='POST' hidden>
+        {% csrf_token %}
+        <input type="text" name="item_type" id="item_type" value="{{ item_type }}">
+        <input type="text" name="item_id" id="item_id" value="{{ item.id }}">
+        <input type="text" name="privacy_level" id="privacy_level" value="">
+    </form>
+{% endblock content %}
+
+
+{% block end_scripts %}
+    {{ block.super }}
+    {% block datatables %}{% endblock datatables %}
+    <script>
+        {% if not item.is_standard %}
+            $(document).ready(function () {
+                $("#check_validity").click(function (e) {
+                    e.preventDefault();
+                    $.ajax({
+                        url: "/validate/{{ item_type }}/{{ item.id }}",
+                        success: function (data) {
+                            $('#validity_div').removeClass().addClass(data['style']);
+                            $('#last_checked').text(data['last_checked']);
+                            $('#errors').html(data['errors']);
+                        }
+                    });
+                });
+            });
+        {% endif %}
+        function SetPrivate() {
+            $('input[name="privacy_level"]').val("private");
+            $("form#privacy_form ").submit();
+        }
+
+        function SetPublic() {
+            $('input[name="privacy_level"]').val("public");
+            $("form#privacy_form ").submit();
+        }
+    </script>
+{% endblock end_scripts %}
+
+

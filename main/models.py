@@ -101,6 +101,7 @@ class Variable(NamedCellMLEntity):
     initial_value_constant = FloatField(null=True, blank=True)
     initial_value_variable = ForeignKey('Variable', related_name='will_initialise', on_delete=DO_NOTHING, null=True,
                                         blank=True)
+    compoundunit = ForeignKey("CompoundUnit", related_name='variables', blank=True, null=True, on_delete=DO_NOTHING)
 
     interface_type = CharField(max_length=2, choices=INTERFACE_TYPE, default="NA", null=True, blank=True)
     component = ForeignKey("Component", related_name="variables", blank=True, null=True, on_delete=SET_NULL)
@@ -136,7 +137,7 @@ class CompoundUnit(NamedCellMLEntity):
     models = ManyToManyField("CellModel", related_name="compoundunits", blank=True)
     is_standard = BooleanField(default=False)
     symbol = CharField(max_length=100, null=True, blank=True)
-    variables = ManyToManyField("Variable", related_name="compoundunits", blank=True)
+    # variables = ManyToManyField("Variable", related_name="compoundunits", blank=True)
 
     imported_from = ForeignKey('CompoundUnit', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
     depends_on = ForeignKey('CompoundUnit', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
@@ -205,7 +206,7 @@ class Reset(NamedCellMLEntity):  # TODO should this be inherited or not?
     variable = ForeignKey("Variable", related_name="reset_variables", on_delete=SET_NULL, null=True, blank=True)
     test_variable = ForeignKey("Variable", related_name="reset_test_variables", on_delete=SET_NULL, null=True,
                                blank=True)
-    order = IntegerField(default=0)
+    order = IntegerField(blank=True, null=True)
     reset_value = ForeignKey("Math", null=True, blank=True, on_delete=SET_NULL, related_name="reset_values")
     test_value = ForeignKey("Math", null=True, blank=True, on_delete=SET_NULL, related_name="test_values")
     component = ForeignKey("Component", null=True, blank=True, on_delete=CASCADE, related_name="resets")

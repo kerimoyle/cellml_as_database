@@ -20,7 +20,7 @@ MODEL_CLASSES = {
     'compoundunit': 'compound unit',
     # 'unit': 'unit',
     'variable': 'variable',
-    # 'reset': 'reset',
+    'reset': 'reset',
 }
 
 MENU_OPTIONS = {
