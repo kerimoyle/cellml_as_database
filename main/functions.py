@@ -150,12 +150,12 @@ def load_model(in_model, owner):
                 u = CompoundUnit.objects.filter(is_standard=True, name=in_units).first()
                 if u is not None:
                     # Then is built-in unit
-                    variable.compoundunits.add(u)
+                    variable.compoundunit = u
                     break
 
                 u = CompoundUnit.objects.filter(name=in_units, models=model).first()
                 if u is not None:
-                    variable.compoundunits.add(u)
+                    variable.compoundunit = u
 
                 else:
                     # Then is new base unit.  Create compound unit with no downstream
@@ -170,7 +170,7 @@ def load_model(in_model, owner):
                     variable.save()
                     u_new.variables.add(variable)
             else:
-                variable.compoundunits = model.compoundunits.filter(name=in_units.name()).first()
+                variable.compoundunit = model.compoundunits.filter(name=in_units.name()).first()
 
             initial_value = in_variable.initialValue()
             if type(initial_value).__name__ == 'str':
@@ -407,9 +407,8 @@ def export_components(in_model, model):
 
             variable.setName(v.name)
             variable.setId(v.cellml_id)
-            if v.compoundunits.count() > 0:
-                # many to many field ... which one to set here?
-                variable.setUnits(v.compoundunits.all()[0].name)
+            if v.compoundunit is not None:
+                variable.setUnits(v.compoundunit.name)
 
             # TODO print equivalent variables
             # for e in v.equivalent_variables.all():

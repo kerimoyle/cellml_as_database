@@ -8,6 +8,7 @@ import os
 
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.postgres.fields import ArrayField
 from django.db.models import (IntegerField, ManyToManyField, CharField, TextField, ForeignKey,
                               NullBooleanField, URLField, FileField, CASCADE, OneToOneField, EmailField,
                               BooleanField, SET_NULL, ManyToOneRel, ManyToManyRel, DO_NOTHING, DateTimeField,
@@ -73,6 +74,10 @@ class Prefix(DjangoModel):
 class ItemError(DjangoModel):
     hints = TextField(blank=True)
     spec = CharField(max_length=25, null=True, blank=True)
+    fields = ArrayField(
+        CharField(max_length=50),
+        null=True, blank=True
+    )
 
 
 class CellMLSpecification(DjangoModel):

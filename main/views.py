@@ -1,5 +1,4 @@
 import datetime
-import json
 
 import libcellml
 from crispy_forms.helper import FormHelper
@@ -833,7 +832,6 @@ def display_math(request, item_id):
 
 @login_required
 def display_reset(request, item_id):
-
     item = None
     try:
         item = Reset.objects.get(id=item_id)
@@ -844,10 +842,13 @@ def display_reset(request, item_id):
 
     context = {
         'item': item,
+        'item_type': "reset",
         'menu': MENU_OPTIONS['display'],
-        'can_edit': request.user.person == item.owner
+        'can_edit': request.user.person == item.owner,
+        'item_fields': ['variable', 'test_variable', 'reset_value', 'test_value', 'component', 'order']
     }
     return render(request, 'main/display_reset.html', context)
+
 
 @login_required
 def browse(request, item_type):
@@ -1204,12 +1205,11 @@ def validate(request, item_type, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
+    # Select the function to call from the dictionary
     is_valid = VALIDATE_DICT[item_type](item)
     item.is_valid = is_valid
     item.last_checked = datetime.datetime.now()
     item.save()
-
-    # Select the function to call from the dictionary
 
     errors = ""
     for e in item.errors.all():
@@ -1224,7 +1224,8 @@ def validate(request, item_type, item_id):
         'status': 200,
         'style': style,
         'last_checked': "{}".format(item.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
-        'errors': errors
+        'errors': errors,
+        'fields': list(item.errors.all().values_list('fields', 'hints', 'spec'))
     }
 
     return JsonResponse(data)

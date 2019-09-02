@@ -27,7 +27,8 @@ def validate_variable(variable):
             hints="Invalid variable name <i>{n}</i>: {h}".format(
                 n=variable.name,
                 h=hints),
-            spec='11.1.1.1'
+            spec='11.1.1.1',
+            fields=["name"]
         )
         err.save()
         variable.errors.add(err)
@@ -36,7 +37,8 @@ def validate_variable(variable):
     if variable.compoundunit is None:
         err = ItemError(
             hints="Variable <i>{}</i> does not have any units.".format(variable.name),
-            spec="11.1.1.2"
+            spec="11.1.1.2",
+            fields=["compoundunit"]
         )
         err.save()
         variable.errors.add(err)
@@ -50,7 +52,8 @@ def validate_variable(variable):
                     u=variable.compoundunit.name,
                     vi=variable.initial_value_variable.name,
                     ui=variable.initial_value_variable.compoundunit.name),
-                spec="11?"
+                spec="11?",
+                fields=["initial_value"]
             )
             err.save()
             variable.errors.add(err)
@@ -66,7 +69,8 @@ def validate_variable(variable):
                     c=variable.component.name,
                     vi=variable.initial_value_variable.name,
                     ci=variable.initial_value_variable.component.name),
-                spec="11.1.2.1"
+                spec="11.1.2.1",
+                fields=['initial_value_variable', 'component']
             )
             err.save()
             variable.errors.add(err)
@@ -81,7 +85,8 @@ def validate_variable(variable):
                 c=variable.component.name,
                 vi=variable.initial_value_variable.name,
                 ci=variable.initial_value_constant),
-            spec="11.1.2.1"
+            spec="11.1.2.1",
+            fields=['initial_value_variable', 'initial_value_constant']
         )
         err.save()
         variable.errors.add(err)
@@ -128,30 +133,6 @@ def validate_unit(unit):
     for e in unit.errors.all():
         e.delete()
 
-    # # 9.1.1 check that the reference is valid cellml? TODO do we need this really? can't just check parent/child?
-    # if not unit.reference:
-    #     err = ItemError(
-    #         hints="Unit in units <i>{p}</i> does not have a valid units reference: the field is blank".format(
-    #             p=unit.parent_cu.name
-    #         ),
-    #         spec="9.1.1"
-    #     )
-    #     err.save()
-    #     unit.parent_cu.errors.add(err)
-    #     is_valid = False
-    # else:
-    #     is_valid, hints = is_cellml_identifier(unit.reference)
-    #     if not is_valid:
-    #         err = ItemError(
-    #             hints="Unit in units <i>{p}</i>, reference <i>{r}</i> does not have a valid units reference: {h}".format(
-    #                 p=unit.parent_cu.name,
-    #                 r=unit.reference,
-    #                 h=hints),
-    #             spec='9.1.1'
-    #         )
-    #         err.save()
-    #         unit.parent_cu.errors.add(err)
-
     # 9.1.1 Check that the pointers are valid
     if not unit.child_cu:
         err = ItemError(
@@ -177,7 +158,8 @@ def validate_reset(reset):
     if not reset.order:
         err = ItemError(
             hints="Reset order is not set",
-            spec="12.1.2"
+            spec="12.1.2",
+            fields=["order"]
         )
         err.save()
         reset.errors.add(err)
@@ -186,7 +168,8 @@ def validate_reset(reset):
     if reset.test_value is None:
         err = ItemError(
             hints="Reset does not reference a test_value",
-            spec="12"  # TODO find correct code for resets
+            spec="12",  # TODO find correct code for resets
+            fields=['test_value']
         )
         err.save()
         reset.errors.add(err)
@@ -195,7 +178,8 @@ def validate_reset(reset):
     if reset.reset_value is None:
         err = ItemError(
             hints="Reset does not reference a reset_value",
-            spec="12"  # TODO find correct code for resets
+            spec="12",  # TODO find correct code for resets
+            fields=['reset_value']
         )
         err.save()
         reset.errors.add(err)
@@ -204,7 +188,8 @@ def validate_reset(reset):
     if reset.component is None:
         err = ItemError(
             hints="Reset does not have a component",
-            spec="10.1.2.2"
+            spec="10.1.2.2",
+            fields=['component']
         )
         err.save()
         reset.errors.add(err)
@@ -213,7 +198,8 @@ def validate_reset(reset):
     if reset.variable is None:
         err = ItemError(
             hints="Reset does not reference a variable",
-            spec="12.1.1"
+            spec="12.1.1",
+            fields=['variable']
         )
         err.save()
         reset.errors.add(err)
@@ -222,7 +208,8 @@ def validate_reset(reset):
     if reset.test_variable is None:
         err = ItemError(
             hints="Reset does not reference a test_variable",
-            spec="12"  # TODO find correct code for resets
+            spec="12",  # TODO find correct code for resets
+            fields=['test_variable']
         )
         err.save()
         reset.errors.add(err)
@@ -231,12 +218,13 @@ def validate_reset(reset):
     if reset.component is not None:
         if reset.variable is not None and reset.component != reset.variable.component:
             err = ItemError(
-                hints="Reset in component <i>{c}</i> refers to a variable <i>{v}</i> in a different component, "
-                      "<i>{vc}</i>".format(
+                hints="Reset in component <i>{c}</i> refers to a variable <i>{v}</i> which is in a different component,"
+                      " <i>{vc}</i>".format(
                     c=reset.component.name,
                     v=reset.variable.name,
                     vc=reset.variable.component.name),
-                spec="12"  # TODO find correct code for resets
+                spec="12",  # TODO find correct code for resets
+                fields=['variable', 'component']
             )
             err.save()
             reset.errors.add(err)
@@ -244,11 +232,13 @@ def validate_reset(reset):
 
         if reset.test_variable is not None and reset.component != reset.test_variable.component:
             err = ItemError(
-                hints="Reset in component <i>{c}</i> refers to a test_variable <i>{v}</i> in a different component, <i>{vc}</i>".format(
+                hints="Reset in component <i>{c}</i> refers to a test_variable <i>{v}</i> in a different component,"
+                      " <i>{vc}</i>".format(
                     c=reset.component.name,
                     v=reset.test_variable.name,
                     vc=reset.test_variable.component.name),
-                spec="12"  # TODO find correct code for resets
+                spec="12",  # TODO find correct code for resets
+                fields=['test_variable', 'component']
             )
             err.save()
             reset.errors.add(err)

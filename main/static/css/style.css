@@ -146,37 +146,20 @@ iframe {
 }
 
 .error {
-    background-color: papayawhip;
+    background-color: #ecebe8; /*papayawhip*/
     color: darkred;
     padding: 20px;
 }
 
 
-.invalid_item:before {
-    content: "\f00d    ";
-    font-family: FontAwesome;
-    left: 20px;
-    top: 1px;
-    /*position:absolute;*/
-    color: darkred;
-}
-
 .invalid_item {
-    padding: 5px;
-}
-
-.valid_item:before {
-    content: "\f00c    ";
-    font-family: FontAwesome;
-    left: 20px;
-    top: 1px;
-    /*position:absolute;*/
-    color: #2e4935;;
+    color:darkred;
+    background-color: #ecebe8;
 }
 
 .valid_item {
-    color: #2e4935;
-    padding: 5px;
+    background-color: #dbf0cb;
+    color: #12490f;
 }
 
 
