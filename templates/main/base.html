@@ -102,10 +102,12 @@
     <div class="row">
         <div class="col-sm-8">
             <h1>{% block title %}{% endblock title %}</h1>
-            {% if item %}
-                <span class="privacy-{{ item.privacy }}"><b>Visibility:</b> {{ item.privacy|title }}
-                    {% if not can_change_privacy %} (inherited){% endif %}</span>
-            {% endif %}
+            {% block privacy %}
+                {% if item %}
+                    <span class="privacy-{{ item.privacy }}"><b>Visibility:</b> {{ item.privacy|title }}
+                        {% if not can_change_privacy %} (inherited){% endif %}</span>
+                {% endif %}
+            {% endblock privacy %}
         </div>
         <div class="col-sm-4 button_bar">
 

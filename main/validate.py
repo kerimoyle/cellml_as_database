@@ -4,6 +4,7 @@
 
 import libcellml
 
+from main.functions import convert_to_cellml_model
 from main.models import ItemError, CompoundUnit
 
 
@@ -263,17 +264,58 @@ def validate_component(component):
         err.save()
         component.errors.add(err)
     # 10.1.1 Can only check uniqueness of name in context of use
+    return is_valid
+
+
+def validate_cellmodel(model):
+    is_valid = True
+    for e in model.errors.all():
+        e.delete()
+
+    # Convert to cellml model first
+    cellml_model = convert_to_cellml_model(model)
+    validator = libcellml.Validator()
+    validator.validateModel(cellml_model)
+    error_count = validator.errorCount()
+    if error_count > 0:
+        is_valid = False
+
+    for i in range(0, error_count):
+        e = validator.error(i)
+        err = ItemError(
+            hints=e.description(),
+            spec=e.specificationHeading()
+        )
+        err.save()
+
+        # Todo need to get errors associated with their elements
+
+
+        model.errors.add(err)
 
     return is_valid
 
 
 VALIDATE_DICT = {
-    'cellmodel': libcellml.Validator.validateModel,
+    'cellmodel': validate_cellmodel,
     'variable': validate_variable,
     'compoundunit': validate_compoundunit,
     'math': validate_math,
     'component': validate_component,
     'reset': validate_reset,
+}
+
+KIND_DICT = {
+    'COMPONENT': 'component',
+    'CONNECTION': '',
+    'ENCAPSULATION': '',
+    'IMPORT': '',
+    'MATHML': 'math',
+    'MODEL': 'cellmodel',
+    'UNDEFINED': '',
+    'UNITS': 'compoundunit',
+    'VARIABLE': 'variable',
+    'XML': ''
 }
 
 

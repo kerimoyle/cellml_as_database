@@ -74,6 +74,9 @@ class Prefix(DjangoModel):
 class ItemError(DjangoModel):
     hints = TextField(blank=True)
     spec = CharField(max_length=25, null=True, blank=True)
+    # The 'fields' field collects names of the type of item so that the display pages know
+    # which attribute lines to label with this error
+
     fields = ArrayField(
         CharField(max_length=50),
         null=True, blank=True
@@ -130,7 +133,7 @@ class Unit(NamedCellMLEntity):
     parent_cu = ForeignKey("CompoundUnit", related_name='product_of', blank=True, null=True, on_delete=SET_NULL)
     child_cu = ForeignKey("CompoundUnit", related_name='part_of', blank=True, null=True, on_delete=SET_NULL)
 
-    multiplier = FloatField(default=1.0, null=True)  # TODO should this be a double?
+    multiplier = FloatField(default=1.0, null=True)
     exponent = IntegerField(default=1, null=True)
     reference = CharField(max_length=100, null=True, blank=True)
 

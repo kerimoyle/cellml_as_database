@@ -71,7 +71,7 @@
                             <td>{{ f }}</td>
                             <td>{% getattribute item f %}</td>
                             <td>
-{#                                <div id="v_{{ f }}_symbol"></div>#}
+                                {#                                <div id="v_{{ f }}_symbol"></div>#}
                             </td>
                             <td>
                                 <div id="v_{{ f }}"></div>
@@ -133,7 +133,7 @@
                                 let html = $(id).html();
 
                                 let text = "<a onclick='LoadModalData(\"" + value[2] + ": " + value[1] + "\",";
-                                text = text + "\"{% url 'main:home' %}\"" + ");'";
+                                text = text + "\"{% url 'main:home' %}\"" + ");'"; // TODO need to make a display page for specifications
                                 text = text + "data-toggle=\"modal\" data-target=\"#formModal\" ";
                                 text = text + "style=\"text-decoration: none;\">";
                                 text = text + value[2] + ": " + value[1] + "</a><br>";

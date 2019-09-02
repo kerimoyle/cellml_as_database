@@ -1,0 +1,38 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Validation errors for <b>{{ item.name }}</b>{% endblock title %}
+{% block privacy %}{% endblock privacy %}
+{% block title_buttons %}{% endblock title_buttons %}
+{% block todo %}{% endblock todo %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-md-12">
+            {% if errors %}
+                <table class="display table" id="table-info">
+                    <thead>
+                    <tr>
+                        <th>Specification reference</th>
+                        <th>Message</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for err in errors %}
+                        <tr>
+                            <td>{{ err.spec }}</td>
+                            <td>{{ err.hints }}</td>
+
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="empty">
+                    There are no errors - yay!
+                </p>
+            {% endif %}
+        </div>
+    </div>
+
+{% endblock content %}

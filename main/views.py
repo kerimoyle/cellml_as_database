@@ -18,7 +18,7 @@ from main.defines import MENU_OPTIONS
 from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
     get_upstream_fields, get_item_upstream_attributes, copy_item, \
-    delete_item, export_to_cellml_model, get_downstream_fields, get_item_downstream_attributes
+    delete_item, convert_to_cellml_model, get_downstream_fields, get_item_downstream_attributes
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset
 from main.validate import VALIDATE_DICT
 
@@ -1070,7 +1070,7 @@ def error(request):
 
 # ------------------------- EXPORT VIEWS ----------------------------
 
-def export_model(request, item_id):
+def convert_model(request, item_id):
     # want to make sure that we can write valid cellml from a linked model
     model = None
 
@@ -1088,7 +1088,7 @@ def export_model(request, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
-    cellml_model = export_to_cellml_model(model)
+    cellml_model = convert_to_cellml_model(model)
     printer = libcellml.Printer()
     cellml_text = printer.printModel(cellml_model)
 
@@ -1177,6 +1177,35 @@ def set_privacy(request):
     else:
         messages.error("Did not get POST request")
         return redirect('main:error')
+
+
+# --------------------------------- ERROR VIEWS -----------------------
+
+def show_errors(request, item_type, item_id):
+
+    item = None
+
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Could not get object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    context = {
+        'item': item,
+        'item_type': item_type,
+        'errors': item.errors.all()
+    }
+
+    return render(request, 'main/show_errors.html', context)
 
 
 # ------------------------------- AJAX FUNCTIONS ----------------------------------------

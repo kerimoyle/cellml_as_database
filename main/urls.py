@@ -27,7 +27,7 @@ urlpatterns = [
     path('edit_locals/<item_type>/<int:item_id>/', views.edit_locals, name='edit_locals'),
     path('edit_unit/<int:item_id>/', views.edit_unit, name='edit_unit'),
 
-    path('export_model/<int:item_id>/', views.export_model, name='export_model'),
+    path('convert_model/<int:item_id>/', views.convert_model, name='convert_model'),
 
     path('home/', views.home, name='home'),
     path('intro/', views.intro, name='intro'),
@@ -41,6 +41,7 @@ urlpatterns = [
     path('register/', views.register, name='register'),
 
     path('set_privacy/', views.set_privacy, name='set_privacy'),
+    path('show_errors/<item_type>/<int:item_id>', views.show_errors, name='show_errors'),
 
     path('upload/', views.upload, name='upload'),
     # path('upload_check/<int:item_id>/', views.upload_check, name='upload_check'),
