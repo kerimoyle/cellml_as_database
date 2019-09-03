@@ -2,9 +2,8 @@
     This file contains the functions needed to validate any item by calling the libCellML validators.
 """
 
-import libcellml
+from django.db.models import Count
 
-from main.functions import convert_to_cellml_model
 from main.models import ItemError, CompoundUnit
 
 
@@ -121,7 +120,6 @@ def validate_compoundunit(cu):
         cu.errors.add(err)
         is_valid = False
 
-    # 8.1.2 Checking for name uniqueness within the infoset - can only be done in context of use
     # Also need to check the unit elements of this compound unit here as they can't be accessed individually
     for u in cu.product_of.all():
         is_valid = is_valid and validate_unit(u)
@@ -263,37 +261,248 @@ def validate_component(component):
         )
         err.save()
         component.errors.add(err)
-    # 10.1.1 Can only check uniqueness of name in context of use
+
+    # Check component's variables for duplicate names
+    duplicates = component.variables.values('name').annotate(name_count=Count('name')).filter(name_count__gt=1)
+    for d in duplicates:
+        err = ItemError(
+            hints="Variable name <i>{n}</i> is duplicated {x} times in component <i>{m}</i>".format(
+                n=d['name'],
+                x=d['name_count'],
+                m=component.name),
+            spec='11.1.1.1',
+        )
+        err.save()
+        component.errors.add(err)  # It's an error of the *component* not of the variable itself ...
+
+    for variable in component.variables.all():
+        is_valid = is_valid and validate_variable(variable)
+
+    for reset in component.resets.all():
+        is_valid = is_valid and validate_reset(reset)
+
+    for math in component.maths.all():
+        is_valid = is_valid and validate_math(math)
+
     return is_valid
 
 
 def validate_cellmodel(model):
+    # Trying out an alternative to translating to/from cellml format for model validation
     is_valid = True
     for e in model.errors.all():
         e.delete()
 
-    # Convert to cellml model first
-    cellml_model = convert_to_cellml_model(model)
-    validator = libcellml.Validator()
-    validator.validateModel(cellml_model)
-    error_count = validator.errorCount()
-    if error_count > 0:
-        is_valid = False
-
-    for i in range(0, error_count):
-        e = validator.error(i)
+    # Check model name
+    is_valid, hints = is_cellml_identifier(model.name)
+    if not is_valid:
         err = ItemError(
-            hints=e.description(),
-            spec=e.specificationHeading()
+            hints="Invalid model name <i>{n}</i>: {h}".format(
+                n=model.name,
+                h=hints),
+            spec='4.2.1'
         )
         err.save()
-
-        # Todo need to get errors associated with their elements
-
-
         model.errors.add(err)
 
+    # Check model's components for duplicate names
+    duplicates = model.components.values('name').annotate(name_count=Count('name')).filter(name_count__gt=1)
+    for d in duplicates:
+        err = ItemError(
+            hints="Component name <i>{n}</i> is duplicated {x} times in model <i>{m}</i>".format(
+                n=d['name'],
+                x=d['name_count'],
+                m=model.name),
+            spec='10.1.1',
+        )
+        err.save()
+        model.errors.add(err)  # It's an error of the *model* not of the component itself ...
+
+    for component in model.components.all():
+        is_valid = is_valid and validate_component(component)
+
+    # Check model units
+    duplicates = model.compoundunits.values('name').annotate(name_count=Count('name')).filter(name_count__gt=1)
+    for d in duplicates:
+        err = ItemError(
+            hints="Units name <i>{n}</i> is duplicated {x} times in model <i>{m}</i>".format(
+                n=d['name'],
+                x=d['name_count'],
+                m=model.name),
+            spec='8.1.2',
+        )
+        err.save()
+        model.errors.add(err)  # It's an error of the *model* not of the compoundunit itself ...
+
+    for compoundunit in model.compoundunits.all():
+        is_valid = is_valid and validate_compoundunit(compoundunit)
+
+    # Check that the set of compound units used by the variables exists in the model
+    required = model.components.values_list('name', 'variables__name', 'variables__compoundunit__name')
+    available = model.compoundunits.values_list('name').distinct()
+    missing = [(c, v, u) for c, v, u in required if u not in available and u is not None]
+
+    for c, v, u in missing:
+        err = ItemError(
+            hints="Variable <i>{v}</i> in component <i>{c}</i> has units <i>{u}</i> which do not exist in this "
+                  "model.".format(c=c, u=u, v=v),
+            spec="11.1.1.2"
+        )
+        err.save()
+        model.errors.add(err)
+
+    # Validate connections and equivalent variable networks in the model
+    is_valid = is_valid and validate_connections(model)
+
     return is_valid
+
+
+def validate_connections(model):
+    is_valid = True
+    for component in model.components.all():
+        for variable in component.variables.filter(equivalent_variables__isnull=False):
+            # Check that equivalent variables are not in the same component
+            for ev in variable.equivalent_variables.filter(component=component):
+                err = ItemError(
+                    hints="Variable <i>{v1}</i> and equivalent variable <i>{v2}</i> are both in the same component "
+                          "<i>{c}</i>".format(
+                        v1=variable.name,
+                        v2=ev.name,
+                        c=component.name
+                    ),
+                    spec="17.1.2",
+                )
+                err.save()
+                component.errors.add(err)
+                is_valid = False
+
+                # Check that the variables have a valid parent component
+                if ev.component is None:
+                    err = ItemError(
+                        hints="Variable <i>{ev}</i> is equivalent to variable <i>{v}</i> in component <i>{c}</i> but "
+                              "does not have a parent component".format(
+                            ev=ev.name,
+                            v=variable.name,
+                            c=component.name,
+                        ),
+                        spec="17.?",
+                    )
+                    err.save()
+                    ev.errors.add(err)
+                    component.errors.add(err)
+                    is_valid = False
+
+    cycle_list = model_cyclic_variables_found(model)
+    loop_count = len(cycle_list)
+    if loop_count > 0:
+        loops = " loops" if loop_count > 1 else " loop"
+        des = ''.join(cycle_list)
+        err = ItemError(
+            hints="Cyclic variables exist, " + str(loop_count) + loops + " found (Component,Variable): <br>" + des,
+            spec="19.10.5"
+        )
+        err.save()
+        model.errors.add(err)
+        is_valid = False
+    else:
+        # Check order uniqueness in resets
+        total_done_list = []
+        for component in model.components.all():
+            for variable in component.variables.filter(equivalent_variable__isnull=False).exclude(
+                    id__in=total_done_list):
+                local_done_list = []
+                reset_map = {}
+                local_done_list, reset_map = fetch_connected_resets(variable, local_done_list, reset_map)
+
+                total_done_list.extend(local_done_list)
+
+                for order, resets in reset_map.items():
+                    if len(resets) > 1:
+                        des = "Non-unique reset order of " + order + " found within equivalent variable set: "
+                        for r in resets:
+                            des += "<br>  - variable <i>" + r.variable.name + "</i> in component <i>" + \
+                                   r.variable.component.name + "</i> has reset with order " + order
+                        err = ItemError(
+                            hints=des,
+                            spec='12.1.1.2'
+                        )
+                        err.save()
+                        model.errors.add(err)
+                        is_valid = False
+
+    return is_valid
+
+
+def fetch_connected_resets(variable, local_done_list, reset_map):
+    for equiv in variable.equivalent_variables.exclude(id__in=local_done_list):
+        component = equiv.component
+
+        for reset in component.resets.filter(variable=equiv):
+            reset_map[str(reset.order)].append(reset)
+        local_done_list.append(equiv)
+
+        local_done_list, reset_map = fetch_connected_resets(equiv, local_done_list, reset_map)
+
+    return local_done_list, reset_map
+
+
+def model_cyclic_variables_found(model):
+    all_variable_list = []
+    total_list = []
+    hint_list = []
+
+    for component in model.components.all():
+        for variable in component.variables.annotate(num_ev=Count('equivalent_variables')
+                                                     ).filter(num_ev__gte=2).exclude(id__in=all_variable_list):
+            for eq in variable.equivalent_variables.all():
+                check_list = [variable]
+                found, check_list, all_variable_list = cyclic_variable_found(variable, eq, check_list,
+                                                                             all_variable_list)
+                if found:
+                    total_list.append(check_list)
+
+    for temp_list in total_list:
+        start = min(temp_list.values_list('name'))  # Getting the first name alphabetically and only reporting this loop
+        if temp_list[0] == start:
+
+            description = ''
+            reverse_description = ''
+            separator = ''
+
+            for v in temp_list:
+                parent = v.component
+                description += separator + "(<i>" + parent.name + ", " + v.name + "</i>)"
+                reverse_description = "(<i>" + parent.name + ", " + v.name + "</i>)" + separator + reverse_description
+                separator = " -> "
+            description += "<br>"
+            reverse_description += "<br>"
+
+            # if this info has not yet been added to the error list, add it
+            if description not in hint_list and reverse_description not in hint_list:
+                hint_list.append(description)
+
+    return hint_list
+
+
+def cyclic_variable_found(parent, child, check_list, all_variable_list):
+    all_variable_list.append(child)
+
+    if child in check_list:
+        check_list.append(child)
+        while check_list[0] != check_list[-1]:
+            check_list.remove(check_list[0])
+        return True, check_list, all_variable_list
+
+    check_list.append(child)
+
+    for eq in child.equivalent_variables.all():
+        if eq == parent:
+            continue
+        found, check_list, all_variable_list = cyclic_variable_found(child, eq, check_list, all_variable_list)
+        if found:
+            return True, check_list, all_variable_list
+
+    return False, check_list, all_variable_list
 
 
 VALIDATE_DICT = {

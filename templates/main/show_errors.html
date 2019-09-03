@@ -6,23 +6,28 @@
 {% block todo %}{% endblock todo %}
 
 {% block content %}
-
     <div class="row">
         <div class="col-md-12">
+            <h3>Local errors</h3>
             {% if errors %}
                 <table class="display table" id="table-info">
                     <thead>
                     <tr>
                         <th>Specification reference</th>
                         <th>Message</th>
+                        <th>Go to item</th>
                     </tr>
                     </thead>
                     <tbody>
                     {% for err in errors %}
                         <tr>
                             <td>{{ err.spec }}</td>
-                            <td>{{ err.hints }}</td>
-
+                            <td>{{ err.hints|safe }}</td>
+                            <td>
+                                <a href="{% url 'main:display' item_type=item_type item_id=item.id %}">
+                                    Open {{ item.name }}
+                                </a>
+                            </td>
                         </tr>
                     {% endfor %}
                     </tbody>
@@ -34,5 +39,39 @@
             {% endif %}
         </div>
     </div>
+    <div class="row">
+        <div class="col-md-12">
+            <h3>Downstream errors</h3>
+
+            <table class="display table" id="table-info">
+                <thead>
+                <tr>
+                    <th>Specification reference</th>
+                    <th>Message</th>
+                    <th>Go to item</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for child_item, child_type, errors in tree %}
+                    {% for err in errors %}
+                        <tr>
+                            <td>{{ err.spec }}</td>
+                            <td>{{ err.hints|safe }}</td>
+                            <td>
+                                <a href="{% url 'main:display' item_type=child_type item_id=child_item.id %}">
+                                    Open {{ child_item.name }}
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% endfor %}
+
+                </tbody>
+            </table>
+
+
+        </div>
+    </div>
+
 
 {% endblock content %}

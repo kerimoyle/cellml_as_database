@@ -11,24 +11,40 @@ from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Uni
 
 # --------------------- PREVIEW FUNCTIONS -------------------------------------
 
-def build_tree_from_model(storage, model):
+def add_children(parent, parent_type, tree):
+    # adding the parent
+    if parent.errors.count():
+        tree.append((parent,
+                     parent_type,
+                     parent.errors.all()))
+
+    children = get_item_downstream_attributes(parent)
+    for child in children:
+        tree = add_children(child[2], child[1], tree)
+    return tree
+
+
+# -------------------------------- PREVIEW FUNCTIONS FOR CELLML ITEMS ----------------------------
+
+
+def build_tree_from_cellml_model(storage, model):
     tree = "["
     parents = {}
 
     # Add the components
     for c in range(model.componentCount()):
-        tree = build_tree_from_component(storage, model.component(c), tree, c, parents)
+        tree = build_tree_from_cellml_component(storage, model.component(c), tree, c, parents)
 
     # Add the units
     for u in range(model.unitsCount()):
-        tree = build_tree_from_units(storage, model.units(u), tree, u, parents)
+        tree = build_tree_from_cellml_units(storage, model.units(u), tree, u, parents)
 
     tree += "]"
     storage.tree = tree
     storage.save()
 
 
-def build_tree_from_component(storage, component, tree, index, parents):
+def build_tree_from_cellml_component(storage, component, tree, index, parents):
     tree += "{text: 'Component: " + component.name() + "',"
     tree += "nodes: ["
 
@@ -41,17 +57,17 @@ def build_tree_from_component(storage, component, tree, index, parents):
 
     # Add the variables
     for v in range(component.variableCount()):
-        tree = build_tree_from_variable(storage, component.variable(v), tree, v, parents)
+        tree = build_tree_from_cellml_variable(storage, component.variable(v), tree, v, parents)
 
     # Add the resets
     for r in range(component.resetCount()):
-        tree = build_tree_from_reset(storage, component.reset(r), tree, r, parents)
+        tree = build_tree_from_cellml_reset(storage, component.reset(r), tree, r, parents)
 
     tree += "]},"
     return tree
 
 
-def build_tree_from_units(storage, units, tree, index, parents):  # parents not used until encapsulation is added
+def build_tree_from_cellml_units(storage, units, tree, index, parents):  # parents not used until encapsulation is added
     tree += "{text:'Units: " + units.name() + "'},"
     # parents['units'] = index
     # record = TemporaryStorageItem(
@@ -62,7 +78,7 @@ def build_tree_from_units(storage, units, tree, index, parents):  # parents not 
     return tree
 
 
-def build_tree_from_variable(storage, variable, tree, index, parents):
+def build_tree_from_cellml_variable(storage, variable, tree, index, parents):
     units = variable.units()
     if type(units) is str:
         units_name = units
@@ -86,7 +102,7 @@ def build_tree_from_variable(storage, variable, tree, index, parents):
     return tree
 
 
-def build_tree_from_reset(storage, reset, tree, index, parents):
+def build_tree_from_cellml_reset(storage, reset, tree, index, parents):
     variable = reset.variable()
 
     tree += "{text:'Reset: " + variable.name() + "'},"
@@ -415,64 +431,80 @@ def load_reset(index, in_component, out_component, owner):
 
 def convert_to_cellml_model(in_model):
     out_model = libcellml.Model()
-    out_model.setId(in_model.cellml_id)
-    out_model.setName(in_model.name)
 
-    for c in in_model.components.all():
-        component = convert_to_cellml_component(c)
-        out_model.addComponent(component)
+    if in_model is not None:
+        out_model.setName(in_model.name)
+        out_model.setId(in_model.cellml_id)
 
-    for cu in in_model.compoundunits.all():
-        units = convert_to_cellml_compoundunit(cu)
-        out_model.addUnits(units)
+        for c in in_model.components.all():
+            component = convert_to_cellml_component(c)
+            out_model.addComponent(component)
+
+        for cu in in_model.compoundunits.all():
+            units = convert_to_cellml_compoundunit(cu)
+            out_model.addUnits(units)
 
     return out_model
 
 
 def convert_to_cellml_component(in_component):
     out_component = libcellml.Component()
-    out_component.setName(in_component.name)
-    out_component.setId(in_component.cellml_id)
 
-    for v in in_component.variables.all():
-        variable = convert_to_cellml_variable(v)
-        out_component.addVariable(variable)
+    if in_component is not None:
+        out_component.setName(in_component.name)
+        out_component.setId(in_component.cellml_id)
 
-    for r in in_component.resets.all():
-        reset = convert_to_cellml_reset(r)
-        out_component.addReset(reset)
+        for v in in_component.variables.all():
+            variable = convert_to_cellml_variable(v)
+            out_component.addVariable(variable)
+
+        for r in in_component.resets.all():
+            reset = convert_to_cellml_reset(r)
+            out_component.addReset(reset)
 
     return out_component
 
 
 def convert_to_cellml_reset(in_reset):
     out_reset = libcellml.Reset()
-    out_reset.setId(in_reset.cellml_id)
-    out_reset.setVariable(in_reset.variable.name)
-    out_reset.setTestVariable(in_reset.test_variable.name)
-    out_reset.setOrder(in_reset.order)
-    out_reset.setResetValue(in_reset.reset_value.math_ml)
-    out_reset.setTestValue(in_reset.test_value.math_ml)
+
+    if in_reset.cellml_id is not None:
+        out_reset.setId(in_reset.cellml_id)
+    if in_reset.variable is not None:
+        out_reset.setVariable(in_reset.variable.name)
+    if in_reset.test_variable is not None:
+        out_reset.setTestVariable(in_reset.test_variable.name)
+    if in_reset.order is not None:
+        out_reset.setOrder(in_reset.order)
+    if in_reset.reset_value is not None:
+        out_reset.setResetValue(in_reset.reset_value.math_ml)
+    if in_reset.test_value is not None:
+        out_reset.setTestValue(in_reset.test_value.math_ml)
     return out_reset
 
 
 def convert_to_cellml_variable(in_variable):
     out_variable = libcellml.Variable()
-    out_variable.setName(in_variable.name)
-    out_variable.setId(in_variable.cellml_id)
 
-    out_variable.setUnits(in_variable.compoundunit.name)
+    if in_variable is not None:
+        out_variable.setName(in_variable.name)
+        out_variable.setId(in_variable.cellml_id)
+
+        if in_variable.compoundunit is not None:
+            out_variable.setUnits(in_variable.compoundunit.name)
 
     return out_variable
 
 
 def convert_to_cellml_compoundunit(in_compoundunit):
     out_units = libcellml.Units()
-    out_units.setName(in_compoundunit.name)
-    out_units.setId(in_compoundunit.cellml_id)
 
-    for u in in_compoundunit.product_of.all():
-        out_units.addUnit(u.child_cu.name, u.prefix.name, u.exponent, u.multiplier)
+    if in_compoundunit is not None:
+        out_units.setName(in_compoundunit.name)
+        out_units.setId(in_compoundunit.cellml_id)
+
+        for u in in_compoundunit.product_of.all():
+            out_units.addUnit(u.child_cu.name, u.prefix.name, u.exponent, u.multiplier)
 
     return out_units
 

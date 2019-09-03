@@ -18,7 +18,7 @@ from main.defines import MENU_OPTIONS
 from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
     get_upstream_fields, get_item_upstream_attributes, copy_item, \
-    delete_item, convert_to_cellml_model, get_downstream_fields, get_item_downstream_attributes
+    delete_item, convert_to_cellml_model, get_downstream_fields, get_item_downstream_attributes, add_children
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset
 from main.validate import VALIDATE_DICT
 
@@ -1182,7 +1182,6 @@ def set_privacy(request):
 # --------------------------------- ERROR VIEWS -----------------------
 
 def show_errors(request, item_type, item_id):
-
     item = None
 
     try:
@@ -1199,10 +1198,14 @@ def show_errors(request, item_type, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
+    tree = []
+    tree = add_children(item, item_type, tree)
+
     context = {
         'item': item,
         'item_type': item_type,
-        'errors': item.errors.all()
+        'errors': item.errors.all(),
+        'tree': tree
     }
 
     return render(request, 'main/show_errors.html', context)
