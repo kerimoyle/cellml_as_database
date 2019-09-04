@@ -11,16 +11,13 @@ from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Uni
 
 # --------------------- PREVIEW FUNCTIONS -------------------------------------
 
-def add_children(parent, parent_type, tree):
-    # adding the parent
-    if parent.errors.count():
-        tree.append((parent,
-                     parent_type,
-                     parent.errors.all()))
-
+def add_children(parent, tree):
     children = get_item_downstream_attributes(parent)
     for child in children:
-        tree = add_children(child[2], child[1], tree)
+        tree.append((child[2],
+                     type(child[2]).__name__.lower(),
+                     child[2].errors.all()))
+        tree = add_children(child[2], tree)
     return tree
 
 

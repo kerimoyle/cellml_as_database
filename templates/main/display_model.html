@@ -31,15 +31,26 @@
                 <tr>
                     <td>Validity</td>
                     <td>
-                        {{ item.is_valid }}
+                    {% if item.is_valid %}
+                        <div class="valid_item">
+                            Model is valid<br>
+                            Last checked: {{ last_checked }}
+                        </div>
+                    {% else %}
+                        <div class="invalid_item">
+                            Model is not valid yet<br>
+                            Last checked: {{ last_checked }}
+                        </div>
+                    {% endif %}
+
                         <div class="button_bar">
                             <button id="check_validity" class="btn btn-default">
-                                <i class="fa fa-refresh"></i> Check validity
+                                <i class="fa fa-refresh"></i> Check again
                             </button>
                             {% if not item.is_valid %}
                                 <a href="{% url 'main:show_errors' item_type=item_type item_id=item.id %}">
                                     <button id="show_errors" class="btn btn-default">
-                                        <i class="fa fa-exclamation"></i> Show errors
+                                        <i class="fa fa-exclamation"></i> Show TODO list
                                     </button>
                                 </a>
                             {% endif %}

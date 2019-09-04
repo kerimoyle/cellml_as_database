@@ -808,6 +808,7 @@ def display_model(request, item_id):
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == model.owner,
         'can_change_privacy': True,
+        'last_checked': "{}".format(model.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
     }
     return render(request, 'main/display_model.html', context)
 
@@ -1198,14 +1199,17 @@ def show_errors(request, item_type, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
+    # TODO This is slow ...
     tree = []
-    tree = add_children(item, item_type, tree)
+    tree = add_children(item, tree)
 
     context = {
         'item': item,
         'item_type': item_type,
         'errors': item.errors.all(),
-        'tree': tree
+        'tree': tree,
+        'last_checked': "{}".format(item.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
+        'can_edit': request.user.person == item.owner,
     }
 
     return render(request, 'main/show_errors.html', context)

@@ -151,15 +151,26 @@ iframe {
     padding: 20px;
 }
 
-
 .invalid_item {
-    color:darkred;
+    color: darkred;
     background-color: #ecebe8;
 }
 
 .valid_item {
     background-color: #dbf0cb;
     color: #12490f;
+}
+
+.validity_True {
+    padding:5px;
+    background-color: #dbf0cb;
+    color: #12490f;
+}
+
+.validity_False {
+    color: darkred;
+    background-color: #ecebe8;
+    padding:5px;
 }
 
 

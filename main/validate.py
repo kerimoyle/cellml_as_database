@@ -156,7 +156,7 @@ def validate_reset(reset):
 
     if not reset.order:
         err = ItemError(
-            hints="Reset order is not set",
+            hints="Reset <i>{r}</i> does not have an order set".format(r=reset.name),
             spec="12.1.2",
             fields=["order"]
         )
@@ -166,7 +166,7 @@ def validate_reset(reset):
 
     if reset.test_value is None:
         err = ItemError(
-            hints="Reset does not reference a test_value",
+            hints="Reset <i>{r}</i> does not reference a test_value".format(r=reset.name),
             spec="12",  # TODO find correct code for resets
             fields=['test_value']
         )
@@ -176,7 +176,7 @@ def validate_reset(reset):
 
     if reset.reset_value is None:
         err = ItemError(
-            hints="Reset does not reference a reset_value",
+            hints="Reset <i>{r}</i> does not reference a reset_value".format(r=reset.name),
             spec="12",  # TODO find correct code for resets
             fields=['reset_value']
         )
@@ -186,7 +186,7 @@ def validate_reset(reset):
 
     if reset.component is None:
         err = ItemError(
-            hints="Reset does not have a component",
+            hints="Reset <i>{r}</i> does not have a component".format(r=reset.name),
             spec="10.1.2.2",
             fields=['component']
         )
@@ -196,7 +196,7 @@ def validate_reset(reset):
 
     if reset.variable is None:
         err = ItemError(
-            hints="Reset does not reference a variable",
+            hints="Reset <i>{r}</i> does not reference a variable".format(r=reset.name),
             spec="12.1.1",
             fields=['variable']
         )
@@ -206,7 +206,7 @@ def validate_reset(reset):
 
     if reset.test_variable is None:
         err = ItemError(
-            hints="Reset does not reference a test_variable",
+            hints="Reset <i>{r}</i> does not reference a test_variable".format(r=reset.name),
             spec="12",  # TODO find correct code for resets
             fields=['test_variable']
         )
@@ -217,8 +217,9 @@ def validate_reset(reset):
     if reset.component is not None:
         if reset.variable is not None and reset.component != reset.variable.component:
             err = ItemError(
-                hints="Reset in component <i>{c}</i> refers to a variable <i>{v}</i> which is in a different component,"
-                      " <i>{vc}</i>".format(
+                hints="Reset <i>{r}</i> in component <i>{c}</i> refers to a variable <i>{v}</i> which is in a "
+                      "different component, <i>{vc}</i>".format(
+                    r=reset.name,
                     c=reset.component.name,
                     v=reset.variable.name,
                     vc=reset.variable.component.name),
@@ -231,8 +232,9 @@ def validate_reset(reset):
 
         if reset.test_variable is not None and reset.component != reset.test_variable.component:
             err = ItemError(
-                hints="Reset in component <i>{c}</i> refers to a test_variable <i>{v}</i> in a different component,"
-                      " <i>{vc}</i>".format(
+                hints="Reset <i>{r}</i> in component <i>{c}</i> refers to a test_variable <i>{v}</i> in a different "
+                      "component, <i>{vc}</i>".format(
+                    r=reset.name,
                     c=reset.component.name,
                     v=reset.test_variable.name,
                     vc=reset.test_variable.component.name),
@@ -340,7 +342,7 @@ def validate_cellmodel(model):
     # Check that the set of compound units used by the variables exists in the model
     required = model.components.values_list('name', 'variables__name', 'variables__compoundunit__name')
     available = model.compoundunits.values_list('name').distinct()
-    missing = [(c, v, u) for c, v, u in required if u not in available and u is not None]
+    missing = [(c, v, u) for c, v, u in required if (u,) not in available and u is not None]
 
     for c, v, u in missing:
         err = ItemError(

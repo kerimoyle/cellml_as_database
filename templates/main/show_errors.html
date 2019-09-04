@@ -7,6 +7,17 @@
 
 {% block content %}
     <div class="row">
+        <div class="col-md-6">
+            <p id="last_checked">Last checked: {{ last_checked }}</p>
+        </div>
+        <div class="col-md-6 button_bar">
+            <button id="check_validity" class="btn btn-default">
+                <i class="fa fa-refresh"></i> Check validity again
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
         <div class="col-md-12">
             <h3>Local errors</h3>
             {% if errors %}
@@ -25,7 +36,7 @@
                             <td>{{ err.hints|safe }}</td>
                             <td>
                                 <a href="{% url 'main:display' item_type=item_type item_id=item.id %}">
-                                    Open {{ item.name }}
+                                    Open <i>{{ item.name }}</i>
                                 </a>
                             </td>
                         </tr>
@@ -34,7 +45,7 @@
                 </table>
             {% else %}
                 <p class="empty">
-                    There are no errors - yay!
+                    There are no local errors - yay!
                 </p>
             {% endif %}
         </div>
@@ -42,36 +53,61 @@
     <div class="row">
         <div class="col-md-12">
             <h3>Downstream errors</h3>
-
-            <table class="display table" id="table-info">
-                <thead>
-                <tr>
-                    <th>Specification reference</th>
-                    <th>Message</th>
-                    <th>Go to item</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for child_item, child_type, errors in tree %}
-                    {% for err in errors %}
-                        <tr>
-                            <td>{{ err.spec }}</td>
-                            <td>{{ err.hints|safe }}</td>
-                            <td>
-                                <a href="{% url 'main:display' item_type=child_type item_id=child_item.id %}">
-                                    Open {{ child_item.name }}
-                                </a>
-                            </td>
-                        </tr>
+            {% if tree %}
+                <table class="display table" id="table-info">
+                    <thead>
+                    <tr>
+                        <th>Specification reference</th>
+                        <th>Message</th>
+                        <th>Go to item</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for child_item, child_type, errors in tree %}
+                        {% for err in errors %}
+                            <tr>
+                                <td>{{ err.spec }}</td>
+                                <td>{{ err.hints|safe }}</td>
+                                <td>
+                                    <a href="{% url 'main:display' item_type=child_type item_id=child_item.id %}">
+                                        Open <i>{{ child_item.name }}</i>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
                     {% endfor %}
-                {% endfor %}
-
-                </tbody>
-            </table>
-
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="empty">
+                    There are no downstream errors - yay!
+                </p>
+            {% endif %}
 
         </div>
     </div>
 
 
 {% endblock content %}
+
+{% block end_scripts %}
+    {{ block.super }}
+    <script>
+        $(document).ready(function () {
+            $("#check_validity").click(function (e) {
+                e.preventDefault();
+                $.ajax({
+                    url: "/validate/{{ item_type }}/{{ item.id }}",
+                    success: location.reload(),
+                    {#success: function (data) {#}
+                    {#    let html = "Last checked: " + data['last_checked'];#}
+                    {#    $("#last_checked").html(html);#}
+                    {##}
+                    {#    // Updating the list of errors on refresh#}
+                    {##}
+                    {# },#}
+                });
+            });
+        });
+    </script>
+{% endblock end_scripts %}

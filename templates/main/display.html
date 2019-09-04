@@ -85,23 +85,34 @@
                 </tbody>
             </table>
         </div>
-        <div class="col-md-4">
 
+
+        <div class="col-md-4">
             <div class="row">
-                <div class="col-sm-6">
+                <div class="col-sm-3">
                     <h3>Validity</h3>
                 </div>
-                <div class="col-sm-6 button_bar">
-                    <button id="check_validity" class="btn btn-default"><i class="fa fa-refresh"></i> Check again
+                <div class="col-sm-9 button_bar">
+                    <button id="check_validity" class="btn btn-default">
+                        <i class="fa fa-refresh"></i> Check again
                     </button>
+
+                    <a href="{% url 'main:show_errors' item_type=item_type item_id=item.id %}">
+                        <button class="btn btn-default">
+                            <i class="fa fa-list"></i> Show TODO list
+                        </button>
+                    </a>
                 </div>
 
                 <div class="col-sm-12">
+                    <b>Last checked:</b> <span id="last_checked">{{ item.last_checked }}</span>
                     <div id="validity_div" class="validity_{{ item.is_valid }}">
-                        <b>Last checked:</b> <span id="last_checked">{{ item.last_checked }}</span>
                         <div id="errors">
                             {% for e in item.errors.all %}
-                                {{ e.spec }}: {{ e.hints }}<br>
+                                {{ e.spec }}: {{ e.hints|safe }}<br>
+                            {% empty %}
+                                There are no local validation errors, but downstream entities contain errors.  Use the
+                                <i>Show TODO list</i> to see them.
                             {% endfor %}
                         </div>
                     </div>
@@ -267,7 +278,6 @@
             $('#table-information_filter').css('display', 'none');
             $('#table-information_paginate').css('display', 'none');
             $('#table-connections_filter').css('width', '100%');
-
 
             $("#check_validity").click(function (e) {
                 e.preventDefault();
