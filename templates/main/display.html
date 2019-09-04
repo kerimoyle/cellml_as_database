@@ -97,11 +97,13 @@
                         <i class="fa fa-refresh"></i> Check again
                     </button>
 
-                    <a href="{% url 'main:show_errors' item_type=item_type item_id=item.id %}">
-                        <button class="btn btn-default">
-                            <i class="fa fa-list"></i> Show TODO list
-                        </button>
-                    </a>
+                    {% if not item.is_valid %}
+                        <a href="{% url 'main:show_errors' item_type=item_type item_id=item.id %}">
+                            <button class="btn btn-default">
+                                <i class="fa fa-list"></i> Show TODO list
+                            </button>
+                        </a>
+                    {% endif %}
                 </div>
 
                 <div class="col-sm-12">
