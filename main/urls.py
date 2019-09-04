@@ -20,13 +20,14 @@ urlpatterns = [
     path('display/compoundunit/<int:item_id>/', views.display_compoundunit, name='display_compoundunit'),  # aliased ...
     path('display/math/<int:item_id>/', views.display_math, name='display_math'),
     path('display/model/<int:item_id>/', views.display_model, name='display_model'),
+    path('display/reset/<int:item_id>/', views.display_reset, name='display_reset'),
     path('display/temporarystorage/<int:item_id>/', views.display_storage, name='display_storage'),
     path('display/<item_type>/<int:item_id>/', views.display, name='display'),
 
     path('edit_locals/<item_type>/<int:item_id>/', views.edit_locals, name='edit_locals'),
     path('edit_unit/<int:item_id>/', views.edit_unit, name='edit_unit'),
 
-    path('export_model/<int:item_id>/', views.export_model, name='export_model'),
+    path('convert_model/<int:item_id>/', views.convert_model, name='convert_model'),
 
     path('home/', views.home, name='home'),
     path('intro/', views.intro, name='intro'),
@@ -40,10 +41,13 @@ urlpatterns = [
     path('register/', views.register, name='register'),
 
     path('set_privacy/', views.set_privacy, name='set_privacy'),
+    path('show_errors/<item_type>/<int:item_id>/', views.show_errors, name='show_errors'),
 
     path('upload/', views.upload, name='upload'),
     # path('upload_check/<int:item_id>/', views.upload_check, name='upload_check'),
     # path('upload_model/', views.upload_model, name='upload_model'),
+
+    path('validate/<item_type>/<int:item_id>/', views.validate, name='validate'),
 
     path('', views.home, name='home'),
 

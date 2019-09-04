@@ -1,0 +1,165 @@
+{% extends 'main/base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% load foe_tags %}
+
+{% block title %}Reset <b>{{ item.name }}</b>{% endblock title %}
+
+{% block todo %}{% endblock todo %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-4">
+            <div class="col-sm-6"><h3>Information</h3></div>
+            <div class="col-sm-6 button_bar">
+                <a onclick="LoadModalData('Edit local information','{% url 'main:edit_locals' item_type=item_type item_id=item.id %}');"
+                   data-toggle="modal"
+                   data-target="#formModal"
+                   style="text-decoration: none;">
+                    <button class="btn btn-default">
+                        <i class="fa fa-pencil"></i> Edit locals
+                    </button>
+                </a>
+            </div>
+
+            <div class="col-sm-12">
+                <table class="datatables display table">
+                    <tbody>
+                    <tr>
+                        <td>Notes</td>
+                        <td>
+                            {% if item.notes %}{{ item.notes|linebreaksbr }}
+                            {% else %}<span class="empty">No notes given</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Owner</td>
+                        <td>
+                            {% if item.owner %}{{ item.owner|title }}
+                            {% else %}<span class="empty">None</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <div class="col-md-8">
+            <div class="col-sm-6"><h3>Contents</h3></div>
+            <div class="col-sm-6 button_bar">
+                <button id="check_validity" class="btn btn-default">
+                    <i class="fa fa-refresh"></i> Check validity
+                </button>
+            </div>
+
+            <div class="col-sm-12">
+                <table class="datatables display table">
+                    <thead>
+                    <th>Field</th>
+                    <th>Value</th>
+                    <th colspan="2">Validity</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+
+                    {% for f in item_fields %}
+                        <tr id="v_{{ f }}_symbol">
+                            <td>{{ f }}</td>
+                            <td>{% getattribute item f %}</td>
+                            <td>
+                                {#                                <div id="v_{{ f }}_symbol"></div>#}
+                            </td>
+                            <td>
+                                <div id="v_{{ f }}"></div>
+                            </td>
+                            <td>
+                                <a onclick="LoadModalData(
+                                        'Edit {{ f }}',
+                                        '{% url 'main:link_upstream' item_type='reset' item_id=item.id related_name=f %}'
+                                        );"
+                                   data-toggle="modal"
+                                   data-target="#formModal"
+                                   style="text-decoration: none;">
+                                    Change
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <form id="privacy_form" action="{% url 'main:set_privacy' %}" method='POST' hidden>
+        {% csrf_token %}
+        <input type="text" name="item_type" id="item_type" value="{{ item_type }}">
+        <input type="text" name="item_id" id="item_id" value="{{ item.id }}">
+        <input type="text" name="privacy_level" id="privacy_level" value="">
+    </form>
+{% endblock content %}
+
+
+{% block end_scripts %}
+    {{ block.super }}
+    {% block datatables %}{% endblock datatables %}
+    <script>
+
+        $(document).ready(function () {
+            $("#check_validity").click(function (e) {
+                e.preventDefault();
+
+                // Preventing multiple lines of errors on repressing the button
+                $("div[id^=v_]").html("");
+
+                $.ajax({
+                    url: "/validate/{{ item_type }}/{{ item.id }}",
+
+                    success: function (data) {
+                        $("div[id$=_symbol]").each(function () {
+                            $(this).html("");
+                            $(this).addClass('valid_item');
+                        });
+
+                        $.each(data['fields'], function (index, value) {
+                            $.each(value[0], function (index, value2) {
+                                let id = "#v_" + value2;
+                                let html = $(id).html();
+
+                                let text = "<a onclick='LoadModalData(\"" + value[2] + ": " + value[1] + "\",";
+                                text = text + "\"{% url 'main:home' %}\"" + ");'"; // TODO need to make a display page for specifications
+                                text = text + "data-toggle=\"modal\" data-target=\"#formModal\" ";
+                                text = text + "style=\"text-decoration: none;\">";
+                                text = text + value[2] + ": " + value[1] + "</a><br>";
+                                text = html + text;
+                                $(id).html(text);
+
+                                id = id + "_symbol";
+                                $(id).removeClass().addClass('invalid_item');
+
+                            });
+                        });
+                    }
+                });
+            });
+        });
+
+        function SetPrivate() {
+            $('input[name="privacy_level"]').val("private");
+            $("form#privacy_form ").submit();
+        }
+
+        function SetPublic() {
+            $('input[name="privacy_level"]').val("public");
+            $("form#privacy_form ").submit();
+        }
+    </script>
+{% endblock end_scripts %}
+
+

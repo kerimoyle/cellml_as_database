@@ -8,9 +8,11 @@ import os
 
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.postgres.fields import ArrayField
 from django.db.models import (IntegerField, ManyToManyField, CharField, TextField, ForeignKey,
                               NullBooleanField, URLField, FileField, CASCADE, OneToOneField, EmailField,
-                              BooleanField, SET_NULL, ManyToOneRel, ManyToManyRel, DO_NOTHING)
+                              BooleanField, SET_NULL, ManyToOneRel, ManyToManyRel, DO_NOTHING, DateTimeField,
+                              FloatField)
 from django.db.models import Model as DjangoModel
 # -------------------- ABSTRACT MODELS --------------------
 from django.db.models.signals import post_delete
@@ -26,7 +28,7 @@ class NamedCellMLEntity(DjangoModel):
 
     # These are the dynamic parts of a model which can be changed by the users
     name = CharField(blank=False, max_length=100)  # The name of the entity
-    ready = NullBooleanField()  # object in database has all fields completed TODO not working yet
+    # ready = NullBooleanField()  # object in database has all fields completed TODO not working yet
     privacy = CharField(max_length=9, choices=PRIVACY_LEVELS, default="private", null=True, blank=True)
     notes = TextField(blank=True)
     owner = ForeignKey('Person', blank=True, null=True, on_delete=SET_NULL)  # TODO set to admin
@@ -35,6 +37,11 @@ class NamedCellMLEntity(DjangoModel):
     # CellML and libCellML fields:
     cellml_id = CharField(blank=True, max_length=100)  # Mimics the cellml field 'id', not really needed here
     cellml_index = IntegerField(default=-1, null=True)  # The corresponding item index as read by libCellML
+
+    # Validation and error checking fields
+    is_valid = NullBooleanField()
+    last_checked = DateTimeField(blank=True, null=True)
+    errors = ManyToManyField('ItemError', blank=True, related_name="error_in_%(class)s_objects")
 
     class Meta:
         abstract = True
@@ -64,25 +71,24 @@ class Prefix(DjangoModel):
         return self.name
 
 
-# --------------------- ITEM MODELS ---------------------
+class ItemError(DjangoModel):
+    hints = TextField(blank=True)
+    spec = CharField(max_length=25, null=True, blank=True)
+    # The 'fields' field collects names of the type of item so that the display pages know
+    # which attribute lines to label with this error
 
-# class ImportedEntity(DjangoModel):
-#     imported_from_type = ForeignKey(ContentType, on_delete=DO_NOTHING)
-#
-#     imported_from_id = IntegerField(blank=True, null=True)
-#     imported_from = GenericForeignKey('imported_from_type', 'imported_from_id')
-#
-#     # imported_to_type = ForeignKey(ContentType, on_delete=DO_NOTHING)
-#     imported_to_id = IntegerField(blank=True, null=True)
-#     # imported_to = GenericForeignKey('imported_from_type', 'imported_to_id')
-#
-#     attribution = TextField(blank=True, null=True)  # the original attribution field
-#
-#     def __str__(self):
-#         if self.attribution:
-#             return self.attribution
-#         else:
-#             return "None"
+    fields = ArrayField(
+        CharField(max_length=50),
+        null=True, blank=True
+    )
+
+
+class CellMLSpecification(DjangoModel):
+    notes = TextField(null=True, blank=True)
+    code = CharField(max_length=25, null=True, blank=True)
+
+
+# --------------------- ITEM MODELS ---------------------
 
 
 class Annotation(DjangoModel):
@@ -100,7 +106,11 @@ class Variable(NamedCellMLEntity):
     ]
 
     equivalent_variables = ManyToManyField("Variable", symmetrical=True, blank=True)
-    initial_value = CharField(max_length=100, null=True)
+    initial_value_constant = FloatField(null=True, blank=True)
+    initial_value_variable = ForeignKey('Variable', related_name='will_initialise', on_delete=DO_NOTHING, null=True,
+                                        blank=True)
+    compoundunit = ForeignKey("CompoundUnit", related_name='variables', blank=True, null=True, on_delete=DO_NOTHING)
+
     interface_type = CharField(max_length=2, choices=INTERFACE_TYPE, default="NA", null=True, blank=True)
     component = ForeignKey("Component", related_name="variables", blank=True, null=True, on_delete=SET_NULL)
 
@@ -123,7 +133,7 @@ class Unit(NamedCellMLEntity):
     parent_cu = ForeignKey("CompoundUnit", related_name='product_of', blank=True, null=True, on_delete=SET_NULL)
     child_cu = ForeignKey("CompoundUnit", related_name='part_of', blank=True, null=True, on_delete=SET_NULL)
 
-    multiplier = IntegerField(default=1, null=True)
+    multiplier = FloatField(default=1.0, null=True)
     exponent = IntegerField(default=1, null=True)
     reference = CharField(max_length=100, null=True, blank=True)
 
@@ -135,7 +145,7 @@ class CompoundUnit(NamedCellMLEntity):
     models = ManyToManyField("CellModel", related_name="compoundunits", blank=True)
     is_standard = BooleanField(default=False)
     symbol = CharField(max_length=100, null=True, blank=True)
-    variables = ManyToManyField("Variable", related_name="compoundunits", blank=True)
+    # variables = ManyToManyField("Variable", related_name="compoundunits", blank=True)
 
     imported_from = ForeignKey('CompoundUnit', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
     depends_on = ForeignKey('CompoundUnit', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
@@ -204,7 +214,7 @@ class Reset(NamedCellMLEntity):  # TODO should this be inherited or not?
     variable = ForeignKey("Variable", related_name="reset_variables", on_delete=SET_NULL, null=True, blank=True)
     test_variable = ForeignKey("Variable", related_name="reset_test_variables", on_delete=SET_NULL, null=True,
                                blank=True)
-    order = IntegerField(default=0)
+    order = IntegerField(blank=True, null=True)
     reset_value = ForeignKey("Math", null=True, blank=True, on_delete=SET_NULL, related_name="reset_values")
     test_value = ForeignKey("Math", null=True, blank=True, on_delete=SET_NULL, related_name="test_values")
     component = ForeignKey("Component", null=True, blank=True, on_delete=CASCADE, related_name="resets")
@@ -214,7 +224,7 @@ class Reset(NamedCellMLEntity):  # TODO should this be inherited or not?
 
 
 def __str__(self):
-        return self.name
+    return self.name
 
 
 class CellModel(NamedCellMLEntity):
@@ -264,205 +274,3 @@ def get_item_parent_attributes_for_model(item):
             item_parents.append(m)
 
     return item_parents
-
-# @receiver(pre_save, sender=TemporaryStorage)
-# def auto_delete_file_on_change(sender, instance, **kwargs):
-#     """
-#     Deletes old file from filesystem
-#     when corresponding `MediaFile` object is updated
-#     with new file.
-#     """
-#     if not instance.pk:
-#         return False
-#
-#     try:
-#         old_file = sender.objects.get(pk=instance.pk).file
-#     except sender.DoesNotExist:
-#         return False
-#
-#     new_file = instance.file
-#     if not old_file == new_file:
-#         if os.path.isfile(old_file.path):
-#             os.remove(old_file.path)
-
-# class TemporaryStorageItem(DjangoModel):
-#     # this is a list of the identified entities (components, variable, units etc) in the file and their
-#     # unique paths to retrieval
-#     storage = ForeignKey(TemporaryStorage, on_delete=CASCADE, related_name='items')
-#     dict_string = TextField(blank=True)
-#
-#     class Meta:
-#         ordering = ['id']
-
-
-# class Dictionary(DjangoModel):
-#     """
-#         A model that represents a dictionary. This model implements most of the dictionary interface,
-#         allowing it to be used like a python dictionary.
-#     """
-#     name = CharField(max_length=255)
-#
-#     @staticmethod
-#     def getDict(name):
-#         """Get the Dictionary of the given name.
-#
-#         """
-#         df = Dictionary.objects.select_related().get(name=name)
-#
-#         return df
-#
-#     def __getitem__(self, key):
-#         """Returns the value of the selected key.
-#
-#         """
-#         return self.keyvaluepair_set.get(key=key).value
-#
-#     def __setitem__(self, key, value):
-#         """Sets the value of the given key in the Dictionary.
-#
-#         """
-#         try:
-#             kvp = self.keyvaluepair_set.get(key=key)
-#
-#         except KeyValuePair.DoesNotExist:
-#             KeyValuePair.objects.create(container=self, key=key, value=value)
-#
-#         else:
-#             kvp.value = value
-#             kvp.save()
-#
-#     def __delitem__(self, key):
-#         """Removed the given key from the Dictionary.
-#
-#         """
-#         try:
-#             kvp = self.keyvaluepair_set.get(key=key)
-#
-#         except KeyValuePair.DoesNotExist:
-#             raise KeyError
-#
-#         else:
-#             kvp.delete()
-#
-#     def __len__(self):
-#         """Returns the length of this Dictionary.
-#
-#         """
-#         return self.keyvaluepair_set.count()
-#
-#     def iterkeys(self):
-#         """Returns an iterator for the keys of this Dictionary.
-#
-#         """
-#         return iter(kvp.key for kvp in self.keyvaluepair_set.all())
-#
-#     def itervalues(self):
-#         """Returns an iterator for the keys of this Dictionary.
-#
-#         """
-#         return iter(kvp.value for kvp in self.keyvaluepair_set.all())
-#
-#     __iter__ = iterkeys
-#
-#     def iteritems(self):
-#         """Returns an iterator over the tuples of this Dictionary.
-#
-#         """
-#         return iter((kvp.key, kvp.value) for kvp in self.keyvaluepair_set.all())
-#
-#     def keys(self):
-#         """Returns all keys in this Dictionary as a list.
-#
-#         """
-#         return [kvp.key for kvp in self.keyvaluepair_set.all()]
-#
-#     def values(self):
-#         """Returns all values in this Dictionary as a list.
-#
-#         """
-#         return [kvp.value for kvp in self.keyvaluepair_set.all()]
-#
-#     def items(self):
-#         """Get a list of tuples of key, value for the items in this Dictionary.
-#         This is modeled after dict.items().
-#
-#         """
-#         return [(kvp.key, kvp.value) for kvp in self.keyvaluepair_set.all()]
-#
-#     def get(self, key, default=None):
-#         """Gets the given key from the Dictionary. If the key does not exist, it
-#         returns default.
-#
-#         """
-#         try:
-#             return self[key]
-#
-#         except KeyError:
-#             return default
-#
-#     def has_key(self, key):
-#         """Returns true if the Dictionary has the given key, false if not.
-#
-#         """
-#         return self.contains(key)
-#
-#     def contains(self, key):
-#         """Returns true if the Dictionary has the given key, false if not.
-#
-#         """
-#         try:
-#             self.keyvaluepair_set.get(key=key)
-#             return True
-#
-#         except KeyValuePair.DoesNotExist:
-#             return False
-#
-#     def clear(self):
-#         """Deletes all keys in the Dictionary.
-#
-#         """
-#         self.keyvaluepair_set.all().delete()
-#
-#     def __str__(self):
-#         return str(self.asPyDict())
-#
-#     def asPyDict(self):
-#         """Get a python dictionary that represents this Dictionary object.
-#         This object is read-only.
-#
-#         """
-#         fieldDict = dict()
-#
-#         for kvp in self.keyvaluepair_set.all():
-#             fieldDict[kvp.key] = kvp.value
-#
-#         return fieldDict
-#
-#
-# class KeyValuePair(DjangoModel):
-#     """A Key-Value pair with a pointer to the Dictionary that owns it.
-#
-#     """
-#     container = ForeignKey('Dictionary', db_index=True, on_delete=DO_NOTHING)
-#     key = CharField(max_length=240, db_index=True)
-#     value = TextField(db_index=True)
-#
-#
-# class TempSpreadsheet(DjangoModel):
-#     fields = OneToOneField(Dictionary,
-#                            on_delete=CASCADE)  # Delete fields when parent Dictionary is deleted
-#     app_name = CharField(max_length=100)
-#     model_name = CharField(max_length=100)
-#
-#     def __str__(self):
-#         return "Temporary storage"
-#
-#
-# class TempRow(DjangoModel):
-#     row_index = IntegerField()
-#     spreadsheet = ForeignKey('TempSpreadsheet', related_name='rows', on_delete=DO_NOTHING)
-#     data = OneToOneField('Dictionary', on_delete=CASCADE)  # Delete data when parent Dictionary is deleted
-#     message = TextField(default="")
-#
-#     def __str__(self):
-#         return "Row {}".format(self.row_index)

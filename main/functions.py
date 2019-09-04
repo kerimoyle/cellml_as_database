@@ -6,41 +6,42 @@ from django.forms import modelform_factory
 from django.shortcuts import redirect
 
 from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Unit, \
-    Math, Prefix, Person
-
-
-# ---------------------- CELLML FUNCTIONS -------------------------------------
-
-def print_cellml(item):
-    """
-    Calls the libCellML library routine to change this into valid CellML
-    :param item: the object to serialise
-    :return: cellml markup of the object
-    """
-
-    return "TODO This is where the serialised CellML text (or other language if desired) could go"
+    Math, Prefix, Person, ItemError
 
 
 # --------------------- PREVIEW FUNCTIONS -------------------------------------
 
-def build_tree_from_model(storage, model):
+def add_children(parent, tree):
+    children = get_item_downstream_attributes(parent)
+    for child in children:
+        tree.append((child[2],
+                     type(child[2]).__name__.lower(),
+                     child[2].errors.all()))
+        tree = add_children(child[2], tree)
+    return tree
+
+
+# -------------------------------- PREVIEW FUNCTIONS FOR CELLML ITEMS ----------------------------
+
+
+def build_tree_from_cellml_model(storage, model):
     tree = "["
     parents = {}
 
     # Add the components
     for c in range(model.componentCount()):
-        tree = build_tree_from_component(storage, model.component(c), tree, c, parents)
+        tree = build_tree_from_cellml_component(storage, model.component(c), tree, c, parents)
 
     # Add the units
     for u in range(model.unitsCount()):
-        tree = build_tree_from_units(storage, model.units(u), tree, u, parents)
+        tree = build_tree_from_cellml_units(storage, model.units(u), tree, u, parents)
 
     tree += "]"
     storage.tree = tree
     storage.save()
 
 
-def build_tree_from_component(storage, component, tree, index, parents):
+def build_tree_from_cellml_component(storage, component, tree, index, parents):
     tree += "{text: 'Component: " + component.name() + "',"
     tree += "nodes: ["
 
@@ -53,17 +54,17 @@ def build_tree_from_component(storage, component, tree, index, parents):
 
     # Add the variables
     for v in range(component.variableCount()):
-        tree = build_tree_from_variable(storage, component.variable(v), tree, v, parents)
+        tree = build_tree_from_cellml_variable(storage, component.variable(v), tree, v, parents)
 
     # Add the resets
     for r in range(component.resetCount()):
-        tree = build_tree_from_reset(storage, component.reset(r), tree, r, parents)
+        tree = build_tree_from_cellml_reset(storage, component.reset(r), tree, r, parents)
 
     tree += "]},"
     return tree
 
 
-def build_tree_from_units(storage, units, tree, index, parents):  # parents not used until encapsulation is added
+def build_tree_from_cellml_units(storage, units, tree, index, parents):  # parents not used until encapsulation is added
     tree += "{text:'Units: " + units.name() + "'},"
     # parents['units'] = index
     # record = TemporaryStorageItem(
@@ -74,7 +75,7 @@ def build_tree_from_units(storage, units, tree, index, parents):  # parents not 
     return tree
 
 
-def build_tree_from_variable(storage, variable, tree, index, parents):
+def build_tree_from_cellml_variable(storage, variable, tree, index, parents):
     units = variable.units()
     if type(units) is str:
         units_name = units
@@ -98,7 +99,7 @@ def build_tree_from_variable(storage, variable, tree, index, parents):
     return tree
 
 
-def build_tree_from_reset(storage, reset, tree, index, parents):
+def build_tree_from_cellml_reset(storage, reset, tree, index, parents):
     variable = reset.variable()
 
     tree += "{text:'Reset: " + variable.name() + "'},"
@@ -126,7 +127,6 @@ def load_model(in_model, owner):
     model.save()
 
     # TODO Add the encapsulations
-
     # Add the components
     for c in range(in_model.componentCount()):
         load_component(c, in_model, model, owner)
@@ -150,12 +150,12 @@ def load_model(in_model, owner):
                 u = CompoundUnit.objects.filter(is_standard=True, name=in_units).first()
                 if u is not None:
                     # Then is built-in unit
-                    variable.compoundunits.add(u)
+                    variable.compoundunit = u
                     break
 
                 u = CompoundUnit.objects.filter(name=in_units, models=model).first()
                 if u is not None:
-                    variable.compoundunits.add(u)
+                    variable.compoundunit = u
 
                 else:
                     # Then is new base unit.  Create compound unit with no downstream
@@ -170,8 +170,16 @@ def load_model(in_model, owner):
                     variable.save()
                     u_new.variables.add(variable)
             else:
-                variable.compoundunits = model.compoundunits.filter(name=in_units.name()).first()
-                variable.save()
+                variable.compoundunit = model.compoundunits.filter(name=in_units.name()).first()
+
+            initial_value = in_variable.initialValue()
+            if type(initial_value).__name__ == 'str':
+                iv = Variable.objects.filter(name=initial_value, component=component).first()
+                variable.initial_value_variable = iv
+            else:
+                variable.initial_value_constant = initial_value
+
+            variable.save()
 
             # Set equivalent variables
             # TODO How to get the parent component of the "other" variable from SWIG?
@@ -233,6 +241,17 @@ def load_component(index, in_model, model, owner):
         math.save()
         math.components.add(out_component)
 
+    # Load errors from this component
+    error_count = in_component.errorCount()
+    for i in range(0, error_count):
+        e = in_component.errors(i)
+        err = ItemError(
+            hints=e.description(),
+            spec=e.specificationHeading(),
+        )
+        err.save()
+        out_component.errors.add(err)
+
     return
 
 
@@ -257,6 +276,18 @@ def load_compound_units(index, in_model, model, owner):
         owner=owner,
     )
     out_compound_units.save()
+
+    # Load errors from this component
+    error_count = in_units.errorCount()
+    for i in range(0, error_count):
+        e = in_units.errors(i)
+        err = ItemError(
+            hints=e.description(),
+            spec=e.specificationHeading(),
+        )
+        err.save()
+        out_compound_units.errors.add(err)
+
     out_compound_units.models.add(model)
 
     return
@@ -333,15 +364,27 @@ def load_units(compoundunit, in_model, model, owner):
 
 def load_variable(index, in_component, out_component, owner):
     in_variable = in_component.variable(index)
+
     out_variable = Variable(
         cellml_index=index,
         name=in_variable.name(),
-        initial_value=in_variable.initialValue(),
         # interface_type=in_variable.interfaceType(),  # TODO get dictionary of interfaceTypes ...
         owner=owner,
     )
     out_variable.component = out_component
     out_variable.save()
+
+    # Load errors from this variable
+    error_count = in_variable.errorCount()
+    for i in range(0, error_count):
+        e = in_variable.errors(i)
+        err = ItemError(
+            hints=e.description(),
+            spec=e.specificationHeading(),
+        )
+        err.save()
+        out_variable.errors.add(err)
+    return
 
 
 def load_reset(index, in_component, out_component, owner):
@@ -369,112 +412,175 @@ def load_reset(index, in_component, out_component, owner):
     )
     out_reset.save()
 
-
-# -------------------------------- EXPORTING FUNCTIONS ---------------------------------
-
-def export_to_cellml_model(in_model):
-    """
-    Function to create an instance of a CellML model which can then be printed
-    :param model: CellModel instance
-    :return: libcellml->Model instance
-    """
-
-    model = libcellml.Model()
-
-    export_components(in_model, model)
-
-    export_compoundunits(in_model, model)
-
-    return model
+    # Load errors from this reset
+    error_count = in_reset.errorCount()
+    for i in range(0, error_count):
+        e = in_reset.errors(i)
+        err = ItemError(
+            hints=e.description(),
+            spec=e.specificationHeading(),
+        )
+        err.save()
+        out_reset.errors.add(err)
 
 
-def export_components(in_model, model):
-    for c in in_model.components.all():
-        component = libcellml.Component()
-        component.setName(c.name)
-        if c.cellml_id is not None:
-            component.setId(c.cellml_id)
+# -------------------------------- CONVERSION FUNCTIONS ---------------------------------
 
-        for v in c.variables.all():
-            variable = libcellml.Variable()
+def convert_to_cellml_model(in_model):
+    out_model = libcellml.Model()
 
-            variable.setName(v.name)
-            variable.setId(v.cellml_id)
-            if v.compoundunits.count() > 0:
-                # many to many field ... which one to set here?
-                variable.setUnits(v.compoundunits.all()[0].name)
+    if in_model is not None:
+        out_model.setName(in_model.name)
+        out_model.setId(in_model.cellml_id)
 
-            # TODO print equivalent variables
-            # for e in v.equivalent_variables.all():
-            #     variable.addEquivalence(e.name)
+        for c in in_model.components.all():
+            component = convert_to_cellml_component(c)
+            out_model.addComponent(component)
 
-            component.addVariable(variable)
+        for cu in in_model.compoundunits.all():
+            units = convert_to_cellml_compoundunit(cu)
+            out_model.addUnits(units)
 
-        # TODO add resets resets: need to wait for new format to be in libcellml
-
-        # TODO add maths
-        if c.maths is not None:
-            component.setMath("")
-            for m_in in c.maths.all():
-                component.appendMath(m_in.math_ml)
-
-        model.addComponent(component)
-    return
+    return out_model
 
 
-def export_compoundunits(in_model, model):
-    for cu in in_model.compoundunits.all():
-        compoundunit = libcellml.Units()
-        compoundunit.setName(cu.name)
-        compoundunit.setId(cu.cellml_id)
+def convert_to_cellml_component(in_component):
+    out_component = libcellml.Component()
 
-        for u in cu.product_of.all():
-            compoundunit.addUnit(
-                u.name,
-                u.prefix.name,
-                u.exponent,
-                u.multiplier
-            )
+    if in_component is not None:
+        out_component.setName(in_component.name)
+        out_component.setId(in_component.cellml_id)
 
-        model.addUnits(compoundunit)
-    return
+        for v in in_component.variables.all():
+            variable = convert_to_cellml_variable(v)
+            out_component.addVariable(variable)
 
+        for r in in_component.resets.all():
+            reset = convert_to_cellml_reset(r)
+            out_component.addReset(reset)
 
-# void addUnit(const std::string &reference, const std::string &prefix,
-#   double exponent=1.0, double multiplier=1.0)
-# u.addUnit('blabla', 'hello', 1.2, 3.4, 'unitid')
+    return out_component
 
 
-# def load_compound_units(index, in_model, model, owner):
-#     in_units = in_model.units(index)
+def convert_to_cellml_reset(in_reset):
+    out_reset = libcellml.Reset()
+
+    if in_reset.cellml_id is not None:
+        out_reset.setId(in_reset.cellml_id)
+    if in_reset.variable is not None:
+        out_reset.setVariable(in_reset.variable.name)
+    if in_reset.test_variable is not None:
+        out_reset.setTestVariable(in_reset.test_variable.name)
+    if in_reset.order is not None:
+        out_reset.setOrder(in_reset.order)
+    if in_reset.reset_value is not None:
+        out_reset.setResetValue(in_reset.reset_value.math_ml)
+    if in_reset.test_value is not None:
+        out_reset.setTestValue(in_reset.test_value.math_ml)
+    return out_reset
+
+
+def convert_to_cellml_variable(in_variable):
+    out_variable = libcellml.Variable()
+
+    if in_variable is not None:
+        out_variable.setName(in_variable.name)
+        out_variable.setId(in_variable.cellml_id)
+
+        if in_variable.compoundunit is not None:
+            out_variable.setUnits(in_variable.compoundunit.name)
+
+    return out_variable
+
+
+def convert_to_cellml_compoundunit(in_compoundunit):
+    out_units = libcellml.Units()
+
+    if in_compoundunit is not None:
+        out_units.setName(in_compoundunit.name)
+        out_units.setId(in_compoundunit.cellml_id)
+
+        for u in in_compoundunit.product_of.all():
+            out_units.addUnit(u.child_cu.name, u.prefix.name, u.exponent, u.multiplier)
+
+    return out_units
+
+
 #
-#     if in_units.isBaseUnit():  # TODO check why libcellml has this as *base* unit not *standard* unit?
-#         # then don't need to add to the database, but do need to reference from model
-#         try:
-#             base_unit = CompoundUnit.objects.get(name=in_units.name(), is_standard=True)
-#         except CompoundUnit.DoesNotExist:
-#             # TODO must make sure that this is populated through initial data migration?
-#             return
+# def convert_to_cellml_model(in_model):
+#     """
+#     Function to create an instance of a CellML model which can then be printed
+#     :param model: CellModel instance
+#     :return: libcellml->Model instance
+#     """
 #
-#         model.units.add(base_unit)
+#     model = libcellml.Model()
+#     model.setId(in_model.cellml_id)
+#     model.setName(in_model.name)
 #
-#         return
+#     convert_components(in_model, model)
 #
-#     out_compound_units = CompoundUnit(
-#         name=in_units.name(),
-#         cellml_index=index,
-#         owner=owner,
-#     )
-#     out_compound_units.save()
-#     out_compound_units.models.add(model)
+#     convert_compoundunits(in_model, model)
 #
+#     return model
+#
+#
+# def convert_components(in_model, model):
+#     for c in in_model.components.all():
+#
+#         component = libcellml.Component()
+#         component.setName(c.name)
+#         if c.cellml_id is not None:
+#             component.setId(c.cellml_id)
+#
+#         for v in c.variables.all():
+#             variable = libcellml.Variable()
+#
+#             variable.setName(v.name)
+#             variable.setId(v.cellml_id)
+#             if v.compoundunit is not None:
+#                 variable.setUnits(v.compoundunit.name)
+#
+#             # TODO print equivalent variables
+#             # for e in v.equivalent_variables.all():
+#             #     variable.addEquivalence(e.name)
+#
+#             component.addVariable(variable)
+#
+#         # TODO add resets resets: need to wait for new format to be in libcellml
+#
+#         # TODO add maths
+#         if c.maths is not None:
+#             component.setMath("")
+#             for m_in in c.maths.all():
+#                 component.appendMath(m_in.math_ml)
+#
+#         model.addComponent(component)
+#     return
+#
+#
+# def convert_compoundunits(in_model, model):
+#     for cu in in_model.compoundunits.all():
+#         compoundunit = libcellml.Units()
+#         compoundunit.setName(cu.name)
+#         compoundunit.setId(cu.cellml_id)
+#
+#         for u in cu.product_of.all():
+#             compoundunit.addUnit(
+#                 u.name,
+#                 u.prefix.name,
+#                 u.exponent,
+#                 u.multiplier
+#             )
+#
+#         model.addUnits(compoundunit)
 #     return
 
 
 # ------------------------------------ EDIT FUNCTIONS ----------------------------------------
 
-def get_edit_locals_form(item_model):
-    edit_form = modelform_factory(item_model.model_class(), fields=get_local_fields(item_model))
+def get_edit_locals_form(item_model, excluding=[]):
+    edit_form = modelform_factory(item_model.model_class(), fields=get_local_fields(item_model, excluding))
     return edit_form
 
 
@@ -483,44 +589,25 @@ def get_edit_form(item_model, fields):
     return edit_form
 
 
-def get_local_fields(item_model):
-    local_fields = [x.name for x in item_model.model_class()._meta.fields if
-                    type(x) != ForeignKey and type(x) != ManyToManyField and type(x) != AutoField and
-                    type(x) != ManyToOneRel]
-
-    if 'tree' in local_fields:
-        local_fields.remove('tree')
-    if 'cellml_index' in local_fields:
-        local_fields.remove('cellml_index')
-    if 'ready' in local_fields:
-        local_fields.remove('ready')
-    if 'is_standard' in local_fields:
-        local_fields.remove('is_standard')
-    if 'privacy' in local_fields:
-        local_fields.remove('privacy')
+def get_local_fields(item_model, excluding=[]):
+    local_fields = [x.name for x in item_model.model_class()._meta.fields
+                    if type(x) != ForeignKey
+                    and type(x) != ManyToManyField
+                    and type(x) != AutoField
+                    and type(x) != ManyToOneRel
+                    and x.name not in excluding]
 
     return local_fields
 
 
 def get_upstream_connection_fields(item_model, excluding=[]):
-    m2m_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
-                  type(x) == ManyToManyField]
+    m2m_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False)
+                  if type(x) == ManyToManyField
+                  and x.name not in excluding]
 
-    fk_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
-                 type(x) == ForeignKey]
-
-    if 'owner' in fk_fields:
-        fk_fields.remove('owner')
-    if 'imported_from' in fk_fields:
-        fk_fields.remove('imported_from')
-    if 'annotations' in fk_fields:
-        fk_fields.remove('annotations')
-
-    for e in excluding:
-        if e in fk_fields:
-            fk_fields.remove(e)
-        if e in m2m_fields:
-            m2m_fields.remove(e)
+    fk_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False)
+                 if type(x) == ForeignKey
+                 and x.name not in excluding]
 
     return fk_fields, m2m_fields
 
@@ -538,7 +625,7 @@ def get_upstream_fields(item_model, excluding=[]):
 
 
 def get_item_upstream_attributes(item, excluding=[]):
-    fk_fields, m2m_fields = get_upstream_connection_fields(ContentType.objects.get_for_model(item), excluding=[])
+    fk_fields, m2m_fields = get_upstream_connection_fields(ContentType.objects.get_for_model(item), excluding)
 
     upstream = []
     for l in m2m_fields:
@@ -776,7 +863,6 @@ def copy_item(request, from_item, exclude=[], options=''):
 
 
 def detach_links(request, item, exclude=[]):
-
     m2o_fields = [x.name for x in item._meta.get_fields()
                   if type(x) == ManyToOneRel
                   and x.name not in exclude]
@@ -801,7 +887,6 @@ def detach_links(request, item, exclude=[]):
 
 
 def delete_item(request, item, exclude=[], options=''):
-
     if options == 'deep':
         m = delete_deep(request, item, exclude)
     else:
@@ -810,7 +895,6 @@ def delete_item(request, item, exclude=[], options=''):
 
 
 def delete_deep(request, item, exclude=[]):
-
     if item.owner != request.user.person:
         return "{} skipped - not yours to delete".format(item.name)  # not actually displayed anywhere ... ?
 

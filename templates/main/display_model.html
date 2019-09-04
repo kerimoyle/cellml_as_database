@@ -7,7 +7,7 @@
 {% block title %}Model <b>{{ item.name }}</b>{% endblock title %}
 {% block export %}
     <li>
-        <a onclick="LoadModalData('Export CellML','{% url 'main:export_model' item_id=item.id %}');"
+        <a onclick="LoadModalData('Export CellML','{% url 'main:convert_model' item_id=item.id %}');"
            data-toggle="modal"
            data-target="#formModal"
            style="text-decoration:none;">
@@ -29,15 +29,35 @@
                 </thead>
                 <tbody>
                 <tr>
+                    <td>Validity</td>
                     <td>
-                        Validity
-                    </td>
-                    <td>
-                        <p class="todo">This is where the status and date of validity checking for the model will go</p>
+                    {% if item.is_valid %}
+                        <div class="valid_item">
+                            Model is valid<br>
+                            Last checked: {{ last_checked }}
+                        </div>
+                    {% else %}
+                        <div class="invalid_item">
+                            Model is not valid yet<br>
+                            Last checked: {{ last_checked }}
+                        </div>
+                    {% endif %}
+
+                        <div class="button_bar">
+                            <button id="check_validity" class="btn btn-default">
+                                <i class="fa fa-refresh"></i> Check again
+                            </button>
+                            {% if not item.is_valid %}
+                                <a href="{% url 'main:show_errors' item_type=item_type item_id=item.id %}">
+                                    <button id="show_errors" class="btn btn-default">
+                                        <i class="fa fa-exclamation"></i> Show TODO list
+                                    </button>
+                                </a>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 <tr>
-
                     <td>CellML ID</td>
                     <td>
                         {% if item.cellml_id %}{{ item.cellml_id }}
@@ -56,7 +76,7 @@
                 <tr>
                     <td>Dependent on</td>
                     <td>
-                        {% if item.imported_from%}
+                        {% if item.imported_from %}
                             <a href="{% url 'main:display_model' item_id=item.imported_from.id %}">
                                 {{ item.imported_from.name }} ({{ item.imported_from.owner }})</a>
                         {% else %}<p class="empty">None</p>
@@ -236,6 +256,21 @@
         $(document).ready(function () {
             $('#table-info_filter').css('display', 'none');
             $('#table-info_paginate').css('display', 'none');
+
+            $("#check_validity").click(function (e) {
+                e.preventDefault();
+
+                // Preventing multiple lines of errors on repressing the button
+                $("div[id^=v_]").html("");
+
+                $.ajax({
+                    url: "/validate/{{ item_type }}/{{ item.id }}",
+                    success: function (data) {
+                        alert(data['status'])
+                    },
+                    error: alert("oopsie"),
+                });
+            });
         });
 
         function Unlink(related_name, related_id) {

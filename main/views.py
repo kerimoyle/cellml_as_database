@@ -1,3 +1,5 @@
+import datetime
+
 import libcellml
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
@@ -8,6 +10,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import ForeignKey, ManyToManyField, ManyToOneRel, ManyToManyRel, Q
 from django.forms import modelform_factory, CheckboxSelectMultiple, RadioSelect
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
@@ -15,8 +18,9 @@ from main.defines import MENU_OPTIONS
 from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
     get_upstream_fields, get_item_upstream_attributes, copy_item, \
-    delete_item, export_to_cellml_model, get_downstream_fields, get_item_downstream_attributes
-from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix
+    delete_item, convert_to_cellml_model, get_downstream_fields, get_item_downstream_attributes, add_children
+from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset
+from main.validate import VALIDATE_DICT
 
 
 def test(request):
@@ -162,6 +166,7 @@ def create(request, item_type, in_modal):
 
     exclude_fields = ()
     all_fields = [x.name for x in item_model.model_class()._meta.fields]
+
     if 'tree' in all_fields:
         exclude_fields += ('tree',)
     if 'cellml_index' in all_fields:
@@ -174,6 +179,9 @@ def create(request, item_type, in_modal):
         exclude_fields += ('is_standard',)
     if 'imported_from' in all_fields:
         exclude_fields += ('imported_From',)
+
+    exclude_fields = ['tree', 'cellml_index', 'owner', 'ready', 'is_standard', 'imported_from', 'depends_on',
+                      'is_valid', 'errors', 'last_checked']
 
     create_form = modelform_factory(item_model.model_class(), exclude=exclude_fields)
 
@@ -346,8 +354,8 @@ def edit_locals(request, item_type, item_id):
         return redirect('main:error')
 
     if check_ownership(request, item):
-
-        edit_form = get_edit_locals_form(item_model)
+        excluding = ['tree', 'cellml_index', 'ready', 'is_standard', 'privacy', 'is_valid', 'last_checked', 'errors']
+        edit_form = get_edit_locals_form(item_model, excluding)
 
         if request.POST:
             form = edit_form(request.POST, instance=item)
@@ -711,11 +719,12 @@ def display(request, item_type, item_id):
         return redirect('main:error')
 
     upstream_fields = get_upstream_fields(item_model)
-    local_attrs = get_item_local_attributes(item, ['notes', 'name'])
-    upstream = get_item_upstream_attributes(item)
+    upstream = get_item_upstream_attributes(item, ['errors', 'owner', 'imported_from', 'annotations'])
 
     downstream_fields = get_downstream_fields(item_model, ['used_by'])
     downstream = get_item_downstream_attributes(item, ['used_by'])
+
+    local_attrs = get_item_local_attributes(item, ['notes', 'name', 'is_valid', 'last_checked', 'privacy'])
 
     context = {
         'item': item,
@@ -799,6 +808,7 @@ def display_model(request, item_id):
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == model.owner,
         'can_change_privacy': True,
+        'last_checked': "{}".format(model.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
     }
     return render(request, 'main/display_model.html', context)
 
@@ -819,6 +829,26 @@ def display_math(request, item_id):
         'can_edit': request.user.person == math.owner
     }
     return render(request, 'main/display_math.html', context)
+
+
+@login_required
+def display_reset(request, item_id):
+    item = None
+    try:
+        item = Reset.objects.get(id=item_id)
+    except Exception as e:
+        messages.error(request, "Could not find Reset object with id of '{}'".format(item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    context = {
+        'item': item,
+        'item_type': "reset",
+        'menu': MENU_OPTIONS['display'],
+        'can_edit': request.user.person == item.owner,
+        'item_fields': ['variable', 'test_variable', 'reset_value', 'test_value', 'component', 'order']
+    }
+    return render(request, 'main/display_reset.html', context)
 
 
 @login_required
@@ -1041,7 +1071,7 @@ def error(request):
 
 # ------------------------- EXPORT VIEWS ----------------------------
 
-def export_model(request, item_id):
+def convert_model(request, item_id):
     # want to make sure that we can write valid cellml from a linked model
     model = None
 
@@ -1059,7 +1089,7 @@ def export_model(request, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
-    cellml_model = export_to_cellml_model(model)
+    cellml_model = convert_to_cellml_model(model)
     printer = libcellml.Printer()
     cellml_text = printer.printModel(cellml_model)
 
@@ -1125,7 +1155,7 @@ def set_privacy(request):
             messages.error(request, "{}: {}".format(type(e).__name__, e.args))
             return redirect('main:error')
 
-        # Check item for parents - if the item has upstream items then can't set its privacy indenependently
+        # Check item for parents - if the item has upstream items then can't set its privacy independently
 
         upstream = get_item_upstream_attributes(item)
         if len(upstream):
@@ -1148,3 +1178,90 @@ def set_privacy(request):
     else:
         messages.error("Did not get POST request")
         return redirect('main:error')
+
+
+# --------------------------------- ERROR VIEWS -----------------------
+
+def show_errors(request, item_type, item_id):
+    item = None
+
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Could not get object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    # TODO This is slow ...
+    tree = []
+    tree = add_children(item, tree)
+
+    context = {
+        'item': item,
+        'item_type': item_type,
+        'errors': item.errors.all(),
+        'tree': tree,
+        'last_checked': "{}".format(item.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
+        'can_edit': request.user.person == item.owner,
+    }
+
+    return render(request, 'main/show_errors.html', context)
+
+
+# ------------------------------- AJAX FUNCTIONS ----------------------------------------
+
+def validate(request, item_type, item_id):
+    """
+    :param request:
+    :param item_type: the name of the item type to be validated
+    :param item_id: the object id
+    :return:
+    """
+
+    item = None
+
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Could not get object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    # Select the function to call from the dictionary
+    is_valid = VALIDATE_DICT[item_type](item)
+    item.is_valid = is_valid
+    item.last_checked = datetime.datetime.now()
+    item.save()
+
+    errors = ""
+    for e in item.errors.all():
+        errors += "{}: {}<br>".format(e.spec, e.hints)
+
+    if item.is_valid:
+        style = "valid_item"
+    else:
+        style = "invalid_item"
+
+    data = {
+        'status': 200,
+        'style': style,
+        'last_checked': "{}".format(item.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
+        'errors': errors,
+        'fields': list(item.errors.all().values_list('fields', 'hints', 'spec'))
+    }
+
+    return JsonResponse(data)
