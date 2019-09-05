@@ -12,6 +12,25 @@ MODEL_NAME_DICT = {
     'variable': 'variable',
 }
 
+DISPLAY_DICT = {
+    'component': [
+        {'field': 'variables', 'obj_type': 'variable', 'title': 'Variables'},
+        {'field': 'maths', 'obj_type': 'maths', 'title': 'Maths'},
+        {'field': 'resets', 'obj_type': 'reset', 'title': 'Resets'}
+    ],
+    'variable': [
+        {'field': 'compoundunit', 'obj_type': 'compoundunit', 'title': 'Units'},
+        {'field': 'components', 'obj_type': 'component', 'title': 'Components'},
+    ],
+    'reset': [
+
+    ],
+    'compoundunit': [
+
+    ],
+
+}
+
 MODEL_CLASSES = {
     'cellmodel': 'model',
     # 'encapsulation': 'encapsulation',

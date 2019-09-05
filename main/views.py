@@ -14,12 +14,12 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
-from main.defines import MENU_OPTIONS
+from main.defines import MENU_OPTIONS, DISPLAY_DICT
 from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
     get_upstream_fields, get_item_upstream_attributes, copy_item, \
     delete_item, convert_to_cellml_model, get_downstream_fields, get_item_downstream_attributes, add_children
-from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset
+from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset, Component
 from main.validate import VALIDATE_DICT
 
 
@@ -715,30 +715,73 @@ def display(request, item_type, item_id):
             i=item_type,
             f=item.owner.first_name,
             l=item.owner.last_name))
-
         return redirect('main:error')
 
-    upstream_fields = get_upstream_fields(item_model)
-    upstream = get_item_upstream_attributes(item, ['errors', 'owner', 'imported_from', 'annotations'])
-
-    downstream_fields = get_downstream_fields(item_model, ['used_by'])
-    downstream = get_item_downstream_attributes(item, ['used_by'])
+    # upstream_fields = get_upstream_fields(item_model)
+    # upstream = get_item_upstream_attributes(item, ['errors', 'owner', 'imported_from', 'annotations'])
+    #
+    # downstream_fields = get_downstream_fields(item_model, ['used_by'])
+    # downstream = get_item_downstream_attributes(item, ['used_by'])
 
     local_attrs = get_item_local_attributes(item, ['notes', 'name', 'is_valid', 'last_checked', 'privacy'])
+
+    data = []
+    for tab in DISPLAY_DICT[item_type]:
+        field = tab['field']
+
+        data.append((
+            field,
+            tab['obj_type'],
+            getattr(item, field).all(),
+            tab['title']
+        ))
 
     context = {
         'item': item,
         'item_type': item_type,
-        'upstream_fields': upstream_fields,
+        'data': data,
+        # 'upstream_fields': upstream_fields,
         'locals': local_attrs,
-        'upstream': upstream,
-        'downstream_fields': downstream_fields,
-        'downstream': downstream,
+        # 'upstream': upstream,
+        # 'downstream_fields': downstream_fields,
+        # 'downstream': downstream,
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
-        'can_change_privacy': len(upstream) == 0,
+        # 'can_change_privacy': len(upstream) == 0,
     }
-    return render(request, 'main/display.html', context)
+    return render(request, 'main/display_component.html', context)
+
+
+@login_required
+def display2(request, item_type, item_id):
+    try:
+        person = request.user.person
+    except Exception as e:
+        messages.error(request, "Couldn't find a registered user.  Please login.")
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = Component.objects.prefetch_related('errors', 'variables', 'maths', 'resets').get(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find component with id of '{}'".format(item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    # Check visibility for user
+    if not (item.owner == person or item.privacy == 'public'):
+        messages.error(request, "Sorry, you do not have permission to view this {i}.  "
+                                "Please contact the owner ({f} {l})for access.".format(
+            i=item_type,
+            f=item.owner.first_name,
+            l=item.owner.last_name))
+        return redirect('main:error')
+
+    context = {
+        'item': item,
+        'item_type': 'component',
+    }
+    return render(request, 'main/display_component.html', context)
 
 
 @login_required

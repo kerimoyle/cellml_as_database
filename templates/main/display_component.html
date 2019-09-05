@@ -10,10 +10,11 @@
     {{ block.super }}
 
     <ul class="nav nav-tabs">
-        <li class="active"><a data-toggle="tab" href="#information">Summary and local attributes</a></li>
-        <li><a data-toggle="tab" href="#links">Variables</a></li>
-        <li><a data-toggle="tab" href="#validity">Validity and checking</a></li>
-        {#        <li><a data-toggle="tab" href="#tab4">Menu 3</a></li>#}
+        <li class="active"><a data-toggle="tab" href="#tab_information">Summary</a></li>
+        {% for field, obj_type, objs, title in data %}
+            <li><a data-toggle="tab" href="#tab_{{ field }}">{{ title }}</a></li>
+        {% endfor %}
+        <li><a data-toggle="tab" href="#tab_validity">Validity and checking</a></li>
     </ul>
 
 {% endblock tabs %}
@@ -22,7 +23,7 @@
 
     <div class="tab-content">
 
-        <div id="information" class="tab-pane fade in active">
+        <div id="tab_information" class="tab-pane fade in active">
             <br>
             {% if item.notes %}<p>{{ item.notes|linebreaks }}</p>
             {% else %}<p class="empty">No notes provided</p>{% endif %}
@@ -69,108 +70,58 @@
 
         </div>
 
-        <div id="links" class="tab-pane fade">
-            <br>
+        {% for field_name, obj_type, objs, title in data %}
 
-
-            {#            {% if can_edit %}#}
-            {#                <div class="col-sm-6 button_bar" style="padding-top:15px;">#}
-            {#                    <div class="dropdown">#}
-            {#                        <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">#}
-            {#                            <i class="fa fa-chain"></i> Add link to ...#}
-            {#                            <span class="caret"></span></button>#}
-            {#                        <ul class="dropdown-menu dropdown-menu-right">#}
-            {#                            {% for r in upstream_fields %}#}
-            {#                                <li>#}
-            {#                                    <a onclick="LoadModalData('Create link',#}
-            {#                                            '{% url 'main:link_upstream' item_type=item_type item_id=item.id related_name=r %}'#}
-            {#                                            );"#}
-            {#                                       data-toggle="modal"#}
-            {#                                       data-target="#formModal"#}
-            {#                                       style="text-decoration: none;">#}
-            {#                                        {{ r }}#}
-            {#                                    </a>#}
-            {#                                </li>#}
-            {#                            {% endfor %}#}
-            {#                        </ul>#}
-            {#                    </div>#}
-            {#                </div>#}
-            {#            {% endif %}#}
-
-            <table class="datatables display table table-hover" id="table-connections" width="100%">
-                <thead>
-                <tr>
-                    <th>Type</th>
-                    <th>Name</th>
-                    <th>Owner</th>
-                    {% if can_edit %}
-                        <th>Actions</th>
-                    {% endif %}
-                </tr>
-                </thead>
-                <tbody class="rowlink" data-link="row">
-                {% for field, type, obj in upstream %}
-                    {% if obj %}
+            <div id="tab_{{ field_name }}" class="tab-pane fade">
+                <br>
+                <div class="button_bar">
+                    <a onclick="LoadModalData('Include {{ field_name }}',
+                            '{% url 'main:link_downstream' item_type=item_type item_id=item.id related_name=field_name %}'
+                            );"
+                       data-toggle="modal"
+                       data-target="#formModal"
+                       style="text-decoration: none;">
+                        <button class="btn btn-default">
+                            <i class="fa fa-chain"></i> Include existing {{ obj_type }}
+                        </button>
+                    </a>
+                    <a href="{% url 'main:create' item_type=obj_type %}" target="_blank">
+                        <button id="add_new_{{ obj_type }}" class="btn btn-default">
+                            <i class="fa fa-plus"></i> Create a new {{ obj_type }}
+                        </button>
+                    </a>
+                </div>
+                <table class="datatables display table table-hover" id="table-{{ obj_type }}" width="100%">
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Owner</th>
+                        {% if can_edit %}
+                            <th>Actions</th>
+                        {% endif %}
+                    </tr>
+                    </thead>
+                    <tbody class="rowlink" data-link="row">
+                    {% for obj in objs %}
                         <tr>
                             <td>
-                                <a href="{% url 'main:display' item_type=type item_id=obj.id %}"></a>
-                                {{ field }}
+                                <a href="{% url 'main:display' item_type=field_name item_id=obj.id %}"></a>
+                                {{ obj.name }}
                             </td>
-                            <td>{{ obj }}</td>
                             <td>{{ obj.owner }}</td>
                             {% if can_edit %}
                                 <td class="rowlink-skip">
-                                    <a onclick="Unlink('{{ field }}','{{ obj.id }}');">Unlink</a>
+                                    <a onclick="Unlink('{{ field_name }}','{{ obj.id }}');">Unlink</a>
                                 </td>
                             {% endif %}
                         </tr>
-                    {% else %}
-                        <tr>
-                            <td>
-                                {{ field }}
-                            </td>
-                            <td class="empty">Not connected to any {{ field }} items</td>
-                            <td></td>
-                        </tr>
-                    {% endif %}
-                {% endfor %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endfor %}
 
-                {% for field, type, obj in downstream %}
-                    {% if obj %}
-                        <tr>
-                            <td>
-                                <a href="{% url 'main:display' item_type=type item_id=obj.id %}"></a>
-                                {{ field }}
-                            </td>
-                            <td>{{ obj }}</td>
-                            <td>{{ obj.owner }}</td>
-                            {% if can_edit %}
-                                <td class="rowlink-skip">
-                                    <a onclick="Unlink('{{ field }}','{{ obj.id }}');">Unlink</a>
-                                </td>
-                            {% endif %}
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td>
-                                {{ field }}
-                            </td>
-                            <td class="empty">Not connected to any {{ field }} items</td>
-                            <td></td>
-                        </tr>
-                    {% endif %}
-                {% endfor %}
-
-
-                </tbody>
-            </table>
-
-
-        </div>
-
-        <div id="validity" class="tab-pane fade">
-
-
+        <div id="tab_validity" class="tab-pane fade">
             <div class="button_bar">
                 <button id="check_validity" class="btn btn-default">
                     <i class="fa fa-refresh"></i> Check again
