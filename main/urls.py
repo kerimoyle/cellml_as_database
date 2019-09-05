@@ -16,7 +16,7 @@ urlpatterns = [
     path('create/<item_type>/', views.create, name='create', kwargs={'in_modal': False}),
 
     path('delete/<item_type>/<int:item_id>/', views.delete, name='delete'),
-    path('display/cellmodel/<int:item_id>/', views.display_model, name='display_model'),  # aliased ...
+   # path('display/cellmodel/<int:item_id>/', views.display_model, name='display_model'),  # aliased ...
     path('display/compoundunit/<int:item_id>/', views.display_compoundunit, name='display_compoundunit'),  # aliased ...
     path('display/math/<int:item_id>/', views.display_math, name='display_math'),
     path('display/model/<int:item_id>/', views.display_model, name='display_model'),
@@ -39,6 +39,7 @@ urlpatterns = [
     path('logout_view/', views.logout_view, name='logout_view'),
 
     path('register/', views.register, name='register'),
+    path('refresh_error_tree/<item_type>/<int:item_id>/', views.refresh_error_tree, name='refresh_error_tree'),
 
     path('set_privacy/', views.set_privacy, name='set_privacy'),
     path('show_errors/<item_type>/<int:item_id>/', views.show_errors, name='show_errors'),

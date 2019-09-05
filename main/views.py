@@ -723,12 +723,11 @@ def display(request, item_type, item_id):
     # downstream_fields = get_downstream_fields(item_model, ['used_by'])
     # downstream = get_item_downstream_attributes(item, ['used_by'])
 
-    local_attrs = get_item_local_attributes(item, ['notes', 'name', 'is_valid', 'last_checked', 'privacy'])
+    local_attrs = get_item_local_attributes(item, ['notes', 'name', 'is_valid', 'last_checked', 'privacy', 'error_tree'])
 
     data = []
-    for tab in DISPLAY_DICT[item_type]:
+    for tab in DISPLAY_DICT[item_type]['tabs']:
         field = tab['field']
-
         data.append((
             field,
             tab['obj_type'],
@@ -736,10 +735,22 @@ def display(request, item_type, item_id):
             tab['title']
         ))
 
+    present_in = []
+    for tab in DISPLAY_DICT[item_type]['present_in']:
+        field = tab['field']
+        present_in.append((
+            field,
+            tab['obj_type'],
+            getattr(item, field),
+            tab['title']
+        ))
+
     context = {
         'item': item,
         'item_type': item_type,
         'data': data,
+        'present_in': present_in,
+        'error_tree': None if item.error_tree is None else item.error_tree['tree_html'],
         # 'upstream_fields': upstream_fields,
         'locals': local_attrs,
         # 'upstream': upstream,
@@ -748,38 +759,6 @@ def display(request, item_type, item_id):
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
         # 'can_change_privacy': len(upstream) == 0,
-    }
-    return render(request, 'main/display_component.html', context)
-
-
-@login_required
-def display2(request, item_type, item_id):
-    try:
-        person = request.user.person
-    except Exception as e:
-        messages.error(request, "Couldn't find a registered user.  Please login.")
-        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
-        return redirect('main:error')
-
-    try:
-        item = Component.objects.prefetch_related('errors', 'variables', 'maths', 'resets').get(id=item_id)
-    except Exception as e:
-        messages.error(request, "Couldn't find component with id of '{}'".format(item_id))
-        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
-        return redirect('main:error')
-
-    # Check visibility for user
-    if not (item.owner == person or item.privacy == 'public'):
-        messages.error(request, "Sorry, you do not have permission to view this {i}.  "
-                                "Please contact the owner ({f} {l})for access.".format(
-            i=item_type,
-            f=item.owner.first_name,
-            l=item.owner.last_name))
-        return redirect('main:error')
-
-    context = {
-        'item': item,
-        'item_type': 'component',
     }
     return render(request, 'main/display_component.html', context)
 
@@ -1305,6 +1284,50 @@ def validate(request, item_type, item_id):
         'last_checked': "{}".format(item.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
         'errors': errors,
         'fields': list(item.errors.all().values_list('fields', 'hints', 'spec'))
+    }
+
+    return JsonResponse(data)
+
+
+def refresh_error_tree(request, item_type, item_id):
+    item = None
+
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Could not get object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    tree = []
+    tree = add_children(item, tree)
+
+    tree_html = '<table class ="display table" id="table-info" ><thead><tr><th>Specification reference</th>' \
+                '<th>Message</th><th>Go to item</th></tr></thead><tbody>'
+
+    for child_item, child_type, errors in tree:
+        for err in errors:
+            tree_html += "<tr>"
+            tree_html += "<td>" + err.spec + "</td>"
+            tree_html += "<td>" + err.hints + "</td>"
+            tree_html += "<td><a href = '/display/"+child_type+"/"+str(child_item.id)+"'>"
+            tree_html += "Open <i>" + child_item.name + "</i></a></td></tr>"
+
+    tree_html += '</tbody></table>'
+
+    item.error_tree = {'tree_html': tree_html}
+    item.save()
+
+    data = {
+        'status': 200,
+        'tree_html': tree_html
     }
 
     return JsonResponse(data)

@@ -21,6 +21,17 @@ def add_children(parent, tree):
     return tree
 
 
+# def build_error_tree(item):
+#     tree = []
+#     tree = add_children(item, tree)
+#     item.error_tree = tree
+#     item.save()
+
+
+
+
+
+
 # -------------------------------- PREVIEW FUNCTIONS FOR CELLML ITEMS ----------------------------
 
 

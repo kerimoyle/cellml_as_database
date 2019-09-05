@@ -13,21 +13,45 @@ MODEL_NAME_DICT = {
 }
 
 DISPLAY_DICT = {
-    'component': [
-        {'field': 'variables', 'obj_type': 'variable', 'title': 'Variables'},
-        {'field': 'maths', 'obj_type': 'maths', 'title': 'Maths'},
-        {'field': 'resets', 'obj_type': 'reset', 'title': 'Resets'}
-    ],
-    'variable': [
-        {'field': 'compoundunit', 'obj_type': 'compoundunit', 'title': 'Units'},
-        {'field': 'components', 'obj_type': 'component', 'title': 'Components'},
-    ],
+    'component':
+        {
+            'tabs': [
+                {'field': 'variables', 'obj_type': 'variable', 'title': 'Variables'},
+                {'field': 'maths', 'obj_type': 'maths', 'title': 'Maths'},
+                {'field': 'resets', 'obj_type': 'reset', 'title': 'Resets'}
+            ],
+            'present_in':
+                [
+                    {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Models'},
+                ]
+        },
+
+    'variable':
+        {
+            'tabs': [
+                {'field': 'equivalent_variables', 'obj_type': 'variable', 'title': 'Equivalent variables'},
+
+            ],
+            'present_in':
+                [
+                    {'field': 'component', 'obj_type': 'component', 'title': 'Component'},
+                    {'field': 'compoundunit', 'obj_type': 'compoundunit', 'title': 'Units'},
+
+                ],
+        },
     'reset': [
 
     ],
     'compoundunit': [
 
     ],
+    'cellmodel': {
+        'tabs': [
+            {'field': 'components', 'obj_type': 'component', 'title': 'Components'},
+            {'field': 'compoundunits', 'obj_type': 'compoundunit', 'title': 'Units'},
+        ],
+        'present_in':[]
+    }
 
 }
 

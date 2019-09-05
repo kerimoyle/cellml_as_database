@@ -8,7 +8,7 @@ import os
 
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.fields import ArrayField, JSONField
 from django.db.models import (IntegerField, ManyToManyField, CharField, TextField, ForeignKey,
                               NullBooleanField, URLField, FileField, CASCADE, OneToOneField, EmailField,
                               BooleanField, SET_NULL, ManyToOneRel, ManyToManyRel, DO_NOTHING, DateTimeField,
@@ -42,6 +42,8 @@ class NamedCellMLEntity(DjangoModel):
     is_valid = NullBooleanField()
     last_checked = DateTimeField(blank=True, null=True)
     errors = ManyToManyField('ItemError', blank=True, related_name="error_in_%(class)s_objects")
+    # This is the list of all downstream errors from this object, it's expensive to build so will update when asked
+    error_tree = JSONField(blank=True, null=True)
 
     class Meta:
         abstract = True
