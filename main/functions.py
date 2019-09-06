@@ -21,15 +21,22 @@ def add_children(parent, tree):
     return tree
 
 
-# def build_error_tree(item):
-#     tree = []
-#     tree = add_children(item, tree)
-#     item.error_tree = tree
-#     item.save()
+def draw_error_tree(item):
+    tree = []
+    tree = add_children(item, tree)
+    tree_html = '<table class ="display table" id="table-info" ><thead><tr><th>Specification reference</th>' \
+                '<th>Message</th><th>Go to item</th></tr></thead><tbody>'
 
+    for child_item, child_type, errors in tree:
+        for err in errors:
+            tree_html += "<tr>"
+            tree_html += "<td>" + err.spec + "</td>"
+            tree_html += "<td>" + err.hints + "</td>"
+            tree_html += "<td><a href = '/display/" + child_type + "/" + str(child_item.id) + "'>"
+            tree_html += "Open <i>" + child_item.name + "</i></a></td></tr>"
 
-
-
+    tree_html += '</tbody></table>'
+    return tree_html, len(tree)
 
 
 # -------------------------------- PREVIEW FUNCTIONS FOR CELLML ITEMS ----------------------------
@@ -253,15 +260,15 @@ def load_component(index, in_model, model, owner):
         math.components.add(out_component)
 
     # Load errors from this component
-    error_count = in_component.errorCount()
-    for i in range(0, error_count):
-        e = in_component.errors(i)
-        err = ItemError(
-            hints=e.description(),
-            spec=e.specificationHeading(),
-        )
-        err.save()
-        out_component.errors.add(err)
+    # error_count = in_component.errorCount()
+    # for i in range(0, error_count):
+    #     e = in_component.errors(i)
+    #     err = ItemError(
+    #         hints=e.description(),
+    #         spec=e.specificationHeading(),
+    #     )
+    #     err.save()
+    #     out_component.errors.add(err)
 
     return
 
@@ -289,15 +296,15 @@ def load_compound_units(index, in_model, model, owner):
     out_compound_units.save()
 
     # Load errors from this component
-    error_count = in_units.errorCount()
-    for i in range(0, error_count):
-        e = in_units.errors(i)
-        err = ItemError(
-            hints=e.description(),
-            spec=e.specificationHeading(),
-        )
-        err.save()
-        out_compound_units.errors.add(err)
+    # error_count = in_units.errorCount()
+    # for i in range(0, error_count):
+    #     e = in_units.errors(i)
+    #     err = ItemError(
+    #         hints=e.description(),
+    #         spec=e.specificationHeading(),
+    #     )
+    #     err.save()
+    #     out_compound_units.errors.add(err)
 
     out_compound_units.models.add(model)
 
@@ -386,15 +393,16 @@ def load_variable(index, in_component, out_component, owner):
     out_variable.save()
 
     # Load errors from this variable
-    error_count = in_variable.errorCount()
-    for i in range(0, error_count):
-        e = in_variable.errors(i)
-        err = ItemError(
-            hints=e.description(),
-            spec=e.specificationHeading(),
-        )
-        err.save()
-        out_variable.errors.add(err)
+    # TODO no idea why this isn't working anymore?
+    # error_count = in_variable.errorCount()
+    # for i in range(0, error_count):
+    #     e = in_variable.errors(i)
+    #     err = ItemError(
+    #         hints=e.description(),
+    #         spec=e.specificationHeading(),
+    #     )
+    #     err.save()
+    #     out_variable.errors.add(err)
     return
 
 
@@ -424,15 +432,15 @@ def load_reset(index, in_component, out_component, owner):
     out_reset.save()
 
     # Load errors from this reset
-    error_count = in_reset.errorCount()
-    for i in range(0, error_count):
-        e = in_reset.errors(i)
-        err = ItemError(
-            hints=e.description(),
-            spec=e.specificationHeading(),
-        )
-        err.save()
-        out_reset.errors.add(err)
+    # error_count = in_reset.errorCount()
+    # for i in range(0, error_count):
+    #     e = in_reset.errors(i)
+    #     err = ItemError(
+    #         hints=e.description(),
+    #         spec=e.specificationHeading(),
+    #     )
+    #     err.save()
+    #     out_reset.errors.add(err)
 
 
 # -------------------------------- CONVERSION FUNCTIONS ---------------------------------

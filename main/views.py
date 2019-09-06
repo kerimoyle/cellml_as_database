@@ -18,7 +18,8 @@ from main.defines import MENU_OPTIONS, DISPLAY_DICT
 from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
     get_upstream_fields, get_item_upstream_attributes, copy_item, \
-    delete_item, convert_to_cellml_model, get_downstream_fields, get_item_downstream_attributes, add_children
+    delete_item, convert_to_cellml_model, get_downstream_fields, get_item_downstream_attributes, add_children, \
+    draw_error_tree
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset, Component
 from main.validate import VALIDATE_DICT
 
@@ -723,7 +724,17 @@ def display(request, item_type, item_id):
     # downstream_fields = get_downstream_fields(item_model, ['used_by'])
     # downstream = get_item_downstream_attributes(item, ['used_by'])
 
-    local_attrs = get_item_local_attributes(item, ['notes', 'name', 'is_valid', 'last_checked', 'privacy', 'error_tree'])
+    local_attrs = get_item_local_attributes(item, ['notes',
+                                                   'name',
+                                                   'is_valid',
+                                                   'last_checked',
+                                                   'cellml_index',
+                                                   'privacy',
+                                                   'error_tree'])
+
+    can_change_privacy = len(
+        get_item_upstream_attributes(item, ['errors', 'owner', 'imported_from', 'annotations'])
+    ) == 0
 
     data = []
     for tab in DISPLAY_DICT[item_type]['tabs']:
@@ -751,16 +762,12 @@ def display(request, item_type, item_id):
         'data': data,
         'present_in': present_in,
         'error_tree': None if item.error_tree is None else item.error_tree['tree_html'],
-        # 'upstream_fields': upstream_fields,
         'locals': local_attrs,
-        # 'upstream': upstream,
-        # 'downstream_fields': downstream_fields,
-        # 'downstream': downstream,
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
-        # 'can_change_privacy': len(upstream) == 0,
+        'can_change_privacy': can_change_privacy,
     }
-    return render(request, 'main/display_component.html', context)
+    return render(request, 'main/display.html', context)
 
 
 @login_required
@@ -965,7 +972,7 @@ def upload(request):
             # Delete the TemporaryStorage object, also deletes the uploaded file TODO Check what is wanted here?
             storage.delete()
 
-            return redirect(reverse('main:display', kwargs={'item_type': 'model', 'item_id': model.id}))
+            return redirect(reverse('main:display', kwargs={'item_type': 'cellmodel', 'item_id': model.id}))
 
         return redirect(reverse('main:error', kwargs={'message': "Did not receive POST request"}))
 
@@ -1273,10 +1280,7 @@ def validate(request, item_type, item_id):
     for e in item.errors.all():
         errors += "{}: {}<br>".format(e.spec, e.hints)
 
-    if item.is_valid:
-        style = "valid_item"
-    else:
-        style = "invalid_item"
+    style = "btn btn-secondary validity_banner_{}".format(item.is_valid)
 
     data = {
         'status': 200,
@@ -1306,28 +1310,13 @@ def refresh_error_tree(request, item_type, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
-    tree = []
-    tree = add_children(item, tree)
-
-    tree_html = '<table class ="display table" id="table-info" ><thead><tr><th>Specification reference</th>' \
-                '<th>Message</th><th>Go to item</th></tr></thead><tbody>'
-
-    for child_item, child_type, errors in tree:
-        for err in errors:
-            tree_html += "<tr>"
-            tree_html += "<td>" + err.spec + "</td>"
-            tree_html += "<td>" + err.hints + "</td>"
-            tree_html += "<td><a href = '/display/"+child_type+"/"+str(child_item.id)+"'>"
-            tree_html += "Open <i>" + child_item.name + "</i></a></td></tr>"
-
-    tree_html += '</tbody></table>'
-
-    item.error_tree = {'tree_html': tree_html}
+    error_tree, error_count = draw_error_tree(item)
+    item.error_tree = {'tree_html': error_tree, 'error_count': error_count}
     item.save()
 
     data = {
         'status': 200,
-        'tree_html': tree_html
+        'tree_html': item.error_tree['tree_html'],
     }
 
     return JsonResponse(data)

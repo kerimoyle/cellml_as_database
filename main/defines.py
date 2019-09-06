@@ -39,18 +39,25 @@ DISPLAY_DICT = {
 
                 ],
         },
-    'reset': [
-
-    ],
-    'compoundunit': [
-
-    ],
+    'reset': {
+        'tabs': [],
+        'present_in': []
+    },
+    'compoundunit': {
+        'tabs': [
+            {'field': 'product_of', 'obj_type': 'compoundunit', 'title': 'Product of units'},
+            {'field': 'part_of', 'obj_type': 'compoundunit', 'title': 'Used in units'},
+            {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Used in models'},
+            {'field': 'variables', 'obj_type': 'variable', 'title': 'Used by variables'},
+        ],
+        'present_in': []
+    },
     'cellmodel': {
         'tabs': [
             {'field': 'components', 'obj_type': 'component', 'title': 'Components'},
             {'field': 'compoundunits', 'obj_type': 'compoundunit', 'title': 'Units'},
         ],
-        'present_in':[]
+        'present_in': []
     }
 
 }

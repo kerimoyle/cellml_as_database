@@ -4,6 +4,7 @@
 
 from django.db.models import Count
 
+from main.functions import draw_error_tree
 from main.models import ItemError, CompoundUnit
 
 
@@ -92,12 +93,20 @@ def validate_variable(variable):
         variable.errors.add(err)
         is_valid = False
 
+    error_tree, error_count = draw_error_tree(variable)
+    error_count += variable.errors.count()
+    variable.error_tree = {'tree_html': error_tree, 'error_count': error_count}
+    variable.is_valid = is_valid
+    variable.save()
+
     return is_valid
 
 
 def validate_compoundunit(cu):
     for e in cu.errors.all():
         e.delete()
+
+    cu.error_tree = None
 
     # Checking the name
     is_valid, hints = is_cellml_identifier(cu.name)
@@ -122,7 +131,13 @@ def validate_compoundunit(cu):
 
     # Also need to check the unit elements of this compound unit here as they can't be accessed individually
     for u in cu.product_of.all():
-        is_valid = is_valid and validate_unit(u)
+        is_valid = validate_unit(u) and is_valid
+
+    error_tree, error_count = draw_error_tree(cu)
+    error_count += cu.errors.count()
+    cu.error_tree = {'tree_html': error_tree, 'error_count': error_count}
+    cu.is_valid = is_valid
+    cu.save()
 
     return is_valid
 
@@ -131,9 +146,11 @@ def validate_unit(unit):
     is_valid = True
     for e in unit.errors.all():
         e.delete()
+    unit.error_tree = None
 
     # 9.1.1 Check that the pointers are valid
     if not unit.child_cu:
+        is_valid = False
         err = ItemError(
             hints="Unit in units <i>{p}</i> points to a blank unit".format(
                 p=unit.parent_cu.name),
@@ -141,6 +158,12 @@ def validate_unit(unit):
         )
         err.save()
         unit.parent_cu.errors.add(err)
+
+    error_tree, error_count = draw_error_tree(unit)
+    error_count += unit.errors.count()
+    unit.error_tree = {'tree_html': error_tree, 'error_count': error_count}
+    unit.is_valid = is_valid
+    unit.save()
 
     return is_valid
 
@@ -245,6 +268,12 @@ def validate_reset(reset):
             reset.errors.add(err)
             is_valid = False
 
+    error_tree, error_count = draw_error_tree(reset)
+    error_count += reset.errors.count()
+    reset.error_tree = {'tree_html': error_tree, 'error_count': error_count}
+    reset.is_valid = is_valid
+    reset.save()
+
     return is_valid
 
 
@@ -278,13 +307,19 @@ def validate_component(component):
         component.errors.add(err)  # It's an error of the *component* not of the variable itself ...
 
     for variable in component.variables.all():
-        is_valid = is_valid and validate_variable(variable)
+        is_valid = validate_variable(variable) and is_valid
 
     for reset in component.resets.all():
-        is_valid = is_valid and validate_reset(reset)
+        is_valid = validate_reset(reset) and is_valid
 
     for math in component.maths.all():
-        is_valid = is_valid and validate_math(math)
+        is_valid = validate_math(math) and is_valid
+
+    error_tree, error_count = draw_error_tree(component)
+    error_count += component.errors.count()
+    component.error_tree = {'tree_html': error_tree, 'error_count': error_count}
+    component.is_valid = is_valid
+    component.save()
 
     return is_valid
 
@@ -294,6 +329,7 @@ def validate_cellmodel(model):
     is_valid = True
     for e in model.errors.all():
         e.delete()
+    model.error_tree = None
 
     # Check model name
     is_valid, hints = is_cellml_identifier(model.name)
@@ -321,7 +357,7 @@ def validate_cellmodel(model):
         model.errors.add(err)  # It's an error of the *model* not of the component itself ...
 
     for component in model.components.all():
-        is_valid = is_valid and validate_component(component)
+        is_valid = validate_component(component) and is_valid
 
     # Check model units
     duplicates = model.compoundunits.values('name').annotate(name_count=Count('name')).filter(name_count__gt=1)
@@ -337,7 +373,7 @@ def validate_cellmodel(model):
         model.errors.add(err)  # It's an error of the *model* not of the compoundunit itself ...
 
     for compoundunit in model.compoundunits.all():
-        is_valid = is_valid and validate_compoundunit(compoundunit)
+        is_valid = validate_compoundunit(compoundunit) and is_valid
 
     # Check that the set of compound units used by the variables exists in the model
     required = model.components.values_list('name', 'variables__name', 'variables__compoundunit__name')
@@ -354,7 +390,13 @@ def validate_cellmodel(model):
         model.errors.add(err)
 
     # Validate connections and equivalent variable networks in the model
-    is_valid = is_valid and validate_connections(model)
+    is_valid = validate_connections(model) and is_valid
+
+    error_tree, error_count = draw_error_tree(model)
+    error_count += model.errors.count()
+    model.error_tree = {'tree_html': error_tree, 'error_count': error_count}
+    model.is_valid = is_valid
+    model.save()
 
     return is_valid
 
@@ -410,7 +452,7 @@ def validate_connections(model):
         # Check order uniqueness in resets
         total_done_list = []
         for component in model.components.all():
-            for variable in component.variables.filter(equivalent_variable__isnull=False).exclude(
+            for variable in component.variables.filter(equivalent_variables__isnull=False).exclude(
                     id__in=total_done_list):
                 local_done_list = []
                 reset_map = {}
