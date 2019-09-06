@@ -179,7 +179,6 @@ iframe {
     padding: 5px;
 }
 
-
 .validity_banner_True {
     background-color: #dbf0cb;
     color: #12490f;
@@ -203,6 +202,30 @@ iframe {
     /*font-size: large;*/
 }
 .validity_banner_False:hover{}
+
+.validity_list_True {
+    color: #12490f;
+}
+
+.validity_list_False {
+    color: darkred;
+}
+
+.validity_list_waiting {
+    color: #999999;
+}
+
+.validity_list_processing {
+    color: white;
+    background-color: -moz-mac-accentdarkshadow;
+    padding:3px;
+}
+
+.validity_list_processing:before {
+    content: "->"
+}
+
+
 
 
 /* ----------------- NAVIGATION BAR STUFF -------------------- */

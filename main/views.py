@@ -17,10 +17,10 @@ from django.urls import reverse
 from main.defines import MENU_OPTIONS, DISPLAY_DICT
 from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
-    get_upstream_fields, get_item_upstream_attributes, copy_item, \
-    delete_item, convert_to_cellml_model, get_downstream_fields, get_item_downstream_attributes, add_children, \
-    draw_error_tree
-from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset, Component
+    get_item_upstream_attributes, copy_item, \
+    delete_item, convert_to_cellml_model, get_item_downstream_attributes, draw_error_tree, draw_object_tree, \
+    add_child_errors
+from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset
 from main.validate import VALIDATE_DICT
 
 
@@ -743,7 +743,8 @@ def display(request, item_type, item_id):
             field,
             tab['obj_type'],
             getattr(item, field).all(),
-            tab['title']
+            tab['title'],
+            tab['template']
         ))
 
     present_in = []
@@ -1230,7 +1231,7 @@ def show_errors(request, item_type, item_id):
 
     # TODO This is slow ...
     tree = []
-    tree = add_children(item, tree)
+    tree = add_child_errors(item, tree)
 
     context = {
         'item': item,
@@ -1290,6 +1291,81 @@ def validate(request, item_type, item_id):
         'fields': list(item.errors.all().values_list('fields', 'hints', 'spec'))
     }
 
+    return JsonResponse(data)
+
+
+def ajax_validate(request):
+    """
+    :param request:
+    :param item_type: the name of the item type to be validated
+    :param item_id: the object id
+    :return:
+    """
+
+    item = None
+    item_type = request.GET.get('item_type')
+    item_id = request.GET.get('item_id')
+
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Could not get object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    # Select the function to call from the dictionary
+    is_valid = VALIDATE_DICT[item_type](item)
+    item.is_valid = is_valid
+    item.last_checked = datetime.datetime.now()
+    item.save()
+
+    errors = ""
+    for e in item.errors.all():
+        errors += "{}: {}<br>".format(e.spec, e.hints)
+
+    style = "validity_list_{}".format(item.is_valid)
+
+    data = {
+        'status': 200,
+        'style': style,
+        'last_checked': "{}".format(item.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
+        'errors': errors,
+        'fields': list(item.errors.all().values_list('fields', 'hints', 'spec'))
+    }
+
+    return JsonResponse(data)
+
+
+def ajax_get_validation_list(request, item_type, item_id):
+    item = None
+
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Could not get object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    tree = draw_object_tree(item)
+
+    data = {
+        'status': 200,
+        'tree': tree
+    }
     return JsonResponse(data)
 
 

@@ -6,24 +6,24 @@ from django.forms import modelform_factory
 from django.shortcuts import redirect
 
 from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Unit, \
-    Math, Prefix, Person, ItemError
+    Math, Prefix, Person
 
 
 # --------------------- PREVIEW FUNCTIONS -------------------------------------
 
-def add_children(parent, tree):
+def add_child_errors(parent, tree):
     children = get_item_downstream_attributes(parent)
     for child in children:
         tree.append((child[2],
                      type(child[2]).__name__.lower(),
                      child[2].errors.all()))
-        tree = add_children(child[2], tree)
+        tree = add_child_errors(child[2], tree)
     return tree
 
 
 def draw_error_tree(item):
     tree = []
-    tree = add_children(item, tree)
+    tree = add_child_errors(item, tree)
     tree_html = '<table class ="display table" id="table-info" ><thead><tr><th>Specification reference</th>' \
                 '<th>Message</th><th>Go to item</th></tr></thead><tbody>'
 
@@ -37,6 +37,27 @@ def draw_error_tree(item):
 
     tree_html += '</tbody></table>'
     return tree_html, len(tree)
+
+
+def draw_object_tree(item):
+    tree = []
+    tree = add_item_branches(item, tree)
+    tree_html = '<ul id="ajax_todo_list" style="list-style-type: none;">'
+
+    for tree_item, item_type in tree:
+        tree_html += "<li class='validity_list_waiting' id='" + item_type + "__" + str(tree_item.id) + "__v'>" \
+                     + item_type + ": " + tree_item.name + "</li>"
+    tree_html += '</ul>'
+    return tree_html
+
+
+def add_item_branches(item, tree):
+    children = get_item_downstream_attributes(item)
+    for child in children:
+        tree.append((child[2],
+                     type(child[2]).__name__.lower()))
+        tree = add_item_branches(child[2], tree)
+    return tree
 
 
 # -------------------------------- PREVIEW FUNCTIONS FOR CELLML ITEMS ----------------------------

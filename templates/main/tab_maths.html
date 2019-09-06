@@ -1,0 +1,62 @@
+<div id="tab_{{ field_name }}" class="tab-pane fade">
+    <div class="col-md-12">
+        <div class="button_bar">
+            <a onclick="LoadModalData('Include {{ field_name }}',
+                    '{% url 'main:link_downstream' item_type=item_type item_id=item.id related_name=field_name %}'
+                    );"
+               data-toggle="modal"
+               data-target="#formModal"
+               style="text-decoration: none;">
+                <button class="btn btn-default">
+                    <i class="fa fa-chain"></i> Include existing {{ obj_type }}
+                </button>
+            </a>
+            <a href="{% url 'main:create' item_type=obj_type %}" target="_blank">
+                <button id="add_new_{{ obj_type }}" class="btn btn-default">
+                    <i class="fa fa-plus"></i> Create a new {{ obj_type }}
+                </button>
+            </a>
+        </div>
+
+        {% if objs.all %}
+            <table class="datatables display table table-hover" id="table-{{ obj_type }}{{ field_name }}"
+                   style="width:100%;">
+                <thead>
+
+                <th>Name</th>
+                <th>Owner</th>
+                {% if can_edit %}
+                    <th>Actions</th>
+                {% endif %}
+                <td></td>
+
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for obj in objs %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'main:display' item_type=obj_type item_id=obj.id %}"></a>
+                            {{ obj.name }}
+                        </td>
+                        <td>{{ obj.owner }}</td>
+                        {% if can_edit %}
+                            <td class="rowlink-skip">
+                                <a onclick="Unlink('{{ field_name }}','{{ obj.id }}');">Unlink</a>
+                            </td>
+                        {% endif %}
+                        <td>
+                            <div id="{{ obj_type }}__{{ obj.id }}__detail">
+                                {{ obj.error_tree.error_count }}
+                                issue{{ obj.error_tree.error_count|pluralize }}
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty">No {{ title }} items provided yet. Use the links above to create or add
+                some.</p>
+        {% endif %}
+    </div>
+</div>

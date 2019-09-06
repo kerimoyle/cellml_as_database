@@ -6,23 +6,21 @@
 
 {% block todo %}{% endblock todo %}
 
+
 {% block tabs %}
     {{ block.super }}
-
     <ul class="nav nav-tabs">
         <li class="active"><a data-toggle="tab" href="#tab_information">Summary</a></li>
-        {% for field, obj_type, objs, title in data %}
+        <li><a data-toggle="tab" href="#tab_validity">Validity and checking</a></li>
+        {% for field, obj_type, objs, title, template in data %}
             <li><a data-toggle="tab" href="#tab_{{ field }}">{{ title }}</a></li>
         {% endfor %}
-        <li><a data-toggle="tab" href="#tab_validity">Validity and checking</a></li>
     </ul>
-
 {% endblock tabs %}
 
+
 {% block content %}
-
     <div class="tab-content">
-
         <div id="tab_information" class="tab-pane fade in active">
 
             <br>
@@ -107,71 +105,6 @@
                 </table>
             </div>
         </div>
-
-
-        {% for field_name, obj_type, objs, title in data %}
-            <div id="tab_{{ field_name }}" class="tab-pane fade">
-                <div class="col-md-12">
-                    <div class="button_bar">
-                        <a onclick="LoadModalData('Include {{ field_name }}',
-                                '{% url 'main:link_downstream' item_type=item_type item_id=item.id related_name=field_name %}'
-                                );"
-                           data-toggle="modal"
-                           data-target="#formModal"
-                           style="text-decoration: none;">
-                            <button class="btn btn-default">
-                                <i class="fa fa-chain"></i> Include existing {{ obj_type }}
-                            </button>
-                        </a>
-                        <a href="{% url 'main:create' item_type=obj_type %}" target="_blank">
-                            <button id="add_new_{{ obj_type }}" class="btn btn-default">
-                                <i class="fa fa-plus"></i> Create a new {{ obj_type }}
-                            </button>
-                        </a>
-                    </div>
-
-                    {% if objs.all %}
-                        <table class="datatables display table table-hover" id="table-{{ obj_type }}{{ field_name }}"
-                               style="width:100%;">
-                            <thead>
-
-                                <th>Name</th>
-                                <th>Owner</th>
-                                {% if can_edit %}
-                                    <th>Actions</th>
-                                {% endif %}
-                                <td></td>
-
-                            </thead>
-                            <tbody class="rowlink" data-link="row">
-                            {% for obj in objs %}
-                                {#                            <tr class="validity_{{ obj.is_valid }}">#}
-                                <tr>
-                                    <td>
-                                        <a href="{% url 'main:display' item_type=obj_type item_id=obj.id %}"></a>
-                                        {{ obj.name }}
-                                    </td>
-                                    <td>{{ obj.owner }}</td>
-                                    {% if can_edit %}
-                                        <td class="rowlink-skip">
-                                            <a onclick="Unlink('{{ field_name }}','{{ obj.id }}');">Unlink</a>
-                                        </td>
-                                    {% endif %}
-                                    <td class="validity_{{ obj.is_valid }}">
-                                        {{ obj.error_tree.error_count }} issue{{ obj.error_tree.error_count|pluralize }}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    {% else %}
-                        <p class="empty">No {{ title }} items provided yet. Use the links above to create or add some.</p>
-                    {% endif %}
-                </div>
-            </div>
-        {% endfor %}
-
-
         <div id="tab_validity" class="tab-pane fade">
             <div class="button_bar">
                 <button id="validity_div" class="btn btn-secondary validity_banner_{{ item.is_valid }}">
@@ -187,13 +120,12 @@
                 </button>
             </div>
 
-
-            <div class="col-sm-12">
+            <div class="col-sm-6">
                 {% if item.errors.all %}
                     <table class="display table" id="table-local-errors">
                         <thead>
                         <tr>
-                            <th>Specification reference</th>
+                            <th>Specification</th>
                             <th>Message</th>
                         </tr>
                         </thead>
@@ -216,7 +148,19 @@
                     {% endif %}
                 </div>
             </div>
+
+            <div class="col-sm-6">
+                <br>
+                <div id="ajax_todo_div">
+                </div>
+            </div>
+
         </div>
+
+        {% for field_name, obj_type, objs, title, template in data %}
+{#            {% include 'main/tab_units.html' %}#}
+            {% include template with field_name=field_name obj_type=obj_type objs=objs title=title %}
+        {% endfor %}
     </div>
 
     <form id="unlink_form" action="{% url 'main:link_remove' %}" method="POST" hidden>
@@ -226,33 +170,33 @@
         <input type="text" name="unlink_related_name" id="unlink_related_name" value="">
         <input type="text" name="unlink_related_id" id="unlink_related_id" value="">
     </form>
-
     <form id="privacy_form" action="{% url 'main:set_privacy' %}" method='POST' hidden>
         {% csrf_token %}
         <input type="text" name="item_type" id="item_type" value="">
         <input type="text" name="item_id" id="item_id" value="">
         <input type="text" name="privacy_level" id="privacy_level" value="">
     </form>
-
-
 {% endblock content %}
+
 
 {% block end_scripts %}
     {{ block.super }}
     {% block datatables %}{% endblock datatables %}
     <script>
         $(document).ready(function () {
+
             $("#check_validity").click(function (e) {
                 e.preventDefault();
+
                 $('#last_checked').text("Checking now ... please wait ...");
+                $('#ajax_todo_div').html("Building check list ... please wait ...");
+
                 $.ajax({
-                    url: "/validate/{{ item_type }}/{{ item.id }}",
+                    url: "/ajax_get_validation_list/{{ item_type }}/{{ item.id }}",
                     success: function (data) {
-                        $('#validity_div').removeClass().addClass(data['style']);
-                        $('#last_checked').text(data['last_checked']);
-                        $('#errors').html(data['errors']);
-                        $('#checking').html("");
-                        alert("done!");
+                        $('#ajax_todo_div').html(data.tree);
+                        $('#last_checked').text("");
+                        ProcessList();
                     }
                 });
             });
@@ -267,6 +211,56 @@
                 });
             });
         });
+
+        function ProcessList() {
+            // jQuery on an empty object, we are going to use this as our Queue
+            let ajaxQueue = $({});
+            $.ajaxQueue = function (ajaxOpts) {
+                let jqXHR,
+                    dfd = $.Deferred(),
+                    promise = dfd.promise();
+                ajaxQueue.queue(doRequest);
+                promise.abort = function (statusText) {
+                    if (jqXHR) {
+                        return jqXHR.abort(statusText);
+                    }
+                    let queue = ajaxQueue.queue(),
+                        index = $.inArray(doRequest, queue);
+                    if (index > -1) {
+                        queue.splice(index, 1);
+                    }
+                    dfd.rejectWith(ajaxOpts.context || ajaxOpts,
+                        [promise, statusText, ""]);
+                    return promise;
+                };
+
+                function doRequest(next) {
+                    jqXHR = $.ajax(ajaxOpts)
+                        .then(next, next)
+                        .done(dfd.resolve)
+                        .fail(dfd.reject);
+                }
+
+                return promise;
+            };
+
+            $("#ajax_todo_list li").each(function (e) {
+                let my_split = $(this).attr('id').split('__');
+                $.ajaxQueue({
+                    url: '/ajax_validate/',
+                    data: {
+                        item_type: my_split[0],
+                        item_id: my_split[1],
+                    },
+                    type: 'GET',
+                    context: this,
+                    success: function (data) {
+                        $(this).removeClass().addClass(data.style).fadeOut();
+                        {#$(this).html(data.messages);#}
+                    }
+                });
+            });
+        }
 
         function Unlink(related_name, related_id) {
             $('input[name="unlink_item_type"]').val("{{ item_type }}");
@@ -289,7 +283,57 @@
             $('input[name="privacy_level"]').val("public");
             $("form#privacy_form ").submit();
         }
+
+        {#(function ($) {#}
+        {#    // jQuery on an empty object, we are going to use this as our Queue#}
+        {#    let ajaxQueue = $({});#}
+        {#    $.ajaxQueue = function (ajaxOpts) {#}
+        {#        let jqXHR,#}
+        {#            dfd = $.Deferred(),#}
+        {#            promise = dfd.promise();#}
+        {#        ajaxQueue.queue(doRequest);#}
+        {#        promise.abort = function (statusText) {#}
+        {#            if (jqXHR) {#}
+        {#                return jqXHR.abort(statusText);#}
+        {#            }#}
+        {#            let queue = ajaxQueue.queue(),#}
+        {#                index = $.inArray(doRequest, queue);#}
+        {#            if (index > -1) {#}
+        {#                queue.splice(index, 1);#}
+        {#            }#}
+        {#            dfd.rejectWith(ajaxOpts.context || ajaxOpts,#}
+        {#                [promise, statusText, ""]);#}
+        {#            return promise;#}
+        {#        };#}
+        {#        function doRequest(next) {#}
+        {#            jqXHR = $.ajax(ajaxOpts)#}
+        {#                .then(next, next)#}
+        {#                .done(dfd.resolve)#}
+        {#                .fail(dfd.reject);#}
+        {#        }#}
+        {#        return promise;#}
+        {#    };#}
+        {# })(jQuery);#}
+
+        // get each item we want to copy
+        {#$("#ajax_todo_list li").each(function (e) {#}
+        {#    alert('hi');#}
+        {#    let my_split = $(this).attr('id').split('__');#}
+        {#    alert(my_split[0]);#}
+        {#    alert(my_split[1]);#}
+        {#    $.ajaxQueue({#}
+        {#        url: '/main/ajax_validate/',#}
+        {#        data: {#}
+        {#            item_type: my_split[0],#}
+        {#            item_id: my_split[1],#}
+        {#        },#}
+        {#        type: 'GET',#}
+        {#        context: this,#}
+        {#        success: function (data) {#}
+        {#            $(this).addClass(data.style);#}
+        {#$(this).html(data.messages);#}
+        {#        }#}
+        {#    });#}
+        {# });#}
     </script>
-
-
 {% endblock end_scripts %}

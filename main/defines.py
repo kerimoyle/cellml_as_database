@@ -16,9 +16,10 @@ DISPLAY_DICT = {
     'component':
         {
             'tabs': [
-                {'field': 'variables', 'obj_type': 'variable', 'title': 'Variables'},
-                {'field': 'maths', 'obj_type': 'maths', 'title': 'Maths'},
-                {'field': 'resets', 'obj_type': 'reset', 'title': 'Resets'}
+                {'field': 'variables', 'obj_type': 'variable', 'title': 'Variables',
+                 'template': 'main/tab_default.html'},
+                {'field': 'maths', 'obj_type': 'maths', 'title': 'Maths', 'template': 'tab_maths.html'},
+                {'field': 'resets', 'obj_type': 'reset', 'title': 'Resets', 'template': 'main/tab_default.html'},
             ],
             'present_in':
                 [
@@ -29,7 +30,8 @@ DISPLAY_DICT = {
     'variable':
         {
             'tabs': [
-                {'field': 'equivalent_variables', 'obj_type': 'variable', 'title': 'Equivalent variables'},
+                {'field': 'equivalent_variables', 'obj_type': 'variable', 'title': 'Equivalent variables',
+                 'template': 'main/tab_default.html'},
 
             ],
             'present_in':
@@ -45,17 +47,22 @@ DISPLAY_DICT = {
     },
     'compoundunit': {
         'tabs': [
-            {'field': 'product_of', 'obj_type': 'compoundunit', 'title': 'Product of units'},
-            {'field': 'part_of', 'obj_type': 'compoundunit', 'title': 'Used in units'},
-            {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Used in models'},
-            {'field': 'variables', 'obj_type': 'variable', 'title': 'Used by variables'},
+            {'field': 'product_of', 'obj_type': 'compoundunit', 'title': 'Product of',
+             'template': 'main/tab_units.html'},
+            {'field': 'part_of', 'obj_type': 'compoundunit', 'title': 'Used in units',
+             'template': 'main/tab_default.html'},
+            {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Used in models',
+             'template': 'main/tab_default.html'},
+            {'field': 'variables', 'obj_type': 'variable', 'title': 'Used by variables',
+             'template': 'main/tab_default.html'},
         ],
         'present_in': []
     },
     'cellmodel': {
         'tabs': [
-            {'field': 'components', 'obj_type': 'component', 'title': 'Components'},
-            {'field': 'compoundunits', 'obj_type': 'compoundunit', 'title': 'Units'},
+            {'field': 'components', 'obj_type': 'component', 'title': 'Components',
+             'template': 'main/tab_default.html'},
+            {'field': 'compoundunits', 'obj_type': 'compoundunit', 'title': 'Units', 'template': 'main/tab_units.html'},
         ],
         'present_in': []
     }
