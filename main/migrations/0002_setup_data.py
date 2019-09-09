@@ -2,14 +2,23 @@
 from django.db import migrations
 
 standard_unit_list = [
-    ["ampere", "A", [["ampere", 1.0]]],
-    ["candela", "cd", [["candela", 1.0]]],
-    ["dimensionless", "", [["dimensionless", 1.0]]],
-    ["kelvin", "K", [["kelvin", 1.0]]],
-    ["kilogram", "kg", [["kilogram", 1.0]]],
-    ["metre", "m", [["metre", 1.0]]],
-    ["mole", "mol", [["mole", 1.0]]],
-    ["second", "s", [["second", 1.0]]],
+    # ["ampere", "A", [["ampere", 1.0]]],
+    # ["candela", "cd", [["candela", 1.0]]],
+    # ["dimensionless", "", [["dimensionless", 1.0]]],
+    # ["kelvin", "K", [["kelvin", 1.0]]],
+    # ["kilogram", "kg", [["kilogram", 1.0]]],
+    # ["metre", "m", [["metre", 1.0]]],
+    # ["mole", "mol", [["mole", 1.0]]],
+    # ["second", "s", [["second", 1.0]]],
+
+    ["ampere", "A", []],
+    ["candela", "cd", []],
+    ["dimensionless", "", []],
+    ["kelvin", "K", []],
+    ["kilogram", "kg", []],
+    ["metre", "m", []],
+    ["mole", "mol", []],
+    ["second", "s", []],
 
     ["becquerel", "Bq", [["second", -1.0]]],
     ["coulomb", "C", [["ampere", -1.0], ["second", 1.0]]],

@@ -1,98 +1,67 @@
 <div id="tab_{{ field_name }}" class="tab-pane fade">
-    <div class="col-md-6">
-    <br><br>
-        <div class="is_standard_{{ item.is_standard }}"></div>
-        {% if formula.count %}
-            <div class="numerator"
-                 style="font-family: 'Times New Roman'; font-size: x-large; font-style: italic; text-align: center;">
-                {% if multiplier != 1 %}{{ multiplier }}{% endif %}
-                {% for f in formula %}
-                    {{ f|safe }}
-                {% endfor %}
-                <br>
-            </div>
-        {% else %}
-            <div class="numerator"
-                 style="font-family: 'Times New Roman'; font-size: x-large; font-style: italic; text-align: center;">
-                {% if multiplier != 1 %}{{ multiplier }}{% endif %}
-                {{ item.symbol|safe }}
-                <br>
-            </div>
-        {% endif %}
-        <p>{{ item.notes|linebreaksbr }}</p>
-    </div>
-
-    <div class="col-md-6 button_bar">
-        <a onclick="LoadModalData('Include {{ field_name }}',
-                '{% url 'main:link_downstream' item_type=item_type item_id=item.id related_name=field_name %}'
-                );"
-           data-toggle="modal"
-           data-target="#formModal"
-           style="text-decoration: none;">
-            <button class="btn btn-default">
-                <i class="fa fa-chain"></i> Include existing {{ obj_type }}
-            </button>
-        </a>
-        <a href="{% url 'main:create' item_type=obj_type %}" target="_blank">
-            <button id="add_new_{{ obj_type }}" class="btn btn-default">
-                <i class="fa fa-plus"></i> Create a new {{ obj_type }}
-            </button>
-        </a>
-    </div>
-
-    {% if item.product_of.count %}
-        <table class="datatables display table table-hover" id="table-productof">
-            <thead>
-            <tr>
-                <th></th>
-                <th>Prefix</th>
-                <th>Multiplier</th>
-                <th>Base</th>
-                <th>Exponent</th>
-                {% if can_edit %}
-                    <th></th>
-                {% endif %}
-            </tr>
-            </thead>
-            <tbody class="rowlink" data-link="row">
-            {% for u in item.product_of.all %}
-                <tr>
-                    <td>
-                        <a href="{% url 'main:display' item_type='compoundunit' item_id=u.child_cu.id %}"></a>
-                        <span style="font-family: 'Times New Roman'; font-size: large; font-style: italic; text-align: center;">
-                                    {% if u.multiplier != 1 %}{{ u.multiplier }}{% endif %}
-                                    {% if u.prefix %}{{ u.prefix.symbol|safe }}{% endif %}
-                                    {% if u.child_cu %}{% if u.child_cu.symbol %}{{ u.child_cu.symbol|safe }}
-                                    {% endif %}{% endif %}
-                            {% if u.exponent != 1 %}<sup> {{ u.exponent }}</sup>{% endif %}
-                                </span>
-                    </td>
-                    <td>{{ u.prefix }}</td>
-                    <td>{{ u.multiplier }}</td>
-                    <td>{{ u.child_cu.name }}</td>
-                    <td>{{ u.exponent }}</td>
-                    {% if can_edit %}
-                        <td class="rowlink-skip">
-
-                            <a onclick="LoadModalData('Edit unit factor','{% url 'main:edit_unit' item_id=u.id %}');"
-                               data-toggle="modal"
-                               data-target="#formModal">Edit</a>
-
-                            &nbsp;&nbsp;
-
-                            <a onclick="LoadModalData('Delete unit factor?','{% url 'main:delete' item_type='unit' item_id=u.id %}');"
-                               data-toggle="modal"
-                               data-target="#formModal">Remove</a>
-                        </td>
-                    {% endif %}
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <div class="empty">
-            This item has no further base units.
+    <div class="col-md-12">
+        <div class="button_bar">
+            <a onclick="LoadModalData('Include {{ field_name }}',
+                    '{% url 'main:link_downstream' item_type=item_type item_id=item.id related_name=field_name %}'
+                    );"
+               data-toggle="modal"
+               data-target="#formModal"
+               style="text-decoration: none;">
+                <button class="btn btn-default">
+                    <i class="fa fa-chain"></i> Include existing {{ obj_type }}
+                </button>
+            </a>
+            <a href="{% url 'main:create' item_type=obj_type %}" target="_blank">
+                <button id="add_new_{{ obj_type }}" class="btn btn-default">
+                    <i class="fa fa-plus"></i> Create a new {{ obj_type }}
+                </button>
+            </a>
         </div>
-    {% endif %}
 
+        {% if objs.all %}
+            <table class="datatables display table table-hover" id="table-{{ obj_type }}{{ field_name }}"
+                   style="width:100%;">
+                <thead>
+
+                <th>Name</th>
+                <th>Symbol</th>
+                <th>Owner</th>
+                <th></th>
+                {% if can_edit %}
+                    <th>Actions</th>
+                {% endif %}
+                <td></td>
+
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for obj in objs %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'main:display' item_type=obj_type item_id=obj.parent_cu.id %}"></a>
+                            {{ obj.parent_cu.name }}
+                        </td>
+                        <td>
+                            <p class="symbol">{{ obj.parent_cu.symbol|safe }}</p>
+                        </td>
+
+                        <td>{{ obj.parent_cu.owner }}</td>
+                        {% if can_edit %}
+                            <td class="rowlink-skip">
+                                <a onclick="Unlink('{{ field_name }}','{{ obj.id }}');">Unlink</a>
+                            </td>
+                        {% endif %}
+                        <td>
+                            <div id="{{ obj_type }}__{{ obj.id }}__detail">
+                                {{ obj.error_tree.error_count }}
+                                issue{{ obj.error_tree.error_count|pluralize }}
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty">This compound units item is not used in any other compound units.</p>
+        {% endif %}
+    </div>
 </div>

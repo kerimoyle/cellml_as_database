@@ -19,7 +19,7 @@ from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationFo
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
     get_item_upstream_attributes, copy_item, \
     delete_item, convert_to_cellml_model, get_item_downstream_attributes, draw_error_tree, draw_object_tree, \
-    add_child_errors
+    add_child_errors, draw_error_branch
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset
 from main.validate import VALIDATE_DICT
 
@@ -429,6 +429,19 @@ def edit_unit(request, item_id):
     return render(request, 'main/form_modal.html', context)
 
 
+# @login_required
+# def link_compoundunit_factors(request, item_id):
+#     item = None
+#     try:
+#         item = CompoundUnit.objects.get(id=item_id)
+#     except Exception as e:
+#         messages.error(request, "Can't find CompoundUnit with id of '{}'".format(item_id))
+#         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+#         return redirect('main:error')
+
+
+
+
 @login_required
 def link_upstream(request, item_type, item_id, related_name):
     """
@@ -724,11 +737,7 @@ def display(request, item_type, item_id):
     # downstream_fields = get_downstream_fields(item_model, ['used_by'])
     # downstream = get_item_downstream_attributes(item, ['used_by'])
 
-    local_attrs = get_item_local_attributes(item, ['notes',
-                                                   'name',
-                                                   'is_valid',
-                                                   'last_checked',
-                                                   'cellml_index',
+    local_attrs = get_item_local_attributes(item, ['cellml_index',
                                                    'privacy',
                                                    'error_tree'])
 
@@ -1324,20 +1333,25 @@ def ajax_validate(request):
     is_valid = VALIDATE_DICT[item_type](item)
     item.is_valid = is_valid
     item.last_checked = datetime.datetime.now()
-    item.save()
+    # item.save()
 
-    errors = ""
-    for e in item.errors.all():
-        errors += "{}: {}<br>".format(e.spec, e.hints)
+    # errors = ""
+    # for e in item.errors.all():
+    #     errors += "{}: {}<br>".format(e.spec, e.hints)
 
     style = "validity_list_{}".format(item.is_valid)
+
+    error_tree, error_count = draw_error_branch(item)
+    # item.error_tree = {'tree_html': error_tree, 'error_count': error_count}
+    item.save()
 
     data = {
         'status': 200,
         'style': style,
         'last_checked': "{}".format(item.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
-        'errors': errors,
-        'fields': list(item.errors.all().values_list('fields', 'hints', 'spec'))
+        # 'errors': errors,
+        'fields': list(item.errors.all().values_list('fields', 'hints', 'spec')),
+        'tree': error_tree
     }
 
     return JsonResponse(data)

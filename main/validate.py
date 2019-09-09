@@ -106,6 +106,10 @@ def validate_compoundunit(cu):
     for e in cu.errors.all():
         e.delete()
 
+    # Built-in units are valid
+    if cu.is_standard:
+        return True
+
     cu.error_tree = None
 
     # Checking the name
@@ -556,6 +560,7 @@ VALIDATE_DICT = {
     'math': validate_math,
     'component': validate_component,
     'reset': validate_reset,
+    'unit': validate_unit,
 }
 
 KIND_DICT = {

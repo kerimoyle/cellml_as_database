@@ -42,13 +42,9 @@
                     {% for field, obj in locals %}
                         <tr>
                             <td>{{ field }}</td>
-                            {% if obj %}
+                            {% if obj is not None %}
                                 <td>
-                                    {#                                <a href="{% url 'main:display' item_type=field item_id=obj.id %}">#}
-                                    {#                                    <div class="validity_{{ obj.is_valid }}">#}
                                     {{ obj }}
-                                    {#                                    </div>#}
-                                    {#                                </a>#}
                                 </td>
                                 <td>
                                     {% for e in obj.errors.all %}
@@ -105,6 +101,8 @@
                 </table>
             </div>
         </div>
+
+
         <div id="tab_validity" class="tab-pane fade">
             <div class="button_bar">
                 <button id="validity_div" class="btn btn-secondary validity_banner_{{ item.is_valid }}">
@@ -120,45 +118,43 @@
                 </button>
             </div>
 
-            <div class="col-sm-6">
-                {% if item.errors.all %}
-                    <table class="display table" id="table-local-errors">
-                        <thead>
-                        <tr>
-                            <th>Specification</th>
-                            <th>Message</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for err in item.errors.all %}
-                            <tr>
-                                <td>{{ err.spec }}</td>
-                                <td>{{ err.hints|safe }}</td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                {% endif %}
+            {#            <div class="col-sm-6">#}
+            {#                {% if item.errors.all %}#}
+            {#                    <table class="display table" id="table-local-errors">#}
+            {#                        <thead>#}
+            {#                        <tr>#}
+            {#                            <th>Specification</th>#}
+            {#                            <th>Message</th>#}
+            {#                        </tr>#}
+            {#                        </thead>#}
+            {#                        <tbody>#}
+            {#                        {% for err in item.errors.all %}#}
+            {#                            <tr>#}
+            {#                                <td>{{ err.spec }}</td>#}
+            {#                                <td>{{ err.hints|safe }}</td>#}
+            {#                            </tr>#}
+            {#                        {% endfor %}#}
+            {#                        </tbody>#}
+            {#                    </table>#}
+            {#                {% endif %}#}
+            {##}
+            {#                <div id="downstream-errors">#}
+            {#                    {% if error_tree %}#}
+            {#                        {{ error_tree|safe }}#}
+            {#                    {% else %}#}
+            {#                        <p class="empty">No downstream errors found</p>#}
+            {#                    {% endif %}#}
+            {#                </div>#}
+            {#            </div>#}
 
-                <div id="downstream-errors">
-                    {% if error_tree %}
-                        {{ error_tree|safe }}
-                    {% else %}
-                        <p class="empty">No downstream errors found</p>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="col-sm-6">
+            <div class="col-md-12">
                 <br>
-                <div id="ajax_todo_div">
-                </div>
+                <div id="ajax_todo_div"></div>
             </div>
 
         </div>
 
         {% for field_name, obj_type, objs, title, template in data %}
-{#            {% include 'main/tab_units.html' %}#}
             {% include template with field_name=field_name obj_type=obj_type objs=objs title=title %}
         {% endfor %}
     </div>
@@ -190,10 +186,13 @@
 
                 $('#last_checked').text("Checking now ... please wait ...");
                 $('#ajax_todo_div').html("Building check list ... please wait ...");
+                $('#downstream-errors').html("");
 
                 $.ajax({
                     url: "/ajax_get_validation_list/{{ item_type }}/{{ item.id }}",
                     success: function (data) {
+                        // The ajax_todo_div is processed automatically by the ajax queue in ProcessList()
+
                         $('#ajax_todo_div').html(data.tree);
                         $('#last_checked').text("");
                         ProcessList();
@@ -201,15 +200,15 @@
                 });
             });
 
-            $("#refresh_error_tree").click(function (e) {
-                e.preventDefault();
-                $.ajax({
-                    url: "/refresh_error_tree/{{ item_type }}/{{ item.id }}",
-                    success: function (data) {
-                        $('#downstream-errors').html(data['tree_html']);
-                    }
-                });
-            });
+            {#$("#refresh_error_tree").click(function (e) {#}
+            {#    e.preventDefault();#}
+            {#    $.ajax({#}
+            {#        url: "/refresh_error_tree/{{ item_type }}/{{ item.id }}",#}
+            {#        success: function (data) {#}
+            {#            $('#downstream-errors').html(data['tree_html']);#}
+            {#        }#}
+            {#    });#}
+            {# });#}
         });
 
         function ProcessList() {
@@ -244,8 +243,9 @@
                 return promise;
             };
 
-            $("#ajax_todo_list li").each(function (e) {
+            $(".validity_list_waiting").each(function (e) {
                 let my_split = $(this).attr('id').split('__');
+
                 $.ajaxQueue({
                     url: '/ajax_validate/',
                     data: {
@@ -255,8 +255,8 @@
                     type: 'GET',
                     context: this,
                     success: function (data) {
-                        $(this).removeClass().addClass(data.style).fadeOut();
-                        {#$(this).html(data.messages);#}
+                        $(this).fadeOut();
+                        $("#todo_tbody_parent").append(data['tree']);
                     }
                 });
             });

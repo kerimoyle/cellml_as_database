@@ -39,19 +39,66 @@ def draw_error_tree(item):
     return tree_html, len(tree)
 
 
+def draw_error_branch(item):
+    tree = []
+    tree = add_child_errors(item, tree)
+    tree_html = ""
+    for err in item.errors.all():
+        tree_html += "<tr class='validity_list_False'>" + \
+                     "<td class='validity_icon_False'></td>" + \
+                     "<td>" + err.spec + "</td>" + \
+                     "<td>" + err.hints + "</td>" + \
+                     "<td></td></tr>"
+
+    for child_item, child_type, errors in tree:
+        for err in errors:
+            # tree_html += "<tr>"
+            # tree_html += "<td>" + err.spec + "</td>"
+            # tree_html += "<td>" + err.hints + "</td>"
+            # tree_html += "<td><a href = '/display/" + child_type + "/" + str(child_item.id) + "'>"
+            # tree_html += "Open <i>" + child_item.name + "</i></a></td></tr>"
+
+            tree_html += "<tr class='validity_list_False'>" + \
+                         "<td class='validity_icon_False'></td>" + \
+                         "<td>" + err.spec + "</td>" + \
+                         "<td>" + err.hints + "</td>" + \
+                         "<td><a href = '/display/" + child_type + "/" + str(child_item.id) + "'>" + \
+                         "Open <i>" + child_item.name + "</i></a></td></tr>"
+
+    return tree_html, len(tree)
+
+
+# def draw_object_tree(item):
+#     tree = []
+#     tree = add_item_branches(item, tree)
+#     tree_html = '<ul id="ajax_todo_list" style="list-style-type: none;">'
+#
+#     for tree_item, item_type in tree:
+#         tree_html += "<li class='validity_list_waiting' id='" + item_type + "__" + str(tree_item.id) + "__v'>" \
+#                      + item_type + ": " + tree_item.name + "</li>"
+#     tree_html += '</ul>'
+#     return tree_html
+
+
 def draw_object_tree(item):
     tree = []
     tree = add_item_branches(item, tree)
-    tree_html = '<ul id="ajax_todo_list" style="list-style-type: none;">'
+    tree_html = '<table id="ajax_todo_list" class="datatables display table" style="width:100%;">'
+    tree_html += "<thead><tr><th></th><th>Specification</th><th>Message</th><th>Link</th></thead>"
+    tree_html += "<tbody id='todo_tbody_parent'>"
 
     for tree_item, item_type in tree:
-        tree_html += "<li class='validity_list_waiting' id='" + item_type + "__" + str(tree_item.id) + "__v'>" \
-                     + item_type + ": " + tree_item.name + "</li>"
-    tree_html += '</ul>'
+        tree_html += "<tr class='validity_list_waiting' id='" + item_type + "__" + str(tree_item.id) + "__v'>" + \
+                     "<td class='validity_icon_waiting'></td>" + \
+                     "<td></td>" + \
+                     "<td>" + item_type + "</td>" + \
+                     "<td>" + tree_item.name + "</td></tr>"
+    tree_html += '</tbody></table>'
     return tree_html
 
 
 def add_item_branches(item, tree):
+    tree.append((item, type(item).__name__.lower()))
     children = get_item_downstream_attributes(item)
     for child in children:
         tree.append((child[2],
