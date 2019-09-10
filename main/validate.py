@@ -9,6 +9,7 @@ from main.models import ItemError, CompoundUnit
 
 
 def validate_variable(variable):
+    # Variables are all local validation - no need for a duplicate
     for e in variable.errors.all():
         e.delete()
 
@@ -281,7 +282,7 @@ def validate_reset(reset):
     return is_valid
 
 
-def validate_component(component):
+def validate_component_locally(component):
     is_valid = True
     for e in component.errors.all():
         e.delete()
@@ -309,6 +310,13 @@ def validate_component(component):
         )
         err.save()
         component.errors.add(err)  # It's an error of the *component* not of the variable itself ...
+        is_valid = False
+
+    return is_valid
+
+
+def validate_component(component):
+    is_valid = validate_component_locally(component)
 
     for variable in component.variables.all():
         is_valid = validate_variable(variable) and is_valid
@@ -328,8 +336,7 @@ def validate_component(component):
     return is_valid
 
 
-def validate_cellmodel(model):
-    # Trying out an alternative to translating to/from cellml format for model validation
+def validate_cellmodel_locally(model):
     is_valid = True
     for e in model.errors.all():
         e.delete()
@@ -346,6 +353,7 @@ def validate_cellmodel(model):
         )
         err.save()
         model.errors.add(err)
+        is_valid = False
 
     # Check model's components for duplicate names
     duplicates = model.components.values('name').annotate(name_count=Count('name')).filter(name_count__gt=1)
@@ -359,9 +367,7 @@ def validate_cellmodel(model):
         )
         err.save()
         model.errors.add(err)  # It's an error of the *model* not of the component itself ...
-
-    for component in model.components.all():
-        is_valid = validate_component(component) and is_valid
+        is_valid = False
 
     # Check model units
     duplicates = model.compoundunits.values('name').annotate(name_count=Count('name')).filter(name_count__gt=1)
@@ -375,23 +381,38 @@ def validate_cellmodel(model):
         )
         err.save()
         model.errors.add(err)  # It's an error of the *model* not of the compoundunit itself ...
-
-    for compoundunit in model.compoundunits.all():
-        is_valid = validate_compoundunit(compoundunit) and is_valid
+        is_valid = False
 
     # Check that the set of compound units used by the variables exists in the model
     required = model.components.values_list('name', 'variables__name', 'variables__compoundunit__name')
     available = model.compoundunits.values_list('name').distinct()
-    missing = [(c, v, u) for c, v, u in required if (u,) not in available and u is not None]
+    missing = [(c, v, u) for c, v, u in required
+               if (u,) not in available
+               and u is not None
+               and (u,) not in CompoundUnit.objects.filter(is_standard=True).values_list('name')]
 
     for c, v, u in missing:
         err = ItemError(
             hints="Variable <i>{v}</i> in component <i>{c}</i> has units <i>{u}</i> which do not exist in this "
-                  "model.".format(c=c, u=u, v=v),
+                  "model, and are not built-in.".format(c=c, u=u, v=v),
             spec="11.1.1.2"
         )
         err.save()
         model.errors.add(err)
+        is_valid = False
+
+    return is_valid
+
+
+def validate_cellmodel(model):
+
+    is_valid = validate_cellmodel_locally(model)
+
+    for component in model.components.all():
+        is_valid = validate_component(component) and is_valid
+
+    for compoundunit in model.compoundunits.all():
+        is_valid = validate_compoundunit(compoundunit) and is_valid
 
     # Validate connections and equivalent variable networks in the model
     is_valid = validate_connections(model) and is_valid
@@ -554,11 +575,11 @@ def cyclic_variable_found(parent, child, check_list, all_variable_list):
 
 
 VALIDATE_DICT = {
-    'cellmodel': validate_cellmodel,
+    'cellmodel': validate_cellmodel_locally,
     'variable': validate_variable,
     'compoundunit': validate_compoundunit,
     'math': validate_math,
-    'component': validate_component,
+    'component': validate_component_locally,
     'reset': validate_reset,
     'unit': validate_unit,
 }

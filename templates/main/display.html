@@ -118,39 +118,71 @@
                 </button>
             </div>
 
-            {#            <div class="col-sm-6">#}
-            {#                {% if item.errors.all %}#}
-            {#                    <table class="display table" id="table-local-errors">#}
-            {#                        <thead>#}
-            {#                        <tr>#}
-            {#                            <th>Specification</th>#}
-            {#                            <th>Message</th>#}
-            {#                        </tr>#}
-            {#                        </thead>#}
-            {#                        <tbody>#}
-            {#                        {% for err in item.errors.all %}#}
-            {#                            <tr>#}
-            {#                                <td>{{ err.spec }}</td>#}
-            {#                                <td>{{ err.hints|safe }}</td>#}
-            {#                            </tr>#}
-            {#                        {% endfor %}#}
-            {#                        </tbody>#}
-            {#                    </table>#}
-            {#                {% endif %}#}
-            {##}
-            {#                <div id="downstream-errors">#}
-            {#                    {% if error_tree %}#}
-            {#                        {{ error_tree|safe }}#}
-            {#                    {% else %}#}
-            {#                        <p class="empty">No downstream errors found</p>#}
-            {#                    {% endif %}#}
-            {#                </div>#}
-            {#            </div>#}
 
             <div class="col-md-12">
-                <br>
-                <div id="ajax_todo_div"></div>
+                <table class="display table" id="checklist">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>Item</th>
+                        <th>Message</th>
+                    </tr>
+                    </thead>
+                    <tbody class="rowlink" data-link="row">
+                    {{ item.child_list|safe }}
+                    </tbody>
+                </table>
             </div>
+
+{#            <div class="col-md-6">#}
+{#                <div id="downstream-errors">#}
+{#                    {% if error_tree %}#}
+{#                        {{ error_tree|safe }}#}
+{#                    {% else %}#}
+{#                        <p class="empty">No downstream errors found</p>#}
+{#                    {% endif %}#}
+{#                </div>#}
+{#            </div>#}
+
+
+{#            <div class="col-md-12">#}
+                {#                {% if item.errors.all %}#}
+                {#                    <table class="display table" id="table-local-errors">#}
+                {#                        <thead>#}
+                {#                        <tr>#}
+                {#                            <th>Specification</th>#}
+                {#                            <th>Message</th>#}
+                {#                        </tr>#}
+                {#                        </thead>#}
+                {#                        <tbody>#}
+                {#                        {% for err in item.errors.all %}#}
+                {#                            <tr>#}
+                {#                                <td>{{ err.spec }}</td>#}
+                {#                                <td>{{ err.hints|safe }}</td>#}
+                {#                            </tr>#}
+                {#                        {% endfor %}#}
+                {#                        </tbody>#}
+                {#                    </table>#}
+                {#                {% endif %}#}
+{##}
+{#                <div id="downstream-errors">#}
+{#                    {% if error_tree %}#}
+{#                        {{ error_tree|safe }}#}
+{#                    {% else %}#}
+{#                        <p class="empty">No downstream errors found</p>#}
+{#                    {% endif %}#}
+{#                </div>#}
+{#            </div>#}
+{##}
+{#            <div class="col-md-12">#}
+{#                <br>#}
+{#                <div id="ajax_todo_div">#}
+{##}
+{#                    <!-- initialise with saved todo list -->#}
+{##}
+{##}
+{#                </div>#}
+{#            </div>#}
 
         </div>
 
@@ -183,21 +215,21 @@
 
             $("#check_validity").click(function (e) {
                 e.preventDefault();
+                ProcessList();
 
-                $('#last_checked').text("Checking now ... please wait ...");
-                $('#ajax_todo_div').html("Building check list ... please wait ...");
-                $('#downstream-errors').html("");
-
-                $.ajax({
-                    url: "/ajax_get_validation_list/{{ item_type }}/{{ item.id }}",
-                    success: function (data) {
-                        // The ajax_todo_div is processed automatically by the ajax queue in ProcessList()
-
-                        $('#ajax_todo_div').html(data.tree);
-                        $('#last_checked').text("");
-                        ProcessList();
-                    }
-                });
+                {#$('#last_checked').text("Checking now ... please wait ...");#}
+                {#$('#downstream-errors').html("");#}
+                {##}
+                {#$.ajax({#}
+                {#    url: "/ajax_get_validation_list/{{ item_type }}/{{ item.id }}",#}
+                {#    success: function (data) {#}
+                {##}
+                {##}
+                {#        $('#ajax_todo_div').html(data.tree);#}
+                {#        $('#last_checked').text("");#}
+                {#        ProcessList();#}
+                {#    }#}
+                {# });#}
             });
 
             {#$("#refresh_error_tree").click(function (e) {#}
@@ -255,8 +287,8 @@
                     type: 'GET',
                     context: this,
                     success: function (data) {
-                        $(this).fadeOut();
-                        $("#todo_tbody_parent").append(data['tree']);
+                        $(this).removeClass("validity_list_waiting").addClass(data['style']);
+                        $(this).html(data['html']);
                     }
                 });
             });

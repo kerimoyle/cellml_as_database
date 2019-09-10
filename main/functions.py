@@ -68,6 +68,21 @@ def draw_error_branch(item):
     return tree_html, len(tree)
 
 
+def get_local_error_messages(item):
+    if item.errors.count() > 0:
+        html = "<td class='validity_icon_False'><a href='/display/" + type(item).__name__.lower() + "/" + str(item.id) + \
+               "'></a></td><td>" + item.name + "</td>"
+        html += "<td>"
+        for err in item.errors.all():
+            html += err.spec + ": " + err.hints + "<br>"
+        html += "</td>"
+    else:
+        html = "<td class='validity_icon_True'><a href='/display/" + type(item).__name__.lower() + "/" + str(item.id) + \
+               "'></a></td><td>" + item.name + "</td>"
+        html += "<td>Item is valid</td>"
+    return html
+
+
 # def draw_object_tree(item):
 #     tree = []
 #     tree = add_item_branches(item, tree)
@@ -90,9 +105,9 @@ def draw_object_tree(item):
     for tree_item, item_type in tree:
         tree_html += "<tr class='validity_list_waiting' id='" + item_type + "__" + str(tree_item.id) + "__v'>" + \
                      "<td class='validity_icon_waiting'></td>" + \
-                     "<td></td>" + \
-                     "<td>" + item_type + "</td>" + \
-                     "<td>" + tree_item.name + "</td></tr>"
+                     "<td>" + item_type + ": " + tree_item.name + "</td>" + \
+                     "<td colspan=2>Pending ... </td>" + \
+                     "</tr>"
     tree_html += '</tbody></table>'
     return tree_html
 
@@ -105,6 +120,21 @@ def add_item_branches(item, tree):
                      type(child[2]).__name__.lower()))
         tree = add_item_branches(child[2], tree)
     return tree
+
+
+def build_object_child_list(item):
+    child_list = []
+    child_list = add_item_branches(item, child_list)
+    child_list = set(child_list)
+
+    html = ""
+    for child, child_type in child_list:
+        html += "<tr class='validity_list_waiting' id='" + child_type + "__" + str(child.id) + "__v'>" + \
+                "<td class='validity_icon_waiting'></td>" + \
+                "<td>" + child_type + ": " + child.name + "</td>" + \
+                "<td colspan=2>Pending ... </td>" + \
+                "</tr>"
+    return html
 
 
 # -------------------------------- PREVIEW FUNCTIONS FOR CELLML ITEMS ----------------------------
@@ -237,24 +267,21 @@ def load_model(in_model, owner):
                 if u is not None:
                     # Then is built-in unit
                     variable.compoundunit = u
-                    break
-
-                u = CompoundUnit.objects.filter(name=in_units, models=model).first()
-                if u is not None:
-                    variable.compoundunit = u
-
                 else:
-                    # Then is new base unit.  Create compound unit with no downstream
-                    u_new = CompoundUnit(
-                        name=in_units,
-                        symbol=in_units,
-                        is_standard=False,
-                        owner=owner,
-                    )
-                    u_new.save()
-                    u_new.models.add(model)
-                    variable.save()
-                    u_new.variables.add(variable)
+                    u = CompoundUnit.objects.filter(name=in_units, models=model).first()
+                    if u is not None:
+                        variable.compoundunit = u
+                    else:
+                        # Then is new base unit.  Create compound unit with no downstream
+                        u_new = CompoundUnit(
+                            name=in_units,
+                            symbol=in_units,
+                            is_standard=False,
+                            owner=owner,
+                        )
+                        u_new.save()
+                        u_new.models.add(model)
+                        variable.compoundunit = u_new
             else:
                 variable.compoundunit = model.compoundunits.filter(name=in_units.name()).first()
 

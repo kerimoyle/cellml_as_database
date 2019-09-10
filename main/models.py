@@ -44,6 +44,7 @@ class NamedCellMLEntity(DjangoModel):
     errors = ManyToManyField('ItemError', blank=True, related_name="error_in_%(class)s_objects")
     # This is the list of all downstream errors from this object, it's expensive to build so will update when asked
     error_tree = JSONField(blank=True, null=True)
+    child_list = JSONField(blank=True, null=True)
 
     class Meta:
         abstract = True

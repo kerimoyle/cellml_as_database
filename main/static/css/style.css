@@ -184,7 +184,8 @@ iframe {
     /*font-size: large;*/
 }
 
-.validity_banner_False:hover{}
+.validity_banner_False:hover {
+}
 
 .validity_list_True {
     color: #12490f;
@@ -192,12 +193,19 @@ iframe {
 
 .validity_list_False {
     color: darkred;
-    padding: 5px;
+    padding: 10px;
 }
 
-.validity_list_waiting {
-    color: #999999;
-}
+/*.validity_list_waiting {*/
+/*    color: #999999;*/
+/*    padding: 10px;*/
+/*    width: 100%;*/
+/*}*/
+
+/*.validity_list_waiting::before {*/
+/*    font-family: FontAwesome;*/
+/*    content: '\f017';*/
+/*}*/
 
 /*.validity_icon_waiting {*/
 /*    font-family: FontAwesome;*/
@@ -218,14 +226,12 @@ iframe {
 .validity_list_processing {
     color: white;
     background-color: -moz-mac-accentdarkshadow;
-    padding:3px;
+    padding: 3px;
 }
 
 .validity_list_processing:before {
     content: "->"
 }
-
-
 
 
 /* ----------------- NAVIGATION BAR STUFF -------------------- */

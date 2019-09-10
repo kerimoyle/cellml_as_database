@@ -1,6 +1,7 @@
 import datetime
 
 import libcellml
+import pytz
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django.contrib import messages
@@ -19,7 +20,7 @@ from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationFo
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
     get_item_upstream_attributes, copy_item, \
     delete_item, convert_to_cellml_model, get_item_downstream_attributes, draw_error_tree, draw_object_tree, \
-    add_child_errors, draw_error_branch
+    add_child_errors, draw_error_branch, build_object_child_list, get_local_error_messages
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset
 from main.validate import VALIDATE_DICT
 
@@ -191,6 +192,7 @@ def create(request, item_type, in_modal):
         if form.is_valid():
             item = form.save()
             item.owner = person
+            item.child_list = build_object_child_list(item)
             item.save()
             return redirect(reverse('main:display',
                                     kwargs={'item_type': item_type, 'item_id': item.id}))
@@ -438,8 +440,6 @@ def edit_unit(request, item_id):
 #         messages.error(request, "Can't find CompoundUnit with id of '{}'".format(item_id))
 #         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
 #         return redirect('main:error')
-
-
 
 
 @login_required
@@ -739,7 +739,8 @@ def display(request, item_type, item_id):
 
     local_attrs = get_item_local_attributes(item, ['cellml_index',
                                                    'privacy',
-                                                   'error_tree'])
+                                                   'error_tree',
+                                                   'child_list'])
 
     can_change_privacy = len(
         get_item_upstream_attributes(item, ['errors', 'owner', 'imported_from', 'annotations'])
@@ -977,6 +978,7 @@ def upload(request):
             model.owner = request.user.person
             model.imported_from = None
             model.privacy = 'private'
+            model.child_list = build_object_child_list(model)
             model.save()
 
             # Delete the TemporaryStorage object, also deletes the uploaded file TODO Check what is wanted here?
@@ -1283,7 +1285,8 @@ def validate(request, item_type, item_id):
     # Select the function to call from the dictionary
     is_valid = VALIDATE_DICT[item_type](item)
     item.is_valid = is_valid
-    item.last_checked = datetime.datetime.now()
+    item.last_checked = datetime.datetime.now(pytz.utc)
+
     item.save()
 
     errors = ""
@@ -1332,26 +1335,20 @@ def ajax_validate(request):
     # Select the function to call from the dictionary
     is_valid = VALIDATE_DICT[item_type](item)
     item.is_valid = is_valid
-    item.last_checked = datetime.datetime.now()
-    # item.save()
-
-    # errors = ""
-    # for e in item.errors.all():
-    #     errors += "{}: {}<br>".format(e.spec, e.hints)
+    item.last_checked = datetime.datetime.now(pytz.utc)
 
     style = "validity_list_{}".format(item.is_valid)
+    error_tree = get_local_error_messages(item)
+    item.error_tree = {'tree_html': error_tree}
 
-    error_tree, error_count = draw_error_branch(item)
-    # item.error_tree = {'tree_html': error_tree, 'error_count': error_count}
+    item.child_list = build_object_child_list(item)
+
     item.save()
 
     data = {
         'status': 200,
         'style': style,
-        'last_checked': "{}".format(item.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
-        # 'errors': errors,
-        'fields': list(item.errors.all().values_list('fields', 'hints', 'spec')),
-        'tree': error_tree
+        'html': error_tree
     }
 
     return JsonResponse(data)
