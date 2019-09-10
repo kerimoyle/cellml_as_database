@@ -46,9 +46,9 @@ DISPLAY_DICT = {
     'compoundunit': {
         'tabs': [
             {'field': 'product_of', 'obj_type': 'compoundunit', 'title': 'Product of',
-             'template': 'main/tab_compoundunits.html'},
-            {'field': 'part_of', 'obj_type': 'compoundunit', 'title': 'Used in units',
              'template': 'main/tab_units.html'},
+            {'field': 'part_of', 'obj_type': 'compoundunit', 'title': 'Used in units',
+             'template': 'main/tab_compoundunits.html'},
             {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Used in models',
              'template': 'main/tab_fyi.html'},
             {'field': 'variables', 'obj_type': 'variable', 'title': 'Used by variables',

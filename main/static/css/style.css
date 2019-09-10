@@ -4,8 +4,8 @@ body {
 }
 
 h1, h2, h3, h4 {
-    /*color: #2f557b;;*/
-    color: #600000;
+    color: #2f557b;
+    /*color: #600000;*/
 }
 
 iframe {
@@ -212,15 +212,17 @@ iframe {
 /*    content: '\f017';*/
 /*}*/
 
-/*.validity_icon_True {*/
-/*    font-family: FontAwesome;*/
-/*    content: '\f00c';*/
-/*}*/
+.validity_icon_True {
+    font-style: normal;
+    content: "\f00c";
+    font-family: FontAwesome;
+}
 
-/*.validity_icon_False {*/
-/*    font-family: FontAwesome;*/
-/*    content: '\f12a';*/
-/*}*/
+.validity_icon_False {
+    font-style: normal;
+    font-family: FontAwesome;
+    content: '\f12a';
+}
 
 
 .validity_list_processing {
@@ -237,12 +239,14 @@ iframe {
 /* ----------------- NAVIGATION BAR STUFF -------------------- */
 
 .nav-style {
-    background-color: #600000;
+    /*background-color: #600000;*/
+    background-color: #2f557b;
 
 }
 
 .navbar-default {
-    background-color: #600000;
+    /*background-color: #600000;*/
+    background-color: #2f557b;
     border: 0;
     padding-right: 15px;
 }

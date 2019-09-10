@@ -1,32 +1,34 @@
 <div id="tab_{{ field_name }}" class="tab-pane fade">
+<br>
     <div class="row">
         <div class="col-md-12">
             {% if objs.all %}
                 <table class="datatables display table table-hover" id="table-{{ obj_type }}{{ field_name }}"
                        style="width:100%;">
                     <thead>
-
+                    <th></th>
                     <th>Name</th>
                     <th>Owner</th>
-                    {% if can_edit %}
-                        <th>Actions</th>
-                    {% endif %}
+{#                    {% if can_edit %}#}
+{#                        <th>Actions</th>#}
+{#                    {% endif %}#}
                     <td></td>
 
                     </thead>
                     <tbody class="rowlink" data-link="row">
                     {% for obj in objs %}
                         <tr>
+                            <td><span class="validity_icon_{{ obj.is_valid }}"></span></td>
                             <td>
                                 <a href="{% url 'main:display' item_type=obj_type item_id=obj.id %}"></a>
                                 {{ obj.name }}
                             </td>
                             <td>{{ obj.owner }}</td>
-                            {% if can_edit %}
-                                <td class="rowlink-skip">
-                                    <a onclick="Unlink('{{ field_name }}','{{ obj.id }}');">Unlink</a>
-                                </td>
-                            {% endif %}
+{#                            {% if can_edit %}#}
+{#                                <td class="rowlink-skip">#}
+{#                                    <a onclick="Unlink('{{ field_name }}','{{ obj.id }}');">Unlink</a>#}
+{#                                </td>#}
+{#                            {% endif %}#}
                             <td>
                                 <div id="{{ obj_type }}__{{ obj.id }}__detail">
                                     {{ obj.error_tree.error_count }}

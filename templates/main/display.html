@@ -22,17 +22,13 @@
 {% block content %}
     <div class="tab-content">
         <div id="tab_information" class="tab-pane fade in active">
-
             <br>
-            <div class="col-md-12">{% if item.notes %}<p><b>Notes: </b>{{ item.notes|linebreaks }}</p>
-            {% else %}<p class="empty">No notes provided</p>{% endif %}
-            </div>
 
             <div class="col-md-12">
                 <table class="datatables display table" id="table-information">
                     <thead>
                     <tr>
-                        <th>Name</th>
+                        <th>Field</th>
                         <th>Value</th>
                         <th></th>
                     </tr>
@@ -102,7 +98,6 @@
             </div>
         </div>
 
-
         <div id="tab_validity" class="tab-pane fade">
             <div class="button_bar">
                 <button id="validity_div" class="btn btn-secondary validity_banner_{{ item.is_valid }}">
@@ -117,7 +112,7 @@
                     <i class="fa fa-refresh"></i> Refresh TODO list
                 </button>
             </div>
-
+            <br>
 
             <div class="col-md-12">
                 <table class="display table" id="checklist">
