@@ -18,7 +18,7 @@ class CopyForm(forms.Form):
         self.helper.form_id = 'id-copy_form'
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
-        self.helper.add_input(Submit('submit', 'Copy'))
+        # self.helper.add_input(Submit('submit', 'Copy'))
 
         self.fields['options'] = forms.ChoiceField(
             widget=forms.RadioSelect(),
@@ -39,7 +39,7 @@ class PrivacyForm(forms.Form):
         self.helper.form_id = 'id-privacy_form'
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
-        self.helper.add_input(Submit('submit', 'Save'))
+        # self.helper.add_input(Submit('submit', 'Save'))
 
         self.fields['options'] = forms.ChoiceField(
             widget=forms.RadioSelect(),
@@ -59,7 +59,7 @@ class DeleteForm(forms.Form):
         self.helper.form_id = 'id-delete_form'
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
-        self.helper.add_input(Submit('submit', 'Delete'))
+        # self.helper.add_input(Submit('submit', 'Delete'))  # Removing submit button from forms which have a modal
 
         self.fields['options'] = forms.ChoiceField(
             widget=forms.RadioSelect(),
@@ -79,7 +79,7 @@ class LoginForm(forms.Form):
         self.helper.form_id = 'id-login_form'
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
-        self.helper.add_input(Submit('login_view', 'Login'))
+        # self.helper.add_input(Submit('login_view', 'Login'))
 
         self.fields['username'] = forms.CharField(
             widget=forms.TextInput()
@@ -100,7 +100,7 @@ class RegistrationForm(forms.Form):
         self.helper.form_id = 'id-registration_form'
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
-        self.helper.add_input(Submit('register', 'Register'))
+        # self.helper.add_input(Submit('register', 'Register'))
 
         self.fields['first_name'] = forms.CharField(
             widget=forms.TextInput()
@@ -134,7 +134,7 @@ class MathCreateForm(forms.ModelForm):
         self.helper.form_id = 'id-math_create_form'
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
-        self.helper.add_input(Submit('math_create', 'Save'))
+        # self.helper.add_input(Submit('math_create', 'Save'))
 
 
 class DownstreamLinkForm(forms.Form):
