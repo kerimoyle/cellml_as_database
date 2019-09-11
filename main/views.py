@@ -585,7 +585,7 @@ def link_downstream(request, item_type, item_id, related_name):
         'item': item,
         'form': form,
     }
-    return render(request, 'main/form_modal.html', context)
+    return render(request, 'main/form_modal_searchable.html', context)
 
 
 # ---------------------- DELETE VIEWS -------------------

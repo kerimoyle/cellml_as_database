@@ -8,12 +8,39 @@
                 <p>{{ modal_text|linebreaksbr }}</p>
             </div>
         {% endif %}
+
         {% if form %}
             <div class="col-sm-12">
+                <div class="input-group">
+                    <input id="search-criteria" type="text" class="form-control" placeholder="Filter items ...">
+                    <span class="input-group-btn">
+                        <button class="btn btn-primary" type="button" id="search"><i class="fa fa-search"></i></button>
+                    </span>
+                </div>
+                <br>
                 {% crispy form %}
             </div>
         {% endif %}
     </div>
 {% endblock content %}
 
+{% block end_scripts %}
+    {{ block.super }}
+    <script>
+        $(document).ready(function () {
+            $('#search-criteria').keyup(function () {
+                $('.form-check').hide();
+                let txt = $('#search-criteria').val();
+                $('.form-check').each(function () {
+                    if ($(this).text().toUpperCase().indexOf(txt.toUpperCase()) != -1) {
+                        $(this).show();
+                    }
+                });
+            });
+        });
 
+        function SubmitModalForm() {
+            $("#modal_form_id").submit();
+        }
+    </script>
+{% endblock %}
