@@ -101,21 +101,27 @@
         <div id="tab_validity" class="tab-pane fade">
             <div class="button_bar">
                 <button id="validity_div" class="btn btn-secondary validity_banner_{{ item.is_valid }}">
-                    <b>Last checked: </b><span id="last_checked">{{ item.last_checked }}</span>
+                    <span id="status_span"><b>Last checked: </b>{{ item.last_checked }}</span>
                 </button>
 
                 <button id="check_validity" class="btn btn-default">
-                    <i class="fa fa-refresh"></i> Check validity again
-                </button>
-
-                <button id="refresh_error_tree" class="btn btn-default">
-                    <i class="fa fa-refresh"></i> Refresh TODO list
+                    <i class="fa fa-refresh"></i> Check validity
                 </button>
             </div>
             <br>
 
             <div class="col-md-12">
-                <table class="display table" id="checklist">
+                <div id="progress_holder_id" class="progress hidden">
+                    <div id="progress_bar_id" class="progress-bar" role="progressbar" style="width: 0;"
+                         aria-valuenow="0"
+                         aria-valuemin="0"
+                         aria-valuemax="{{ item.child_list.list_length }}">
+                        0%
+                    </div>
+                </div>
+
+                <div id="todo_count"></div>
+                <table class="display table">
                     <thead>
                     <tr>
                         <th></th>
@@ -123,61 +129,19 @@
                         <th>Message</th>
                     </tr>
                     </thead>
-                    <tbody class="rowlink" data-link="row">
-                    {{ item.child_list|safe }}
+                    <tbody class="rowlink" data-link="row" id="todolist">
+                    {% if error_tree %}
+                        {{ error_tree|safe }}
+                    {% else %}
+                        <p class="empty">No downstream errors found</p>
+                    {% endif %}
                     </tbody>
                 </table>
             </div>
 
-{#            <div class="col-md-6">#}
-{#                <div id="downstream-errors">#}
-{#                    {% if error_tree %}#}
-{#                        {{ error_tree|safe }}#}
-{#                    {% else %}#}
-{#                        <p class="empty">No downstream errors found</p>#}
-{#                    {% endif %}#}
-{#                </div>#}
-{#            </div>#}
-
-
-{#            <div class="col-md-12">#}
-                {#                {% if item.errors.all %}#}
-                {#                    <table class="display table" id="table-local-errors">#}
-                {#                        <thead>#}
-                {#                        <tr>#}
-                {#                            <th>Specification</th>#}
-                {#                            <th>Message</th>#}
-                {#                        </tr>#}
-                {#                        </thead>#}
-                {#                        <tbody>#}
-                {#                        {% for err in item.errors.all %}#}
-                {#                            <tr>#}
-                {#                                <td>{{ err.spec }}</td>#}
-                {#                                <td>{{ err.hints|safe }}</td>#}
-                {#                            </tr>#}
-                {#                        {% endfor %}#}
-                {#                        </tbody>#}
-                {#                    </table>#}
-                {#                {% endif %}#}
-{##}
-{#                <div id="downstream-errors">#}
-{#                    {% if error_tree %}#}
-{#                        {{ error_tree|safe }}#}
-{#                    {% else %}#}
-{#                        <p class="empty">No downstream errors found</p>#}
-{#                    {% endif %}#}
-{#                </div>#}
-{#            </div>#}
-{##}
-{#            <div class="col-md-12">#}
-{#                <br>#}
-{#                <div id="ajax_todo_div">#}
-{##}
-{#                    <!-- initialise with saved todo list -->#}
-{##}
-{##}
-{#                </div>#}
-{#            </div>#}
+            <div class="hidden" id="checklist">
+                {{ item.child_list.html|safe }}
+            </div>
 
         </div>
 
@@ -206,39 +170,33 @@
     {{ block.super }}
     {% block datatables %}{% endblock datatables %}
     <script>
+        let processed_count = 0;
+
         $(document).ready(function () {
 
             $("#check_validity").click(function (e) {
                 e.preventDefault();
-                ProcessList();
 
-                {#$('#last_checked').text("Checking now ... please wait ...");#}
-                {#$('#downstream-errors').html("");#}
-                {##}
-                {#$.ajax({#}
-                {#    url: "/ajax_get_validation_list/{{ item_type }}/{{ item.id }}",#}
-                {#    success: function (data) {#}
-                {##}
-                {##}
-                {#        $('#ajax_todo_div').html(data.tree);#}
-                {#        $('#last_checked').text("");#}
-                {#        ProcessList();#}
-                {#    }#}
-                {# });#}
+                // Populate check list
+                $('#checklist').children().addClass('validity_list_waiting');
+
+                // Clear the todolist
+                $('#todolist').html("");
+                $('#validity_div').removeClass().addClass('btn btn-secondary');
+
+                if (confirm("Really check {{ item.child_list.list_length }} items?")) {
+                    processed_count = 0;
+                    // Reset the progress bar
+                    $('#progress_holder_id').removeClass("hidden");
+                    $('#progress_bar_id').width("0%");
+                    $('#status_span').html("<b>Checking now ... </b>");
+                    ProcessCheckList();
+                }
             });
-
-            {#$("#refresh_error_tree").click(function (e) {#}
-            {#    e.preventDefault();#}
-            {#    $.ajax({#}
-            {#        url: "/refresh_error_tree/{{ item_type }}/{{ item.id }}",#}
-            {#        success: function (data) {#}
-            {#            $('#downstream-errors').html(data['tree_html']);#}
-            {#        }#}
-            {#    });#}
-            {# });#}
         });
 
-        function ProcessList() {
+
+        function ProcessCheckList() {
             // jQuery on an empty object, we are going to use this as our Queue
             let ajaxQueue = $({});
             $.ajaxQueue = function (ajaxOpts) {
@@ -271,8 +229,8 @@
             };
 
             $(".validity_list_waiting").each(function (e) {
-                let my_split = $(this).attr('id').split('__');
 
+                let my_split = $(this).attr('id').split('__');
                 $.ajaxQueue({
                     url: '/ajax_validate/',
                     data: {
@@ -282,8 +240,34 @@
                     type: 'GET',
                     context: this,
                     success: function (data) {
+                        processed_count = processed_count + 1;
                         $(this).removeClass("validity_list_waiting").addClass(data['style']);
-                        $(this).html(data['html']);
+                        $(this).html("");
+
+                        let percentage = String(Math.floor(
+                            processed_count * 100 / {{ item.child_list.list_length }}
+                        )) + "%";
+
+                        $('#progress_bar_id').width(percentage).text(percentage);
+                        $('#todolist').prepend(data['html']);
+
+                        // Check whether this was the last one
+                        let to_check = $('.validity_list_waiting').length;
+                        let to_do = $('.validity_list_False').length;
+
+                        $('#todo_count').text(to_do + " items to fix");
+
+                        if (to_check === 0) {
+                            // Remove the valid items from the todo list and leave only the errors
+                            $('.validity_list_True').fadeOut();
+                            // Update the status
+                            if (to_do === 0) {
+                                $("#validity_div").addClass('validity_banner_True');
+                            } else {
+                                $("#validity_div").addClass('validity_banner_False');
+                            }
+                            $('#status_span').text("Done!");
+                        }
                     }
                 });
             });
@@ -311,56 +295,6 @@
             $("form#privacy_form ").submit();
         }
 
-        {#(function ($) {#}
-        {#    // jQuery on an empty object, we are going to use this as our Queue#}
-        {#    let ajaxQueue = $({});#}
-        {#    $.ajaxQueue = function (ajaxOpts) {#}
-        {#        let jqXHR,#}
-        {#            dfd = $.Deferred(),#}
-        {#            promise = dfd.promise();#}
-        {#        ajaxQueue.queue(doRequest);#}
-        {#        promise.abort = function (statusText) {#}
-        {#            if (jqXHR) {#}
-        {#                return jqXHR.abort(statusText);#}
-        {#            }#}
-        {#            let queue = ajaxQueue.queue(),#}
-        {#                index = $.inArray(doRequest, queue);#}
-        {#            if (index > -1) {#}
-        {#                queue.splice(index, 1);#}
-        {#            }#}
-        {#            dfd.rejectWith(ajaxOpts.context || ajaxOpts,#}
-        {#                [promise, statusText, ""]);#}
-        {#            return promise;#}
-        {#        };#}
-        {#        function doRequest(next) {#}
-        {#            jqXHR = $.ajax(ajaxOpts)#}
-        {#                .then(next, next)#}
-        {#                .done(dfd.resolve)#}
-        {#                .fail(dfd.reject);#}
-        {#        }#}
-        {#        return promise;#}
-        {#    };#}
-        {# })(jQuery);#}
 
-        // get each item we want to copy
-        {#$("#ajax_todo_list li").each(function (e) {#}
-        {#    alert('hi');#}
-        {#    let my_split = $(this).attr('id').split('__');#}
-        {#    alert(my_split[0]);#}
-        {#    alert(my_split[1]);#}
-        {#    $.ajaxQueue({#}
-        {#        url: '/main/ajax_validate/',#}
-        {#        data: {#}
-        {#            item_type: my_split[0],#}
-        {#            item_id: my_split[1],#}
-        {#        },#}
-        {#        type: 'GET',#}
-        {#        context: this,#}
-        {#        success: function (data) {#}
-        {#            $(this).addClass(data.style);#}
-        {#$(this).html(data.messages);#}
-        {#        }#}
-        {#    });#}
-        {# });#}
     </script>
 {% endblock end_scripts %}

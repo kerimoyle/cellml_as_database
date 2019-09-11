@@ -70,16 +70,18 @@ def draw_error_branch(item):
 
 def get_local_error_messages(item):
     if item.errors.count() > 0:
-        html = "<td class='validity_icon_False'><a href='/display/" + type(item).__name__.lower() + "/" + str(item.id) + \
+        html = "<tr class='validity_list_False'><td class='validity_icon_False'><a href='/display/" + type(
+            item).__name__.lower() + "/" + str(item.id) + \
                "'></a></td><td>" + item.name + "</td>"
         html += "<td>"
         for err in item.errors.all():
             html += err.spec + ": " + err.hints + "<br>"
-        html += "</td>"
+        html += "</td></tr>"
     else:
-        html = "<td class='validity_icon_True'><a href='/display/" + type(item).__name__.lower() + "/" + str(item.id) + \
+        html = "<tr class='validity_list_True'><td class='validity_icon_True'><a href='/display/" + type(
+            item).__name__.lower() + "/" + str(item.id) + \
                "'></a></td><td>" + item.name + "</td>"
-        html += "<td>Item is valid</td>"
+        html += "<td>Item is valid</td></tr>"
     return html
 
 
@@ -98,17 +100,18 @@ def get_local_error_messages(item):
 def draw_object_tree(item):
     tree = []
     tree = add_item_branches(item, tree)
-    tree_html = '<table id="ajax_todo_list" class="datatables display table" style="width:100%;">'
-    tree_html += "<thead><tr><th></th><th>Specification</th><th>Message</th><th>Link</th></thead>"
-    tree_html += "<tbody id='todo_tbody_parent'>"
+    tree_html = ""
+    # tree_html = '<table id="ajax_todo_list" class="datatables display table" style="width:100%;">'
+    # tree_html += "<thead><tr><th></th><th>Specification</th><th>Message</th><th>Link</th></thead>"
+    # tree_html += "<tbody id='todo_tbody_parent'>"
 
     for tree_item, item_type in tree:
-        tree_html += "<tr class='validity_list_waiting' id='" + item_type + "__" + str(tree_item.id) + "__v'>" + \
-                     "<td class='validity_icon_waiting'></td>" + \
-                     "<td>" + item_type + ": " + tree_item.name + "</td>" + \
-                     "<td colspan=2>Pending ... </td>" + \
-                     "</tr>"
-    tree_html += '</tbody></table>'
+        tree_html += "<div class='validity_list_waiting' id='" + item_type + "__" + str(tree_item.id) + "__v'></div>"
+        # "<td class='validity_icon_waiting'></td>" + \
+        # "<td>" + item_type + ": " + tree_item.name + "</td>" + \
+        # "<td colspan=2>Pending ... </td>" + \
+        # "</tr>"
+    # tree_html += '</tbody></table>'
     return tree_html
 
 
@@ -129,12 +132,12 @@ def build_object_child_list(item):
 
     html = ""
     for child, child_type in child_list:
-        html += "<tr class='validity_list_waiting' id='" + child_type + "__" + str(child.id) + "__v'>" + \
-                "<td class='validity_icon_waiting'></td>" + \
-                "<td>" + child_type + ": " + child.name + "</td>" + \
-                "<td colspan=2>Pending ... </td>" + \
-                "</tr>"
-    return html
+        # html += "<tr class='validity_list_waiting' id='" + child_type + "__" + str(child.id) + "__v'>" + \
+        #         "<td>" + child_type + ": " + child.name + "</td></tr>"
+        html += "<div class='validity_list_waiting' id='" + child_type + "__" + str(child.id) + "__v'>" + \
+                child_type + " <i>" + child.name + "</i></div>"
+
+    return {'html': html, 'list_length': len(child_list)}
 
 
 # -------------------------------- PREVIEW FUNCTIONS FOR CELLML ITEMS ----------------------------
