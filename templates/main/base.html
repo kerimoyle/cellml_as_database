@@ -178,20 +178,20 @@
 
     {% block tabs %}
         <br>
-{#        <ul class="nav nav-tabs">#}
-{#            <li>#}
-{#                <a id="tab-summary" href="">Summary</a>#}
-{#            </li>#}
-{#            <li>#}
-{#                <a id="tab-locals" href="">Local attributes</a>#}
-{#            </li>#}
-{#            <li>#}
-{#                <a id="tab-links" href="">Linked attributes</a>#}
-{#            </li>#}
-{#            <li>#}
-{#                <a id="tab-validity" href="">Validity and checking</a>#}
-{#            </li>#}
-{#        </ul>#}
+        {#        <ul class="nav nav-tabs">#}
+        {#            <li>#}
+        {#                <a id="tab-summary" href="">Summary</a>#}
+        {#            </li>#}
+        {#            <li>#}
+        {#                <a id="tab-locals" href="">Local attributes</a>#}
+        {#            </li>#}
+        {#            <li>#}
+        {#                <a id="tab-links" href="">Linked attributes</a>#}
+        {#            </li>#}
+        {#            <li>#}
+        {#                <a id="tab-validity" href="">Validity and checking</a>#}
+        {#            </li>#}
+        {#        </ul>#}
         <!-- put this line at the end of the included tab file -->
         {#        <script>#}
         {#            $('#tab-outline').parent().addClass('in active');#}
@@ -218,6 +218,10 @@
                         </iframe>
                     </div>
                     <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" id="buttonSubmitID"
+                                onclick="document.getElementById('formModal_iframe').contentWindow.SubmitModalForm();">
+                            Do the thing
+                        </button>
                         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                     </div>
                 </div>
@@ -254,17 +258,23 @@
                     "bLengthChange": false, //thought this line could hide the LengthMenu
                     "bInfo": false,
                     "pageLength": 25
-                 });
+                });
             });
         {% endblock datatables %}
 
-        function LoadModalData(title, url) {
+        function LoadModalDataWithButton(title, url, button_text) {
             // Updating the source of the modal iframe data
             $('#formModalTitle').text(title);
+            $("#buttonSubmitID").text(button_text);
+
             let $iframe = $('#formModal_iframe');
             if ($iframe.length) {
                 $iframe.attr('src', url);
             }
+        }
+
+        function LoadModalData(title, url) {
+            LoadModalDataWithButton(title, url, "Submit");
         }
     </script>
 

@@ -201,7 +201,6 @@ def create(request, item_type, in_modal):
 
     form.helper = FormHelper()
     form.helper.form_method = 'post'
-    form.helper.add_input(Submit('submit', "Save"))
     form.helper.form_action = reverse('main:create', kwargs={'item_type': item_type})
 
     existing_items = item_model.model_class().objects.filter(Q(privacy="public") | Q(owner=person))
@@ -213,9 +212,10 @@ def create(request, item_type, in_modal):
         'menu': MENU_OPTIONS['create']
     }
     if in_modal:
-        form.helper.attrs = {'target': '_top'}
+        form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
         return render(request, 'main/form_modal.html', context)
     else:
+        form.helper.add_input(Submit('submit', "Save"))
         return render(request, 'main/create.html', context)
 
 
@@ -261,7 +261,6 @@ def create_unit(request, cu_id, in_modal):
 
     form.helper = FormHelper()
     form.helper.form_method = 'post'
-    form.helper.add_input(Submit('submit', "Save"))
     form.helper.form_action = reverse('main:create_unit', kwargs={'cu_id': cu_id, 'in_modal': in_modal})
 
     context = {
@@ -270,9 +269,10 @@ def create_unit(request, cu_id, in_modal):
         'menu': MENU_OPTIONS['create']
     }
     if in_modal:
-        form.helper.attrs = {'target': '_top'}
+        form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
         return render(request, 'main/form_modal.html', context)
     else:
+        form.helper.add_input(Submit('submit', "Save"))
         return render(request, 'main/create.html', context)
 
 
@@ -315,9 +315,9 @@ def copy(request, item_type, item_id):
 
     form = CopyForm()
     form.helper = FormHelper()
-    form.helper.attrs = {'target': '_top'}
+    form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
     form.helper.form_method = 'post'
-    form.helper.add_input(Submit('submit', "OK"))
+    # form.helper.add_input(Submit('submit', "OK"))
     form.helper.form_action = reverse('main:copy', kwargs={'item_type': item_type, 'item_id': item_id})
 
     context = {
@@ -370,9 +370,9 @@ def edit_locals(request, item_type, item_id):
 
         form.helper = FormHelper()
         form.helper.form_method = "POST"
-        form.helper.attrs = {'target': '_top'}  # Triggers reload of the parent page of this modal
+        form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}  # Triggers reload of the parent page of this modal
         form.helper.form_action = reverse('main:edit_locals', kwargs={'item_type': item_type, 'item_id': item_id})
-        form.helper.add_input(Submit('submit', 'Save'))
+        # form.helper.add_input(Submit('submit', 'Save'))
 
         context = {
             'item_type': item_type,
@@ -420,9 +420,9 @@ def edit_unit(request, item_id):
 
     form.helper = FormHelper()
     form.helper.form_method = "POST"
-    form.helper.attrs = {'target': '_top'}  # Triggers reload of the parent page of this modal
+    form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'} # Triggers reload of the parent page of this modal
     form.helper.form_action = reverse('main:edit_unit', kwargs={'item_id': item_id})
-    form.helper.add_input(Submit('submit', 'Save'))
+    # form.helper.add_input(Submit('submit', 'Save'))
 
     context = {
         'form': form,
@@ -499,8 +499,8 @@ def link_upstream(request, item_type, item_id, related_name):
     form.helper = FormHelper()
     form.helper.form_method = 'post'
     form.fields[related_name].queryset = r.related_model.objects.filter(owner=request.user.person)
-    form.helper.attrs = {'target': '_top'}
-    form.helper.add_input(Submit('submit', "Save"))
+    form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
+    # form.helper.add_input(Submit('submit', "Save"))
     form.helper.form_action = reverse('main:link_upstream',
                                       kwargs={'item_type': item_type, 'item_id': item_id, 'related_name': related_name})
 
@@ -573,8 +573,8 @@ def link_downstream(request, item_type, item_id, related_name):
 
     form.helper = FormHelper()
     form.helper.form_method = 'post'
-    form.helper.attrs = {'target': '_top'}
-    form.helper.add_input(Submit('submit', "Save"))
+    form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
+    # form.helper.add_input(Submit('submit', "Save"))
     form.helper.form_action = reverse('main:link_downstream',
                                       kwargs={'item_type': item_type, 'item_id': item_id, 'related_name': related_name})
 
@@ -684,9 +684,9 @@ def delete(request, item_type, item_id):
     form = DeleteForm()
     form.helper = FormHelper()
     form.helper.form_action = reverse('main:delete', kwargs={'item_type': item_type, 'item_id': item_id})
-    form.helper.attrs = {'target': '_top'}
+    form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
     form.helper.form_method = 'POST'
-    form.helper.add_input(Submit('submit', 'Yes, delete it'))
+    # form.helper.add_input(Submit('submit', 'Yes, delete it'))
 
     context = {
         'form': form,

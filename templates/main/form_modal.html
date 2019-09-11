@@ -15,3 +15,13 @@
         {% endif %}
     </div>
 {% endblock content %}
+
+
+{% block end_scripts %}
+    {{ block.super }}
+    <script>
+        function SubmitModalForm() {
+            $("#modal_form_id").submit();
+        }
+    </script>
+{% endblock %}
