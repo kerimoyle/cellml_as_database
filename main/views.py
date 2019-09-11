@@ -1,6 +1,7 @@
 import datetime
 
 import libcellml
+import pytz
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django.contrib import messages
@@ -14,11 +15,12 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
-from main.defines import MENU_OPTIONS
+from main.defines import MENU_OPTIONS, DISPLAY_DICT
 from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
-    get_upstream_fields, get_item_upstream_attributes, copy_item, \
-    delete_item, convert_to_cellml_model, get_downstream_fields, get_item_downstream_attributes, add_children
+    get_item_upstream_attributes, copy_item, \
+    delete_item, convert_to_cellml_model, get_item_downstream_attributes, draw_error_tree, draw_object_tree, \
+    add_child_errors, draw_error_branch, build_object_child_list, get_local_error_messages
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset
 from main.validate import VALIDATE_DICT
 
@@ -190,6 +192,7 @@ def create(request, item_type, in_modal):
         if form.is_valid():
             item = form.save()
             item.owner = person
+            item.child_list = build_object_child_list(item)
             item.save()
             return redirect(reverse('main:display',
                                     kwargs={'item_type': item_type, 'item_id': item.id}))
@@ -426,6 +429,17 @@ def edit_unit(request, item_id):
         'item': item
     }
     return render(request, 'main/form_modal.html', context)
+
+
+# @login_required
+# def link_compoundunit_factors(request, item_id):
+#     item = None
+#     try:
+#         item = CompoundUnit.objects.get(id=item_id)
+#     except Exception as e:
+#         messages.error(request, "Can't find CompoundUnit with id of '{}'".format(item_id))
+#         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+#         return redirect('main:error')
 
 
 @login_required
@@ -715,28 +729,54 @@ def display(request, item_type, item_id):
             i=item_type,
             f=item.owner.first_name,
             l=item.owner.last_name))
-
         return redirect('main:error')
 
-    upstream_fields = get_upstream_fields(item_model)
-    upstream = get_item_upstream_attributes(item, ['errors', 'owner', 'imported_from', 'annotations'])
+    # upstream_fields = get_upstream_fields(item_model)
+    # upstream = get_item_upstream_attributes(item, ['errors', 'owner', 'imported_from', 'annotations'])
+    #
+    # downstream_fields = get_downstream_fields(item_model, ['used_by'])
+    # downstream = get_item_downstream_attributes(item, ['used_by'])
 
-    downstream_fields = get_downstream_fields(item_model, ['used_by'])
-    downstream = get_item_downstream_attributes(item, ['used_by'])
+    local_attrs = get_item_local_attributes(item, ['cellml_index',
+                                                   'privacy',
+                                                   'error_tree',
+                                                   'child_list'])
 
-    local_attrs = get_item_local_attributes(item, ['notes', 'name', 'is_valid', 'last_checked', 'privacy'])
+    can_change_privacy = len(
+        get_item_upstream_attributes(item, ['errors', 'owner', 'imported_from', 'annotations'])
+    ) == 0
+
+    data = []
+    for tab in DISPLAY_DICT[item_type]['tabs']:
+        field = tab['field']
+        data.append((
+            field,
+            tab['obj_type'],
+            getattr(item, field).all(),
+            tab['title'],
+            tab['template']
+        ))
+
+    present_in = []
+    for tab in DISPLAY_DICT[item_type]['present_in']:
+        field = tab['field']
+        present_in.append((
+            field,
+            tab['obj_type'],
+            getattr(item, field),
+            tab['title']
+        ))
 
     context = {
         'item': item,
         'item_type': item_type,
-        'upstream_fields': upstream_fields,
+        'data': data,
+        'present_in': present_in,
+        'error_tree': None if item.error_tree is None else item.error_tree['tree_html'],
         'locals': local_attrs,
-        'upstream': upstream,
-        'downstream_fields': downstream_fields,
-        'downstream': downstream,
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
-        'can_change_privacy': len(upstream) == 0,
+        'can_change_privacy': can_change_privacy,
     }
     return render(request, 'main/display.html', context)
 
@@ -938,12 +978,13 @@ def upload(request):
             model.owner = request.user.person
             model.imported_from = None
             model.privacy = 'private'
+            model.child_list = build_object_child_list(model)
             model.save()
 
             # Delete the TemporaryStorage object, also deletes the uploaded file TODO Check what is wanted here?
             storage.delete()
 
-            return redirect(reverse('main:display', kwargs={'item_type': 'model', 'item_id': model.id}))
+            return redirect(reverse('main:display', kwargs={'item_type': 'cellmodel', 'item_id': model.id}))
 
         return redirect(reverse('main:error', kwargs={'message': "Did not receive POST request"}))
 
@@ -1201,7 +1242,7 @@ def show_errors(request, item_type, item_id):
 
     # TODO This is slow ...
     tree = []
-    tree = add_children(item, tree)
+    tree = add_child_errors(item, tree)
 
     context = {
         'item': item,
@@ -1244,17 +1285,15 @@ def validate(request, item_type, item_id):
     # Select the function to call from the dictionary
     is_valid = VALIDATE_DICT[item_type](item)
     item.is_valid = is_valid
-    item.last_checked = datetime.datetime.now()
+    item.last_checked = datetime.datetime.now(pytz.utc)
+
     item.save()
 
     errors = ""
     for e in item.errors.all():
         errors += "{}: {}<br>".format(e.spec, e.hints)
 
-    if item.is_valid:
-        style = "valid_item"
-    else:
-        style = "invalid_item"
+    style = "btn btn-secondary validity_banner_{}".format(item.is_valid)
 
     data = {
         'status': 200,
@@ -1262,6 +1301,109 @@ def validate(request, item_type, item_id):
         'last_checked': "{}".format(item.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
         'errors': errors,
         'fields': list(item.errors.all().values_list('fields', 'hints', 'spec'))
+    }
+
+    return JsonResponse(data)
+
+
+def ajax_validate(request):
+    """
+    :param request:
+    :param item_type: the name of the item type to be validated
+    :param item_id: the object id
+    :return:
+    """
+
+    item = None
+    item_type = request.GET.get('item_type')
+    item_id = request.GET.get('item_id')
+
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Could not get object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    # Select the function to call from the dictionary
+    is_valid = VALIDATE_DICT[item_type](item)
+    item.is_valid = is_valid
+    item.last_checked = datetime.datetime.now(pytz.utc)
+
+    style = "validity_list_{}".format(item.is_valid)
+    error_tree = get_local_error_messages(item)
+    item.error_tree = {'tree_html': error_tree}
+
+    item.child_list = build_object_child_list(item)
+
+    item.save()
+
+    data = {
+        'status': 200,
+        'style': style,
+        'html': error_tree
+    }
+
+    return JsonResponse(data)
+
+
+def ajax_get_validation_list(request, item_type, item_id):
+    item = None
+
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Could not get object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    tree = draw_object_tree(item)
+
+    data = {
+        'status': 200,
+        'tree': tree
+    }
+    return JsonResponse(data)
+
+
+def refresh_error_tree(request, item_type, item_id):
+    item = None
+
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Could not get object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    error_tree, error_count = draw_error_tree(item)
+    item.error_tree = {'tree_html': error_tree, 'error_count': error_count}
+    item.save()
+
+    data = {
+        'status': 200,
+        'tree_html': item.error_tree['tree_html'],
     }
 
     return JsonResponse(data)

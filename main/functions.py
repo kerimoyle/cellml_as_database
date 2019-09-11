@@ -6,19 +6,138 @@ from django.forms import modelform_factory
 from django.shortcuts import redirect
 
 from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Unit, \
-    Math, Prefix, Person, ItemError
+    Math, Prefix, Person
 
 
 # --------------------- PREVIEW FUNCTIONS -------------------------------------
 
-def add_children(parent, tree):
+def add_child_errors(parent, tree):
     children = get_item_downstream_attributes(parent)
     for child in children:
         tree.append((child[2],
                      type(child[2]).__name__.lower(),
                      child[2].errors.all()))
-        tree = add_children(child[2], tree)
+        tree = add_child_errors(child[2], tree)
     return tree
+
+
+def draw_error_tree(item):
+    tree = []
+    tree = add_child_errors(item, tree)
+    tree_html = '<table class ="display table" id="table-info" ><thead><tr><th>Specification reference</th>' \
+                '<th>Message</th><th>Go to item</th></tr></thead><tbody>'
+
+    for child_item, child_type, errors in tree:
+        for err in errors:
+            tree_html += "<tr>"
+            tree_html += "<td>" + err.spec + "</td>"
+            tree_html += "<td>" + err.hints + "</td>"
+            tree_html += "<td><a href = '/display/" + child_type + "/" + str(child_item.id) + "'>"
+            tree_html += "Open <i>" + child_item.name + "</i></a></td></tr>"
+
+    tree_html += '</tbody></table>'
+    return tree_html, len(tree)
+
+
+def draw_error_branch(item):
+    tree = []
+    tree = add_child_errors(item, tree)
+    tree_html = ""
+    for err in item.errors.all():
+        tree_html += "<tr class='validity_list_False'>" + \
+                     "<td class='validity_icon_False'></td>" + \
+                     "<td>" + err.spec + "</td>" + \
+                     "<td>" + err.hints + "</td>" + \
+                     "<td></td></tr>"
+
+    for child_item, child_type, errors in tree:
+        for err in errors:
+            # tree_html += "<tr>"
+            # tree_html += "<td>" + err.spec + "</td>"
+            # tree_html += "<td>" + err.hints + "</td>"
+            # tree_html += "<td><a href = '/display/" + child_type + "/" + str(child_item.id) + "'>"
+            # tree_html += "Open <i>" + child_item.name + "</i></a></td></tr>"
+
+            tree_html += "<tr class='validity_list_False'>" + \
+                         "<td class='validity_icon_False'></td>" + \
+                         "<td>" + err.spec + "</td>" + \
+                         "<td>" + err.hints + "</td>" + \
+                         "<td><a href = '/display/" + child_type + "/" + str(child_item.id) + "'>" + \
+                         "Open <i>" + child_item.name + "</i></a></td></tr>"
+
+    return tree_html, len(tree)
+
+
+def get_local_error_messages(item):
+    if item.errors.count() > 0:
+        html = "<tr class='validity_list_False'><td class='validity_icon_False'><a href='/display/" + type(
+            item).__name__.lower() + "/" + str(item.id) + \
+               "'></a></td><td>" + item.name + "</td>"
+        html += "<td>"
+        for err in item.errors.all():
+            html += err.spec + ": " + err.hints + "<br>"
+        html += "</td></tr>"
+    else:
+        html = "<tr class='validity_list_True'><td class='validity_icon_True'><a href='/display/" + type(
+            item).__name__.lower() + "/" + str(item.id) + \
+               "'></a></td><td>" + item.name + "</td>"
+        html += "<td>Item is valid</td></tr>"
+    return html
+
+
+# def draw_object_tree(item):
+#     tree = []
+#     tree = add_item_branches(item, tree)
+#     tree_html = '<ul id="ajax_todo_list" style="list-style-type: none;">'
+#
+#     for tree_item, item_type in tree:
+#         tree_html += "<li class='validity_list_waiting' id='" + item_type + "__" + str(tree_item.id) + "__v'>" \
+#                      + item_type + ": " + tree_item.name + "</li>"
+#     tree_html += '</ul>'
+#     return tree_html
+
+
+def draw_object_tree(item):
+    tree = []
+    tree = add_item_branches(item, tree)
+    tree_html = ""
+    # tree_html = '<table id="ajax_todo_list" class="datatables display table" style="width:100%;">'
+    # tree_html += "<thead><tr><th></th><th>Specification</th><th>Message</th><th>Link</th></thead>"
+    # tree_html += "<tbody id='todo_tbody_parent'>"
+
+    for tree_item, item_type in tree:
+        tree_html += "<div class='validity_list_waiting' id='" + item_type + "__" + str(tree_item.id) + "__v'></div>"
+        # "<td class='validity_icon_waiting'></td>" + \
+        # "<td>" + item_type + ": " + tree_item.name + "</td>" + \
+        # "<td colspan=2>Pending ... </td>" + \
+        # "</tr>"
+    # tree_html += '</tbody></table>'
+    return tree_html
+
+
+def add_item_branches(item, tree):
+    tree.append((item, type(item).__name__.lower()))
+    children = get_item_downstream_attributes(item)
+    for child in children:
+        tree.append((child[2],
+                     type(child[2]).__name__.lower()))
+        tree = add_item_branches(child[2], tree)
+    return tree
+
+
+def build_object_child_list(item):
+    child_list = []
+    child_list = add_item_branches(item, child_list)
+    child_list = set(child_list)
+
+    html = ""
+    for child, child_type in child_list:
+        # html += "<tr class='validity_list_waiting' id='" + child_type + "__" + str(child.id) + "__v'>" + \
+        #         "<td>" + child_type + ": " + child.name + "</td></tr>"
+        html += "<div class='validity_list_waiting' id='" + child_type + "__" + str(child.id) + "__v'>" + \
+                child_type + " <i>" + child.name + "</i></div>"
+
+    return {'html': html, 'list_length': len(child_list)}
 
 
 # -------------------------------- PREVIEW FUNCTIONS FOR CELLML ITEMS ----------------------------
@@ -151,24 +270,21 @@ def load_model(in_model, owner):
                 if u is not None:
                     # Then is built-in unit
                     variable.compoundunit = u
-                    break
-
-                u = CompoundUnit.objects.filter(name=in_units, models=model).first()
-                if u is not None:
-                    variable.compoundunit = u
-
                 else:
-                    # Then is new base unit.  Create compound unit with no downstream
-                    u_new = CompoundUnit(
-                        name=in_units,
-                        symbol=in_units,
-                        is_standard=False,
-                        owner=owner,
-                    )
-                    u_new.save()
-                    u_new.models.add(model)
-                    variable.save()
-                    u_new.variables.add(variable)
+                    u = CompoundUnit.objects.filter(name=in_units, models=model).first()
+                    if u is not None:
+                        variable.compoundunit = u
+                    else:
+                        # Then is new base unit.  Create compound unit with no downstream
+                        u_new = CompoundUnit(
+                            name=in_units,
+                            symbol=in_units,
+                            is_standard=False,
+                            owner=owner,
+                        )
+                        u_new.save()
+                        u_new.models.add(model)
+                        variable.compoundunit = u_new
             else:
                 variable.compoundunit = model.compoundunits.filter(name=in_units.name()).first()
 
@@ -242,15 +358,15 @@ def load_component(index, in_model, model, owner):
         math.components.add(out_component)
 
     # Load errors from this component
-    error_count = in_component.errorCount()
-    for i in range(0, error_count):
-        e = in_component.errors(i)
-        err = ItemError(
-            hints=e.description(),
-            spec=e.specificationHeading(),
-        )
-        err.save()
-        out_component.errors.add(err)
+    # error_count = in_component.errorCount()
+    # for i in range(0, error_count):
+    #     e = in_component.errors(i)
+    #     err = ItemError(
+    #         hints=e.description(),
+    #         spec=e.specificationHeading(),
+    #     )
+    #     err.save()
+    #     out_component.errors.add(err)
 
     return
 
@@ -278,15 +394,15 @@ def load_compound_units(index, in_model, model, owner):
     out_compound_units.save()
 
     # Load errors from this component
-    error_count = in_units.errorCount()
-    for i in range(0, error_count):
-        e = in_units.errors(i)
-        err = ItemError(
-            hints=e.description(),
-            spec=e.specificationHeading(),
-        )
-        err.save()
-        out_compound_units.errors.add(err)
+    # error_count = in_units.errorCount()
+    # for i in range(0, error_count):
+    #     e = in_units.errors(i)
+    #     err = ItemError(
+    #         hints=e.description(),
+    #         spec=e.specificationHeading(),
+    #     )
+    #     err.save()
+    #     out_compound_units.errors.add(err)
 
     out_compound_units.models.add(model)
 
@@ -375,15 +491,16 @@ def load_variable(index, in_component, out_component, owner):
     out_variable.save()
 
     # Load errors from this variable
-    error_count = in_variable.errorCount()
-    for i in range(0, error_count):
-        e = in_variable.errors(i)
-        err = ItemError(
-            hints=e.description(),
-            spec=e.specificationHeading(),
-        )
-        err.save()
-        out_variable.errors.add(err)
+    # TODO no idea why this isn't working anymore?
+    # error_count = in_variable.errorCount()
+    # for i in range(0, error_count):
+    #     e = in_variable.errors(i)
+    #     err = ItemError(
+    #         hints=e.description(),
+    #         spec=e.specificationHeading(),
+    #     )
+    #     err.save()
+    #     out_variable.errors.add(err)
     return
 
 
@@ -413,15 +530,15 @@ def load_reset(index, in_component, out_component, owner):
     out_reset.save()
 
     # Load errors from this reset
-    error_count = in_reset.errorCount()
-    for i in range(0, error_count):
-        e = in_reset.errors(i)
-        err = ItemError(
-            hints=e.description(),
-            spec=e.specificationHeading(),
-        )
-        err.save()
-        out_reset.errors.add(err)
+    # error_count = in_reset.errorCount()
+    # for i in range(0, error_count):
+    #     e = in_reset.errors(i)
+    #     err = ItemError(
+    #         hints=e.description(),
+    #         spec=e.specificationHeading(),
+    #     )
+    #     err.save()
+    #     out_reset.errors.add(err)
 
 
 # -------------------------------- CONVERSION FUNCTIONS ---------------------------------

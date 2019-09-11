@@ -1,254 +1,153 @@
 {% extends 'main/base.html' %}
 {% load crispy_forms_tags %}
+{% load foe_tags %}
 
 {% block title %}{{ item_type }} <b>{{ item.name }}</b>{% endblock title %}
 
 {% block todo %}{% endblock todo %}
 
-{% block content %}
 
-    <div class="row">
-        <div class="col-md-4">
-            <div class="row">
-                <div class="col-sm-6">
-                    <h3>Upstream</h3>
-                </div>
-                {% if can_edit %}
-                    <div class="col-sm-6 button_bar" style="padding-top:15px;">
-                        <div class="dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
-                                <i class="fa fa-chain"></i> Add link to ...
-                                <span class="caret"></span></button>
-                            <ul class="dropdown-menu dropdown-menu-right">
-                                {% for r in upstream_fields %}
-                                    <li>
-                                        <a onclick="LoadModalData('Create link',
-                                                '{% url 'main:link_upstream' item_type=item_type item_id=item.id related_name=r %}'
-                                                );"
-                                           data-toggle="modal"
-                                           data-target="#formModal"
-                                           style="text-decoration: none;">
-                                            {{ r }}
-                                        </a>
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    </div>
-                {% endif %}
-            </div>
-            <p class="info">
-                <b>Upstream</b> relationships link to items which could be thought to own this current item. They are
-                the container for the current item. You can change upstream links to this item here, but to change the
-                upstream item itself you will need to go to its homepage.<br>
-                Clicking on a row in the table below will open the detailed description page for
-                each of the related items. To remove an external connection, click the delete button on that row. To
-                add a new connection, click the <b>Add link to</b> button.
-            </p>
-            <table class="datatables display table table-hover" id="table-connections">
-                <thead>
-                <tr>
-                    <th>Type</th>
-                    <th>Name</th>
-                    <th>Owner</th>
-                    {% if can_edit %}
+{% block tabs %}
+    {{ block.super }}
+    <ul class="nav nav-tabs">
+        <li class="active"><a data-toggle="tab" href="#tab_information">Summary</a></li>
+        <li><a data-toggle="tab" href="#tab_validity">Validity and checking</a></li>
+        {% for field, obj_type, objs, title, template in data %}
+            <li><a data-toggle="tab" href="#tab_{{ field }}">{{ title }}</a></li>
+        {% endfor %}
+    </ul>
+{% endblock tabs %}
+
+
+{% block content %}
+    <div class="tab-content">
+        <div id="tab_information" class="tab-pane fade in active">
+            <br>
+
+            <div class="col-md-12">
+                <table class="datatables display table" id="table-information">
+                    <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Value</th>
                         <th></th>
-                    {% endif %}
-                </tr>
-                </thead>
-                <tbody class="rowlink" data-link="row">
-                {% for field, type, obj in upstream %}
-                    {% if obj %}
+                    </tr>
+                    </thead>
+                    <tbody>
+
+                    {% for field, obj in locals %}
                         <tr>
-                            <td>
-                                <a href="{% url 'main:display' item_type=type item_id=obj.id %}"></a>
-                                {{ field }}
-                            </td>
-                            <td>{{ obj }}</td>
-                            <td>{{ obj.owner }}</td>
-                            {% if can_edit %}
-                                <td class="rowlink-skip">
-                                    <a onclick="Unlink('{{ field }}','{{ obj.id }}');">Unlink</a>
+                            <td>{{ field }}</td>
+                            {% if obj is not None %}
+                                <td>
+                                    {{ obj }}
+                                </td>
+                                <td>
+                                    {% for e in obj.errors.all %}
+                                        {{ e }}
+                                    {% endfor %}
+                                </td>
+                            {% else %}
+                                <td colspan="2">
+                                    <p class="empty">None</p>
                                 </td>
                             {% endif %}
                         </tr>
-                    {% else %}
-                        <tr>
-                            <td>
-                                {{ field }}
-                            </td>
-                            <td class="empty">Not connected to any {{ field }} items</td>
-                            <td></td>
-                        </tr>
-                    {% endif %}
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                    {% endfor %}
 
-
-        <div class="col-md-4">
-            <div class="row">
-                <div class="col-sm-3">
-                    <h3>Validity</h3>
-                </div>
-                <div class="col-sm-9 button_bar">
-                    <button id="check_validity" class="btn btn-default">
-                        <i class="fa fa-refresh"></i> Check again
-                    </button>
-
-                    <a href="{% url 'main:show_errors' item_type=item_type item_id=item.id %}">
-                        <button class="btn btn-default">
-                            <i class="fa fa-list"></i> Show TODO list
-                        </button>
-                    </a>
-                </div>
-
-                <div class="col-sm-12">
-                    <b>Last checked:</b> <span id="last_checked">{{ item.last_checked }}</span>
-                    <div id="validity_div" class="validity_{{ item.is_valid }}">
-                        <div id="errors">
-                            {% for e in item.errors.all %}
-                                {{ e.spec }}: {{ e.hints|safe }}<br>
-                            {% empty %}
-                                There are no local validation errors, but downstream entities contain errors.  Use the
-                                <i>Show TODO list</i> to see them.
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-sm-12">
-                    <h3>Information</h3>
-                </div>
-            </div>
-
-            <p class="info"><b>Local</b> attributes are those specifically owned by this type of object, ie:
-                the {{ item_type }}.
-                These are distinct from links or connections to other objects, which are shown in the
-                other columns. You can edit the local attributes of any items which you own by clicking the <b>Edit</b>
-                button at the bottom of the list.<br><br>
-                If you need to edit the local attributes of an item which you don't own, you will need to first create
-                your own copy using the <b>Send to my library</b> button.
-            </p>
-            {% if item.notes %}<p>{{ item.notes|linebreaks }}</p>{% endif %}
-
-            <table class="datatables display table" id="table-attributes">
-                <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Value</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for field, obj in locals %}
                     <tr>
-                        <td>{{ field }}</td>
-                        <td>
-                            {% if obj %}{{ obj }}
-                            {% else %}<p class="empty">None</p>
+                        <td>owner</td>
+                        <td colspan="2">
+                            {% if item.owner %}{{ item.owner|title }}
+                            {% else %}
+                                <p class="empty">None</p>
                             {% endif %}
                         </td>
                     </tr>
-                {% endfor %}
-                <tr>
-                    <td>owner</td>
-                    <td>
-                        {% if item.owner %}{{ item.owner|title }}
-                        {% else %}
-                            <p class="empty">None</p>
-                        {% endif %}
-                    </td>
-                </tr>
-                <tr>
-                    <td>provenance</td>
-                    <td>
-                        {% if item.imported_from %}{{ item.imported_from }}
-                        {% else %}
-                            <p class="empty">None</p>
-                        {% endif %}
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="col-md-4">
-            <div class="row">
-                <div class="col-sm-6">
-                    <h3>Downstream</h3>
-                </div>
-                {% if can_edit %}
-                    <div class="col-sm-6 button_bar" style="padding-top:15px;">
-                        <div class="dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
-                                <i class="fa fa-chain"></i> Add link to ...
-                                <span class="caret"></span></button>
-                            <ul class="dropdown-menu dropdown-menu-right">
-                                {% for r in downstream_fields %}
-                                    <li>
-                                        <a onclick="LoadModalData('Create link',
-                                                '{% url 'main:link_downstream' item_type=item_type item_id=item.id related_name=r %}'
-                                                );"
-                                           data-toggle="modal"
-                                           data-target="#formModal"
-                                           style="text-decoration: none;">
-                                            {{ r }}
-                                        </a>
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    </div>
-                {% endif %}
-            </div>
-            <p class="info">
-                <b>Downstream</b> items are the children or depenedants of the current item. Clicking on a row in the
-                table below will open the detailed description page for each of the related items. To remove an
-                external connection, click the <b>Unlink</b> button on that row. To add a new connection, click the
-                <b>Add link to</b> button.
-            </p>
-            <table class="datatables display table table-hover" id="table-connections">
-                <thead>
-                <tr>
-                    <th>Type</th>
-                    <th>Name</th>
-                    <th>Owner</th>
-                    {% if can_edit %}
-                        <th></th>
-                    {% endif %}
-                </tr>
-                </thead>
-                <tbody class="rowlink" data-link="row">
-                {% for field, type, obj in downstream %}
-                    {% if obj %}
-                        <tr>
-                            <td>
-                                <a href="{% url 'main:display' item_type=type item_id=obj.id %}"></a>
-                                {{ field }}
-                            </td>
-                            <td>{{ obj }}</td>
-                            <td>{{ obj.owner }}</td>
-                            {% if can_edit %}
-                                <td class="rowlink-skip">
-                                    <a onclick="Unlink('{{ field }}','{{ obj.id }}');">Unlink</a>
-                                </td>
+                    <tr>
+                        <td>provenance</td>
+                        <td colspan="2">
+                            {% if item.imported_from %}{{ item.imported_from }}
+                            {% else %}
+                                <p class="empty">None</p>
                             {% endif %}
-                        </tr>
-                    {% else %}
-                        <tr>
+                        </td>
+                    </tr>
+
+                    {% for field_name, obj_type, objs, title in present_in %}
+                        <tr class="validity_{{ obj.is_valid }}">
                             <td>
-                                {{ field }}
+                                {{ title|lower }}
                             </td>
-                            <td class="empty">Not connected to any {{ field }} items</td>
-                            <td></td>
+                            <td colspan="2">
+                                {% for obj in objs.all %}
+                                    <a href="{% url 'main:display' item_type=obj_type item_id=obj.id %}">
+                                        <div class="validity_{{ obj.is_valid }}">
+                                            {{ obj.name }}
+                                        </div>
+                                    </a>
+                                {% empty %}
+                                    <p class="empty">None</p>
+                                {% endfor %}
+                            </td>
                         </tr>
-                    {% endif %}
-                {% endfor %}
-                </tbody>
-            </table>
+                    {% endfor %}
+
+                    </tbody>
+                </table>
+            </div>
         </div>
+
+        <div id="tab_validity" class="tab-pane fade">
+            <div class="button_bar">
+                <button id="validity_div" class="btn btn-secondary validity_banner_{{ item.is_valid }}">
+                    <span id="status_span"><b>Last checked: </b>{{ item.last_checked }}</span>
+                </button>
+
+                <button id="check_validity" class="btn btn-default">
+                    <i class="fa fa-refresh"></i> Check validity
+                </button>
+            </div>
+            <br>
+
+            <div class="col-md-12">
+                <div id="progress_holder_id" class="progress hidden">
+                    <div id="progress_bar_id" class="progress-bar" role="progressbar" style="width: 0;"
+                         aria-valuenow="0"
+                         aria-valuemin="0"
+                         aria-valuemax="{{ item.child_list.list_length }}">
+                        0%
+                    </div>
+                </div>
+
+                <div id="todo_count"></div>
+                <table class="display table">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>Item</th>
+                        <th>Message</th>
+                    </tr>
+                    </thead>
+                    <tbody class="rowlink" data-link="row" id="todolist">
+                    {% if error_tree %}
+                        {{ error_tree|safe }}
+                    {% else %}
+                        <p class="empty">No downstream errors found</p>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="hidden" id="checklist">
+                {{ item.child_list.html|safe }}
+            </div>
+
+        </div>
+
+        {% for field_name, obj_type, objs, title, template in data %}
+            {% include template with field_name=field_name obj_type=obj_type objs=objs title=title %}
+        {% endfor %}
     </div>
 
     <form id="unlink_form" action="{% url 'main:link_remove' %}" method="POST" hidden>
@@ -258,41 +157,121 @@
         <input type="text" name="unlink_related_name" id="unlink_related_name" value="">
         <input type="text" name="unlink_related_id" id="unlink_related_id" value="">
     </form>
-
     <form id="privacy_form" action="{% url 'main:set_privacy' %}" method='POST' hidden>
         {% csrf_token %}
         <input type="text" name="item_type" id="item_type" value="">
         <input type="text" name="item_id" id="item_id" value="">
         <input type="text" name="privacy_level" id="privacy_level" value="">
     </form>
-
-
 {% endblock content %}
+
 
 {% block end_scripts %}
     {{ block.super }}
+    {% block datatables %}{% endblock datatables %}
     <script>
+        let processed_count = 0;
+
         $(document).ready(function () {
-            $('#table-attributes_filter').css('display', 'none');
-            $('#table-attributes_paginate').css('display', 'none');
-            $('#table-information_filter').css('display', 'none');
-            $('#table-information_paginate').css('display', 'none');
-            $('#table-connections_filter').css('width', '100%');
 
             $("#check_validity").click(function (e) {
                 e.preventDefault();
-                $.ajax({
-                    url: "/validate/{{ item_type }}/{{ item.id }}",
+
+                // Populate check list
+                $('#checklist').children().addClass('validity_list_waiting');
+
+                // Clear the todolist
+                $('#todolist').html("");
+                $('#validity_div').removeClass().addClass('btn btn-secondary');
+
+                if (confirm("Really check {{ item.child_list.list_length }} items?")) {
+                    processed_count = 0;
+                    // Reset the progress bar
+                    $('#progress_holder_id').removeClass("hidden");
+                    $('#progress_bar_id').width("0%");
+                    $('#status_span').html("<b>Checking now ... </b>");
+                    ProcessCheckList();
+                }
+            });
+        });
+
+
+        function ProcessCheckList() {
+            // jQuery on an empty object, we are going to use this as our Queue
+            let ajaxQueue = $({});
+            $.ajaxQueue = function (ajaxOpts) {
+                let jqXHR,
+                    dfd = $.Deferred(),
+                    promise = dfd.promise();
+                ajaxQueue.queue(doRequest);
+                promise.abort = function (statusText) {
+                    if (jqXHR) {
+                        return jqXHR.abort(statusText);
+                    }
+                    let queue = ajaxQueue.queue(),
+                        index = $.inArray(doRequest, queue);
+                    if (index > -1) {
+                        queue.splice(index, 1);
+                    }
+                    dfd.rejectWith(ajaxOpts.context || ajaxOpts,
+                        [promise, statusText, ""]);
+                    return promise;
+                };
+
+                function doRequest(next) {
+                    jqXHR = $.ajax(ajaxOpts)
+                        .then(next, next)
+                        .done(dfd.resolve)
+                        .fail(dfd.reject);
+                }
+
+                return promise;
+            };
+
+            $(".validity_list_waiting").each(function (e) {
+
+                let my_split = $(this).attr('id').split('__');
+                $.ajaxQueue({
+                    url: '/ajax_validate/',
+                    data: {
+                        item_type: my_split[0],
+                        item_id: my_split[1],
+                    },
+                    type: 'GET',
+                    context: this,
                     success: function (data) {
-                        $('#validity_div').removeClass().addClass(data['style']);
-                        $('#last_checked').text(data['last_checked']);
-                        $('#errors').html(data['errors']);
+                        processed_count = processed_count + 1;
+                        $(this).removeClass("validity_list_waiting").addClass(data['style']);
+                        $(this).html("");
+
+                        let percentage = String(Math.floor(
+                            processed_count * 100 / {{ item.child_list.list_length }}
+                        )) + "%";
+
+                        $('#progress_bar_id').width(percentage).text(percentage);
+                        $('#todolist').prepend(data['html']);
+
+                        // Check whether this was the last one
+                        let to_check = $('.validity_list_waiting').length;
+                        let to_do = $('.validity_list_False').length;
+
+                        $('#todo_count').text(to_do + " items to fix");
+
+                        if (to_check === 0) {
+                            // Remove the valid items from the todo list and leave only the errors
+                            $('.validity_list_True').fadeOut();
+                            // Update the status
+                            if (to_do === 0) {
+                                $("#validity_div").addClass('validity_banner_True');
+                            } else {
+                                $("#validity_div").addClass('validity_banner_False');
+                            }
+                            $('#status_span').text("Done!");
+                        }
                     }
                 });
             });
-
-
-        });
+        }
 
         function Unlink(related_name, related_id) {
             $('input[name="unlink_item_type"]').val("{{ item_type }}");
@@ -315,7 +294,7 @@
             $('input[name="privacy_level"]').val("public");
             $("form#privacy_form ").submit();
         }
+
+
     </script>
-
-
 {% endblock end_scripts %}

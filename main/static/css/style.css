@@ -4,33 +4,9 @@ body {
 }
 
 h1, h2, h3, h4 {
-    /*color: #2f557b;;*/
-    color: #600000;
+    color: #2f557b;
+    /*color: #600000;*/
 }
-
-
-/*.btn-primary {*/
-/*    background-color: #888888;*/
-/*    border: none;*/
-/*    color:white;*/
-/*}*/
-
-/*.btn-primary:hover {*/
-/*    background-color: #666666;*/
-/*    border: none;*/
-
-/*}*/
-
-/*.btn-default {*/
-/*    background-color: #888888;*/
-/*    border: none;*/
-/*    color:white;*/
-/*}*/
-
-/*.btn-default:hover {*/
-/*    background-color: #666666;*/
-/*    border: none;*/
-/*}*/
 
 iframe {
     border: 0;
@@ -133,6 +109,12 @@ iframe {
     text-align: center;
 }
 
+.symbol {
+    font-family: "Times New Roman";
+    font-style: italic;
+    font-size: larger;
+}
+
 .success {
     background-color: #dbf1cf;
     color: darkgreen;
@@ -161,28 +143,110 @@ iframe {
     color: #12490f;
 }
 
-.validity_True {
-    padding:5px;
-    background-color: #dbf0cb;
-    color: #12490f;
+.validity_None {
+    padding: 5px;
+    background-color: #ecebe8;
+    color: #543200;
 }
 
 .validity_False {
     color: darkred;
     background-color: #ecebe8;
-    padding:5px;
+    padding: 5px;
+}
+
+.validity_True {
+    /*color: darkred;*/
+    /*background-color: #ecebe8;*/
+    padding: 5px;
+}
+
+.validity_banner_True {
+    background-color: #dbf0cb;
+    color: #12490f;
+    padding: 5px;
+}
+
+.validity_banner_True::before {
+    content: "\f00c  ";
+    font-family: FontAwesome;
+    font-size: large;
+}
+
+.validity_banner_False {
+    color: darkred;
+    background-color: #ecebe8;
+}
+
+.validity_banner_False::before {
+    content: "\f00d  ";
+    font-family: FontAwesome;
+    /*font-size: large;*/
+}
+
+.validity_banner_False:hover {
+}
+
+.validity_list_True {
+    color: #12490f;
+}
+
+.validity_list_False {
+    color: darkred;
+    padding: 10px;
+}
+
+/*.validity_list_waiting {*/
+/*    color: #999999;*/
+/*    padding: 10px;*/
+/*    width: 100%;*/
+/*}*/
+
+/*.validity_list_waiting::before {*/
+/*    font-family: FontAwesome;*/
+/*    content: '\f017';*/
+/*}*/
+
+/*.validity_icon_waiting {*/
+/*    font-family: FontAwesome;*/
+/*    content: '\f017';*/
+/*}*/
+
+.validity_icon_True {
+    font-style: normal;
+    content: "\f00c";
+    font-family: FontAwesome;
+}
+
+.validity_icon_False {
+    font-style: normal;
+    font-family: FontAwesome;
+    content: '\f12a';
+}
+
+
+.validity_list_processing {
+    color: white;
+    background-color: -moz-mac-accentdarkshadow;
+    padding: 3px;
+}
+
+.validity_list_processing:before {
+    content: "->"
 }
 
 
 /* ----------------- NAVIGATION BAR STUFF -------------------- */
 
 .nav-style {
-    background-color: #600000;
+    /*background-color: #600000;*/
+    background-color: #2f557b;
 
 }
 
 .navbar-default {
-    background-color: #600000;
+    /*background-color: #600000;*/
+    background-color: #2f557b;
     border: 0;
     padding-right: 15px;
 }

@@ -7,6 +7,10 @@ urlpatterns = [
     path('error/', views.error, name='error'),
 
     # Alphabetical order of views
+    path('ajax_validate/', views.ajax_validate, name='ajax_validate'),
+
+    path('ajax_get_validation_list/<item_type>/<int:item_id>/', views.ajax_get_validation_list,
+         name='ajax_get_validation_list'),
     path('browse/<item_type>/', views.browse, name='browse'),
 
     path('copy/<item_type>/<int:item_id>/', views.copy, name='copy'),
@@ -16,10 +20,10 @@ urlpatterns = [
     path('create/<item_type>/', views.create, name='create', kwargs={'in_modal': False}),
 
     path('delete/<item_type>/<int:item_id>/', views.delete, name='delete'),
-    path('display/cellmodel/<int:item_id>/', views.display_model, name='display_model'),  # aliased ...
-    path('display/compoundunit/<int:item_id>/', views.display_compoundunit, name='display_compoundunit'),  # aliased ...
+    # path('display/cellmodel/<int:item_id>/', views.display_model, name='display_model'),  # aliased ...
+    # path('display/compoundunit/<int:item_id>/', views.display_compoundunit, name='display_compoundunit'),  # aliased ...
     path('display/math/<int:item_id>/', views.display_math, name='display_math'),
-    path('display/model/<int:item_id>/', views.display_model, name='display_model'),
+    # path('display/model/<int:item_id>/', views.display_model, name='display_model'),
     path('display/reset/<int:item_id>/', views.display_reset, name='display_reset'),
     path('display/temporarystorage/<int:item_id>/', views.display_storage, name='display_storage'),
     path('display/<item_type>/<int:item_id>/', views.display, name='display'),
@@ -39,6 +43,7 @@ urlpatterns = [
     path('logout_view/', views.logout_view, name='logout_view'),
 
     path('register/', views.register, name='register'),
+    path('refresh_error_tree/<item_type>/<int:item_id>/', views.refresh_error_tree, name='refresh_error_tree'),
 
     path('set_privacy/', views.set_privacy, name='set_privacy'),
     path('show_errors/<item_type>/<int:item_id>/', views.show_errors, name='show_errors'),
