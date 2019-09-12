@@ -156,8 +156,8 @@ iframe {
 }
 
 .validity_True {
-    /*color: darkred;*/
-    /*background-color: #ecebe8;*/
+    /*background-color: #effaeb;*/
+    /*color: #12490f;*/
     padding: 5px;
 }
 
@@ -212,16 +212,18 @@ iframe {
 /*    content: '\f017';*/
 /*}*/
 
-.validity_icon_True {
+.validity_icon_True::after {
     font-style: normal;
     content: "\f00c";
     font-family: FontAwesome;
+    color:darkgreen;
 }
 
-.validity_icon_False {
+.validity_icon_False::after {
     font-style: normal;
     font-family: FontAwesome;
     content: '\f12a';
+    color: darkred;
 }
 
 

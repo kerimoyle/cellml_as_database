@@ -146,7 +146,7 @@ class DownstreamLinkForm(forms.Form):
         item = item_model.get_object_for_this_type(id=item_id)
 
         queryset = downstream_model.get_all_objects_for_this_type()
-        queryset = queryset.exclude(id__in=getattr(item, "{}s".format(downstream_type)).all())
+        queryset = queryset.exclude(id__in=getattr(item, "{}s".format(downstream_type)).all()).order_by('name')
 
         super(DownstreamLinkForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()

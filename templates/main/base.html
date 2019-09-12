@@ -178,25 +178,6 @@
 
     {% block tabs %}
         <br>
-        {#        <ul class="nav nav-tabs">#}
-        {#            <li>#}
-        {#                <a id="tab-summary" href="">Summary</a>#}
-        {#            </li>#}
-        {#            <li>#}
-        {#                <a id="tab-locals" href="">Local attributes</a>#}
-        {#            </li>#}
-        {#            <li>#}
-        {#                <a id="tab-links" href="">Linked attributes</a>#}
-        {#            </li>#}
-        {#            <li>#}
-        {#                <a id="tab-validity" href="">Validity and checking</a>#}
-        {#            </li>#}
-        {#        </ul>#}
-        <!-- put this line at the end of the included tab file -->
-        {#        <script>#}
-        {#            $('#tab-outline').parent().addClass('in active');#}
-        {#        </script>#}
-
     {% endblock tabs %}
 
     {% block content %}{% endblock content %}
@@ -262,29 +243,6 @@
             });
         {% endblock datatables %}
 
-
-        {#$(document).ready(function () {#}
-        {#    alert(location.hash);#}
-        {#    if (location.hash !== '') {#}
-        {#        $('a[href="' + location.hash + '"]').tab('show');#}
-        {#        alert("showing tab");#}
-        {#    }#}
-        {##}
-        {##}
-        {#    // remember the hash in the URL without jumping#}
-        {#    $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {#}
-        {##}
-        {#        alert(1);#}
-        {##}
-        {#        if (history.pushState) {#}
-        {#            history.pushState(null, null, '#' + $(e.target).attr('href').substr(1));#}
-        {#            alert(3);#}
-        {#        } else {#}
-        {#            alert("2");#}
-        {#            location.hash = '#' + $(e.target).attr('href').substr(1);#}
-        {#        }#}
-        {#    });#}
-        {# });#}
 
         $(document).ready(function() {
             // show active tab on reload
