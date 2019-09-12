@@ -370,7 +370,8 @@ def edit_locals(request, item_type, item_id):
 
         form.helper = FormHelper()
         form.helper.form_method = "POST"
-        form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}  # Triggers reload of the parent page of this modal
+        form.helper.attrs = {'target': '_top',
+                             'id': 'modal_form_id'}  # Triggers reload of the parent page of this modal
         form.helper.form_action = reverse('main:edit_locals', kwargs={'item_type': item_type, 'item_id': item_id})
         # form.helper.add_input(Submit('submit', 'Save'))
 
@@ -420,7 +421,7 @@ def edit_unit(request, item_id):
 
     form.helper = FormHelper()
     form.helper.form_method = "POST"
-    form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'} # Triggers reload of the parent page of this modal
+    form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}  # Triggers reload of the parent page of this modal
     form.helper.form_action = reverse('main:edit_unit', kwargs={'item_id': item_id})
     # form.helper.add_input(Submit('submit', 'Save'))
 
@@ -569,16 +570,15 @@ def link_downstream(request, item_type, item_id, related_name):
                                     kwargs={'item_type': item_type,
                                             'item_id': item.id}))
     else:
-        form = DownstreamLinkForm(item_type=item_type, item_id=item_id, parent_type=parent_type)
+        form = DownstreamLinkForm(item_type=item_type,
+                                  item_id=item_id,
+                                  parent_type=parent_type)
 
     form.helper = FormHelper()
     form.helper.form_method = 'post'
     form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
-    # form.helper.add_input(Submit('submit', "Save"))
     form.helper.form_action = reverse('main:link_downstream',
                                       kwargs={'item_type': item_type, 'item_id': item_id, 'related_name': related_name})
-
-    # Want to have levels of suggestion and ability to search the queryset passed.
 
     context = {
         'item_type': item_type,
