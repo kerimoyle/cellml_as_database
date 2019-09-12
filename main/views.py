@@ -797,9 +797,12 @@ def display(request, item_type, item_id):
                                                    'error_tree',
                                                    'child_list'])
     local_fields = []
+    skip_fields = ['is_valid', 'last_checked']
     for local in local_attrs:
         errs = item.errors.filter(fields__icontains=local[0])
-        local_fields.append((local[0], local[1], errs))
+        validity = None if local[0] in skip_fields else errs.count() == 0
+
+        local_fields.append((local[0], local[1], errs, validity))
 
     can_change_privacy = len(
         get_item_upstream_attributes(item, ['errors', 'owner', 'imported_from', 'annotations'])

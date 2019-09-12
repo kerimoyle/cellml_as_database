@@ -145,13 +145,13 @@ iframe {
 
 .validity_None {
     padding: 5px;
-    background-color: #ecebe8;
-    color: #543200;
+    /*background-color: #ecebe8;*/
+    color: #2f3b4b;
 }
 
 .validity_False {
     color: darkred;
-    background-color: #ecebe8;
+    background-color: #ecd7de;
     padding: 5px;
 }
 

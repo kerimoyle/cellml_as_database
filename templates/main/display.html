@@ -35,30 +35,23 @@
                     </thead>
 
                     <tbody class="rowlink" data-link="row">
-                    {% for field, obj, errors in locals %}
-                        <tr class="validity_{{ errors|length_is:0 }}">
+                    {% for field, obj, errors, validity in locals %}
+                        <tr class="validity_{{ validity }}">
                             <td>
-                                <a onclick="LoadModalData(
-                                            'Edit {{ field }}',
-                                            '{% url 'main:edit_field' item_type=item_type item_id=item.id item_field=field %}'
-                                            );"
-                                       data-toggle="modal"
-                                       data-target="#formModal"></a>
-                                <span class="validity_icon_{{ errors|length_is:0 }}"></span></td>
-                            <td>{{ field }}</td>
-                            <td>{{ obj }}</td>
-                            <td>
-                                {% for e in errors %}
-                                    {{ e.hints|safe }}&nbsp;&nbsp;
+                                {% if validity != None %}
                                     <a onclick="LoadModalData(
                                             'Edit {{ field }}',
                                             '{% url 'main:edit_field' item_type=item_type item_id=item.id item_field=field %}'
                                             );"
                                        data-toggle="modal"
-                                       data-target="#formModal"
-                                       style="text-decoration:none;"> Fix it
-                                    </a>
-                                    <br>
+                                       data-target="#formModal"></a>
+                                {% endif %}
+                                <span class="validity_icon_{{ validity }}"></span></td>
+                            <td>{{ field }}</td>
+                            <td>{{ obj }}</td>
+                            <td>
+                                {% for e in errors %}
+                                    {{ e.hints|safe }}<br>
                                 {% endfor %}
                             </td>
                         </tr>
@@ -162,8 +155,8 @@
                     <tbody class="rowlink" data-link="row" id="todolist">
                     {% if error_tree %}
                         {{ error_tree|safe }}
-{#                    {% else %}#}
-{#                        <p class="empty">No downstream errors found</p>#}
+                        {#                    {% else %}#}
+                        {#                        <p class="empty">No downstream errors found</p>#}
                     {% endif %}
                     </tbody>
                 </table>
