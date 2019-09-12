@@ -18,7 +18,6 @@ class CopyForm(forms.Form):
         self.helper.form_id = 'id-copy_form'
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
-        # self.helper.add_input(Submit('submit', 'Copy'))
 
         self.fields['options'] = forms.ChoiceField(
             widget=forms.RadioSelect(),
@@ -39,7 +38,6 @@ class PrivacyForm(forms.Form):
         self.helper.form_id = 'id-privacy_form'
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
-        # self.helper.add_input(Submit('submit', 'Save'))
 
         self.fields['options'] = forms.ChoiceField(
             widget=forms.RadioSelect(),
@@ -59,7 +57,6 @@ class DeleteForm(forms.Form):
         self.helper.form_id = 'id-delete_form'
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
-        # self.helper.add_input(Submit('submit', 'Delete'))  # Removing submit button from forms which have a modal
 
         self.fields['options'] = forms.ChoiceField(
             widget=forms.RadioSelect(),
@@ -100,7 +97,6 @@ class RegistrationForm(forms.Form):
         self.helper.form_id = 'id-registration_form'
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
-        # self.helper.add_input(Submit('register', 'Register'))
 
         self.fields['first_name'] = forms.CharField(
             widget=forms.TextInput()
@@ -134,7 +130,6 @@ class MathCreateForm(forms.ModelForm):
         self.helper.form_id = 'id-math_create_form'
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
-        # self.helper.add_input(Submit('math_create', 'Save'))
 
 
 class DownstreamLinkForm(forms.Form):
@@ -144,10 +139,14 @@ class DownstreamLinkForm(forms.Form):
     def __init__(self, *args, **kwargs):
         item_type = kwargs.pop('item_type')
         item_id = kwargs.pop('item_id')
-        parent_type = kwargs.pop('parent_type')
-        parent_model = ContentType.objects.get(app_label='main', model=parent_type)
+        downstream_type = kwargs.pop('parent_type')
+        downstream_model = ContentType.objects.get(app_label='main', model=downstream_type)
 
-        queryset = parent_model.get_all_objects_for_this_type()
+        item_model = ContentType.objects.get(app_label='main', model=item_type)
+        item = item_model.get_object_for_this_type(id=item_id)
+
+        queryset = downstream_model.get_all_objects_for_this_type()
+        queryset = queryset.exclude(id__in=getattr(item, "{}s".format(downstream_type)).all()).order_by('name')
 
         super(DownstreamLinkForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
@@ -156,7 +155,7 @@ class DownstreamLinkForm(forms.Form):
 
         self.fields['link_to_id'] = forms.ModelMultipleChoiceField(
             queryset=queryset,
-            widget=forms.CheckboxSelectMultiple()
+            widget=forms.CheckboxSelectMultiple(),
         )
 
 

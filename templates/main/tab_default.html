@@ -32,7 +32,7 @@
                 </thead>
                 <tbody class="rowlink" data-link="row">
                 {% for obj in objs %}
-                    <tr>
+                    <tr class="validity_{{ obj.is_valid }}">
                         <td>
                             <span class="validity_icon_{{ obj.is_valid }}"></span>
                         </td>
@@ -46,12 +46,6 @@
                                 <a onclick="Unlink('{{ field_name }}','{{ obj.id }}');">Unlink</a>
                             </td>
                         {% endif %}
-{#                        <td>#}
-{#                            <div id="{{ obj_type }}__{{ obj.id }}__detail">#}
-{#                                {{ obj.error_tree.error_count }}#}
-{#                                issue{{ obj.error_tree.error_count|pluralize }}#}
-{#                            </div>#}
-{#                        </td>#}
                     </tr>
                 {% endfor %}
                 </tbody>
@@ -62,3 +56,4 @@
         {% endif %}
     </div>
 </div>
+

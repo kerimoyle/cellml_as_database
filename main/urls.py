@@ -21,13 +21,15 @@ urlpatterns = [
 
     path('delete/<item_type>/<int:item_id>/', views.delete, name='delete'),
     # path('display/cellmodel/<int:item_id>/', views.display_model, name='display_model'),  # aliased ...
-    # path('display/compoundunit/<int:item_id>/', views.display_compoundunit, name='display_compoundunit'),  # aliased ...
+    # path('display/compoundunit/<int:item_id>/', views.display_compoundunit, name='display_compoundunit'),
+    # aliased ...
     path('display/math/<int:item_id>/', views.display_math, name='display_math'),
     # path('display/model/<int:item_id>/', views.display_model, name='display_model'),
     path('display/reset/<int:item_id>/', views.display_reset, name='display_reset'),
     path('display/temporarystorage/<int:item_id>/', views.display_storage, name='display_storage'),
     path('display/<item_type>/<int:item_id>/', views.display, name='display'),
 
+    path('edit_field/<item_type>/<int:item_id>/<item_field>/', views.edit_field, name='edit_field'),
     path('edit_locals/<item_type>/<int:item_id>/', views.edit_locals, name='edit_locals'),
     path('edit_unit/<int:item_id>/', views.edit_unit, name='edit_unit'),
 

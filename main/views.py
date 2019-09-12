@@ -370,7 +370,8 @@ def edit_locals(request, item_type, item_id):
 
         form.helper = FormHelper()
         form.helper.form_method = "POST"
-        form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}  # Triggers reload of the parent page of this modal
+        form.helper.attrs = {'target': '_top',
+                             'id': 'modal_form_id'}  # Triggers reload of the parent page of this modal
         form.helper.form_action = reverse('main:edit_locals', kwargs={'item_type': item_type, 'item_id': item_id})
         # form.helper.add_input(Submit('submit', 'Save'))
 
@@ -420,7 +421,7 @@ def edit_unit(request, item_id):
 
     form.helper = FormHelper()
     form.helper.form_method = "POST"
-    form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'} # Triggers reload of the parent page of this modal
+    form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}  # Triggers reload of the parent page of this modal
     form.helper.form_action = reverse('main:edit_unit', kwargs={'item_id': item_id})
     # form.helper.add_input(Submit('submit', 'Save'))
 
@@ -429,6 +430,62 @@ def edit_unit(request, item_id):
         'item': item
     }
     return render(request, 'main/form_modal.html', context)
+
+
+@login_required
+def edit_field(request, item_type, item_id, item_field):
+    item = None
+    is_owner = False
+
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Couldn't find an object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    if check_ownership(request, item):
+
+        all_fields = item_model.model_class()._meta.fields
+        excluding = [x.name for x in all_fields if x.name != item_field]
+
+        edit_form = get_edit_locals_form(item_model, excluding)
+
+        if request.POST:
+            form = edit_form(request.POST, instance=item)
+            if form.is_valid():
+                item = form.save()
+                return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item.id}))
+        else:
+            form = edit_form(instance=item)
+
+        form.helper = FormHelper()
+        form.helper.form_method = "POST"
+        form.helper.attrs = {'target': '_top',
+                             'id': 'modal_form_id'}  # Triggers reload of the parent page of this modal
+        form.helper.form_action = reverse('main:edit_field',
+                                          kwargs={'item_type': item_type, 'item_id': item_id, 'item_field': item_field})
+
+        context = {
+            'item_type': item_type,
+            'form': form,
+            'item': item
+        }
+        return render(request, 'main/form_modal.html', context)
+    else:
+        context = {
+            'item_type': item_type,
+            'item': item,
+            'modal_text': "You don't have permission to edit this item.  The owner is {}.".format(item.owner)
+        }
+        return render(request, 'main/form_modal.html', context)
 
 
 # @login_required
@@ -565,20 +622,21 @@ def link_downstream(request, item_type, item_id, related_name):
             for related_object in add_me:
                 getattr(related_object, parent_field).add(item)
 
-            return redirect(reverse('main:display',
-                                    kwargs={'item_type': item_type,
-                                            'item_id': item.id}))
+            # TODO how to direct to correct tab on the display page?
+            return redirect("{url}#tab_{tab}".format(url=reverse('main:display',
+                                                                 kwargs={'item_type': item_type,
+                                                                         'item_id': item.id}),
+                                                     tab=related_name))
     else:
-        form = DownstreamLinkForm(item_type=item_type, item_id=item_id, parent_type=parent_type)
+        form = DownstreamLinkForm(item_type=item_type,
+                                  item_id=item_id,
+                                  parent_type=parent_type)
 
     form.helper = FormHelper()
     form.helper.form_method = 'post'
     form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
-    # form.helper.add_input(Submit('submit', "Save"))
     form.helper.form_action = reverse('main:link_downstream',
                                       kwargs={'item_type': item_type, 'item_id': item_id, 'related_name': related_name})
-
-    # Want to have levels of suggestion and ability to search the queryset passed.
 
     context = {
         'item_type': item_type,
@@ -636,7 +694,10 @@ def link_remove(request):
             else:
                 pass
 
-            return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_id}))
+            return redirect(
+                "{url}#tab_{tab}".format(
+                    url=reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_id}),
+                    tab=related_name))
 
 
 @login_required
@@ -731,16 +792,17 @@ def display(request, item_type, item_id):
             l=item.owner.last_name))
         return redirect('main:error')
 
-    # upstream_fields = get_upstream_fields(item_model)
-    # upstream = get_item_upstream_attributes(item, ['errors', 'owner', 'imported_from', 'annotations'])
-    #
-    # downstream_fields = get_downstream_fields(item_model, ['used_by'])
-    # downstream = get_item_downstream_attributes(item, ['used_by'])
-
     local_attrs = get_item_local_attributes(item, ['cellml_index',
                                                    'privacy',
                                                    'error_tree',
                                                    'child_list'])
+    local_fields = []
+    skip_fields = ['is_valid', 'last_checked']
+    for local in local_attrs:
+        errs = item.errors.filter(fields__icontains=local[0])
+        validity = None if local[0] in skip_fields else errs.count() == 0
+
+        local_fields.append((local[0], local[1], errs, validity))
 
     can_change_privacy = len(
         get_item_upstream_attributes(item, ['errors', 'owner', 'imported_from', 'annotations'])
@@ -767,13 +829,24 @@ def display(request, item_type, item_id):
             tab['title']
         ))
 
+    foreign_keys = []
+    for tab in DISPLAY_DICT[item_type]['foreign_keys']:
+        field = tab['field']
+        foreign_keys.append((
+            field,
+            tab['obj_type'],
+            getattr(item, field),
+            tab['title']
+        ))
+
     context = {
         'item': item,
         'item_type': item_type,
         'data': data,
         'present_in': present_in,
+        'foreign_keys': foreign_keys,
         'error_tree': None if item.error_tree is None else item.error_tree['tree_html'],
-        'locals': local_attrs,
+        'locals': local_fields,
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
         'can_change_privacy': can_change_privacy,

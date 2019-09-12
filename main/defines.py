@@ -20,6 +20,7 @@ DISPLAY_DICT = {
             {'field': 'maths', 'obj_type': 'math', 'title': 'Maths', 'template': 'main/tab_maths.html'},
             {'field': 'resets', 'obj_type': 'reset', 'title': 'Resets', 'template': 'main/tab_default.html'},
         ],
+        'foreign_keys': [],
         'present_in':
             [
                 {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Models'},
@@ -31,16 +32,22 @@ DISPLAY_DICT = {
             {'field': 'equivalent_variables', 'obj_type': 'variable', 'title': 'Equivalent variables',
              'template': 'main/tab_default.html'},
         ],
-        'present_in':
+        'present_in': [],
+        #     [
+        #         {'field': 'component', 'obj_type': 'component', 'title': 'Component'},
+        #         {'field': 'compoundunit', 'obj_type': 'compoundunit', 'title': 'Units'},
+        #     ],
+        'foreign_keys':
             [
                 {'field': 'component', 'obj_type': 'component', 'title': 'Component'},
                 {'field': 'compoundunit', 'obj_type': 'compoundunit', 'title': 'Units'},
-            ],
+            ]
     },
 
     'reset': {
         'tabs': [],
-        'present_in': []
+        'present_in': [],
+        'foreign_keys': [],
     },
 
     'compoundunit': {
@@ -54,7 +61,8 @@ DISPLAY_DICT = {
             {'field': 'variables', 'obj_type': 'variable', 'title': 'Used by variables',
              'template': 'main/tab_fyi.html'},
         ],
-        'present_in': []
+        'present_in': [],
+        'foreign_keys': []
     },
     'cellmodel': {
         'tabs': [
@@ -63,7 +71,8 @@ DISPLAY_DICT = {
             {'field': 'compoundunits', 'obj_type': 'compoundunit', 'title': 'Units',
              'template': 'main/tab_compoundunits.html'},
         ],
-        'present_in': []
+        'present_in': [],
+        'foreign_keys': [],
     }
 }
 

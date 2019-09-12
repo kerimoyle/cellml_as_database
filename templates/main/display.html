@@ -10,10 +10,10 @@
 {% block tabs %}
     {{ block.super }}
     <ul class="nav nav-tabs">
-        <li class="active"><a data-toggle="tab" href="#tab_information">Summary</a></li>
-        <li><a data-toggle="tab" href="#tab_validity">Validity and checking</a></li>
+        <li id="tab_information1" class="active"><a data-toggle="tab" href="#tab_information">Summary</a></li>
+        <li><a id="tab_validity1" data-toggle="tab" href="#tab_validity">Validity and checking</a></li>
         {% for field, obj_type, objs, title, template in data %}
-            <li><a data-toggle="tab" href="#tab_{{ field }}">{{ title }}</a></li>
+            <li><a id="tab_{{ field }}1" data-toggle="tab" href="#tab_{{ field }}">{{ title }}</a></li>
         {% endfor %}
     </ul>
 {% endblock tabs %}
@@ -23,41 +23,44 @@
     <div class="tab-content">
         <div id="tab_information" class="tab-pane fade in active">
             <br>
-
             <div class="col-md-12">
                 <table class="datatables display table" id="table-information">
                     <thead>
                     <tr>
+                        <th></th>
                         <th>Field</th>
                         <th>Value</th>
                         <th></th>
                     </tr>
                     </thead>
-                    <tbody>
 
-                    {% for field, obj in locals %}
-                        <tr>
+                    <tbody class="rowlink" data-link="row">
+                    {% for field, obj, errors, validity in locals %}
+                        <tr class="validity_{{ validity }}">
+                            <td>
+                                {% if validity != None %}
+                                    <a onclick="LoadModalData(
+                                            'Edit {{ field }}',
+                                            '{% url 'main:edit_field' item_type=item_type item_id=item.id item_field=field %}'
+                                            );"
+                                       data-toggle="modal"
+                                       data-target="#formModal"></a>
+                                {% endif %}
+                                <span class="validity_icon_{{ validity }}"></span></td>
                             <td>{{ field }}</td>
-                            {% if obj is not None %}
-                                <td>
-                                    {{ obj }}
-                                </td>
-                                <td>
-                                    {% for e in obj.errors.all %}
-                                        {{ e }}
-                                    {% endfor %}
-                                </td>
-                            {% else %}
-                                <td colspan="2">
-                                    <p class="empty">None</p>
-                                </td>
-                            {% endif %}
+                            <td>{{ obj }}</td>
+                            <td>
+                                {% for e in errors %}
+                                    {{ e.hints|safe }}<br>
+                                {% endfor %}
+                            </td>
                         </tr>
                     {% endfor %}
 
                     <tr>
+                        <td></td>
                         <td>owner</td>
-                        <td colspan="2">
+                        <td colspan="3">
                             {% if item.owner %}{{ item.owner|title }}
                             {% else %}
                                 <p class="empty">None</p>
@@ -65,8 +68,9 @@
                         </td>
                     </tr>
                     <tr>
+                        <td></td>
                         <td>provenance</td>
-                        <td colspan="2">
+                        <td colspan="3">
                             {% if item.imported_from %}{{ item.imported_from }}
                             {% else %}
                                 <p class="empty">None</p>
@@ -74,18 +78,37 @@
                         </td>
                     </tr>
 
-                    {% for field_name, obj_type, objs, title in present_in %}
+                    {% for field_name, obj_type, obj, title in foreign_keys %}
                         <tr class="validity_{{ obj.is_valid }}">
+                            <td><span class="validity_icon_{{ obj.is_valid }}"></span></td>
                             <td>
                                 {{ title|lower }}
                             </td>
                             <td colspan="2">
-                                {% for obj in objs.all %}
+                                {% if obj is not None %}
                                     <a href="{% url 'main:display' item_type=obj_type item_id=obj.id %}">
                                         <div class="validity_{{ obj.is_valid }}">
                                             {{ obj.name }}
                                         </div>
                                     </a>
+                                {% else %}
+                                    <p class="empty">None</p>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+
+                    {% for field_name, obj_type, objs, title in present_in %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                {{ title|lower }}
+                            </td>
+                            <td>
+                                {% for obj in objs.all %}
+                                    <a href="{% url 'main:display' item_type=obj_type item_id=obj.id %}">
+                                        {{ obj.name }}
+                                    </a><br>
                                 {% empty %}
                                     <p class="empty">None</p>
                                 {% endfor %}
@@ -132,8 +155,8 @@
                     <tbody class="rowlink" data-link="row" id="todolist">
                     {% if error_tree %}
                         {{ error_tree|safe }}
-                    {% else %}
-                        <p class="empty">No downstream errors found</p>
+                        {#                    {% else %}#}
+                        {#                        <p class="empty">No downstream errors found</p>#}
                     {% endif %}
                     </tbody>
                 </table>
@@ -174,105 +197,108 @@
 
         $(document).ready(function () {
 
-            $("#check_validity").click(function (e) {
-                e.preventDefault();
+            {% if item.child_list %}
+                $("#check_validity").click(function (e) {
+                    e.preventDefault();
 
-                // Populate check list
-                $('#checklist').children().addClass('validity_list_waiting');
+                    // Populate check list
+                    $('#checklist').children().addClass('validity_list_waiting');
 
-                // Clear the todolist
-                $('#todolist').html("");
-                $('#validity_div').removeClass().addClass('btn btn-secondary');
+                    // Clear the todolist
+                    $('#todolist').html("");
+                    $('#validity_div').removeClass().addClass('btn btn-secondary');
 
-                if (confirm("Really check {{ item.child_list.list_length }} items?")) {
-                    processed_count = 0;
-                    // Reset the progress bar
-                    $('#progress_holder_id').removeClass("hidden");
-                    $('#progress_bar_id').width("0%");
-                    $('#status_span').html("<b>Checking now ... </b>");
-                    ProcessCheckList();
-                }
-            });
+                    if (confirm("Really check {{ item.child_list.list_length }} items?")) {
+                        processed_count = 0;
+                        // Reset the progress bar
+                        $('#progress_holder_id').removeClass("hidden");
+                        $('#progress_bar_id').width("0%");
+                        $('#status_span').html("<b>Checking now ... </b>");
+                        ProcessCheckList();
+                    }
+                });
+
+            {% endif %}
         });
 
 
-        function ProcessCheckList() {
-            // jQuery on an empty object, we are going to use this as our Queue
-            let ajaxQueue = $({});
-            $.ajaxQueue = function (ajaxOpts) {
-                let jqXHR,
-                    dfd = $.Deferred(),
-                    promise = dfd.promise();
-                ajaxQueue.queue(doRequest);
-                promise.abort = function (statusText) {
-                    if (jqXHR) {
-                        return jqXHR.abort(statusText);
+        {% if item.child_list %}
+            function ProcessCheckList() {
+                // jQuery on an empty object, we are going to use this as our Queue
+                let ajaxQueue = $({});
+                $.ajaxQueue = function (ajaxOpts) {
+                    let jqXHR,
+                        dfd = $.Deferred(),
+                        promise = dfd.promise();
+                    ajaxQueue.queue(doRequest);
+                    promise.abort = function (statusText) {
+                        if (jqXHR) {
+                            return jqXHR.abort(statusText);
+                        }
+                        let queue = ajaxQueue.queue(),
+                            index = $.inArray(doRequest, queue);
+                        if (index > -1) {
+                            queue.splice(index, 1);
+                        }
+                        dfd.rejectWith(ajaxOpts.context || ajaxOpts,
+                            [promise, statusText, ""]);
+                        return promise;
+                    };
+
+                    function doRequest(next) {
+                        jqXHR = $.ajax(ajaxOpts)
+                            .then(next, next)
+                            .done(dfd.resolve)
+                            .fail(dfd.reject);
                     }
-                    let queue = ajaxQueue.queue(),
-                        index = $.inArray(doRequest, queue);
-                    if (index > -1) {
-                        queue.splice(index, 1);
-                    }
-                    dfd.rejectWith(ajaxOpts.context || ajaxOpts,
-                        [promise, statusText, ""]);
+
                     return promise;
                 };
 
-                function doRequest(next) {
-                    jqXHR = $.ajax(ajaxOpts)
-                        .then(next, next)
-                        .done(dfd.resolve)
-                        .fail(dfd.reject);
-                }
+                $(".validity_list_waiting").each(function (e) {
+                    let my_split = $(this).attr('id').split('__');
+                    $.ajaxQueue({
+                        url: '/ajax_validate/',
+                        data: {
+                            item_type: my_split[0],
+                            item_id: my_split[1],
+                        },
+                        type: 'GET',
+                        context: this,
+                        success: function (data) {
+                            processed_count = processed_count + 1;
+                            $(this).removeClass("validity_list_waiting").addClass(data['style']);
+                            $(this).html("");
 
-                return promise;
-            };
+                            let percentage = String(Math.floor(
+                                processed_count * 100 / {{ item.child_list.list_length }}
+                            )) + "%";
 
-            $(".validity_list_waiting").each(function (e) {
+                            $('#progress_bar_id').width(percentage).text(percentage);
+                            $('#todolist').prepend(data['html']);
 
-                let my_split = $(this).attr('id').split('__');
-                $.ajaxQueue({
-                    url: '/ajax_validate/',
-                    data: {
-                        item_type: my_split[0],
-                        item_id: my_split[1],
-                    },
-                    type: 'GET',
-                    context: this,
-                    success: function (data) {
-                        processed_count = processed_count + 1;
-                        $(this).removeClass("validity_list_waiting").addClass(data['style']);
-                        $(this).html("");
+                            // Check whether this was the last one
+                            let to_check = $('.validity_list_waiting').length;
+                            let to_do = $('.validity_list_False').length;
 
-                        let percentage = String(Math.floor(
-                            processed_count * 100 / {{ item.child_list.list_length }}
-                        )) + "%";
+                            $('#todo_count').text(to_do + " items to fix");
 
-                        $('#progress_bar_id').width(percentage).text(percentage);
-                        $('#todolist').prepend(data['html']);
-
-                        // Check whether this was the last one
-                        let to_check = $('.validity_list_waiting').length;
-                        let to_do = $('.validity_list_False').length;
-
-                        $('#todo_count').text(to_do + " items to fix");
-
-                        if (to_check === 0) {
-                            // Remove the valid items from the todo list and leave only the errors
-                            $('.validity_list_True').fadeOut();
-                            // Update the status
-                            if (to_do === 0) {
-                                $("#validity_div").addClass('validity_banner_True');
-                            } else {
-                                $("#validity_div").addClass('validity_banner_False');
+                            if (to_check === 0) {
+                                // Remove the valid items from the todo list and leave only the errors
+                                $('.validity_list_True').fadeOut();
+                                // Update the status
+                                if (to_do === 0) {
+                                    $("#validity_div").addClass('validity_banner_True');
+                                } else {
+                                    $("#validity_div").addClass('validity_banner_False');
+                                }
+                                $('#status_span').text("Done!");
                             }
-                            $('#status_span').text("Done!");
                         }
-                    }
+                    });
                 });
-            });
-        }
-
+            }
+        {% endif %}
         function Unlink(related_name, related_id) {
             $('input[name="unlink_item_type"]').val("{{ item_type }}");
             $('input[name="unlink_item_id"]').val("{{ item.id }}");
