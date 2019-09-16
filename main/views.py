@@ -557,7 +557,6 @@ def link_upstream(request, item_type, item_id, related_name):
     form.helper.form_method = 'post'
     form.fields[related_name].queryset = r.related_model.objects.filter(owner=request.user.person)
     form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
-    # form.helper.add_input(Submit('submit', "Save"))
     form.helper.form_action = reverse('main:link_upstream',
                                       kwargs={'item_type': item_type, 'item_id': item_id, 'related_name': related_name})
 
@@ -566,7 +565,7 @@ def link_upstream(request, item_type, item_id, related_name):
         'item': item,
         'form': form,
     }
-    return render(request, 'main/form_modal.html', context)
+    return render(request, 'main/form_modal_searchable.html', context)
 
 
 @login_required
@@ -954,12 +953,23 @@ def display_reset(request, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
+    foreign_keys = []
+    for tab in DISPLAY_DICT['reset']['foreign_keys']:
+        field = tab['field']
+        foreign_keys.append((
+            field,
+            tab['obj_type'],
+            getattr(item, field),
+            tab['title']
+        ))
+
     context = {
         'item': item,
         'item_type': "reset",
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
-        'item_fields': ['variable', 'test_variable', 'reset_value', 'test_value', 'component', 'order']
+        'foreign_keys': foreign_keys,
+        # 'item_fields': ['variable', 'test_variable', 'reset_value', 'test_value', 'component']
     }
     return render(request, 'main/display_reset.html', context)
 

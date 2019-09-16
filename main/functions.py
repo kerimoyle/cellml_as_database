@@ -70,7 +70,7 @@ def draw_error_branch(item):
 
 def get_local_error_messages(item):
     if item.errors.count() > 0:
-        html = "<tr class='validity_False'><td class='validity_icon_False'><a href='/display/" + type(
+        html = "<tr class='validity_list_False'><td class='validity_icon_False'><a href='/display/" + type(
             item).__name__.lower() + "/" + str(item.id) + \
                "'></a></td><td>" + item.name + "</td>"
         html += "<td>"
@@ -78,7 +78,7 @@ def get_local_error_messages(item):
             html += err.spec + ": " + err.hints + "<br>"
         html += "</td></tr>"
     else:
-        html = "<tr class='validity_True'><td class='validity_icon_True'><a href='/display/" + type(
+        html = "<tr class='validity_list_True'><td class='validity_icon_True'><a href='/display/" + type(
             item).__name__.lower() + "/" + str(item.id) + \
                "'></a></td><td>" + item.name + "</td>"
         html += "<td>Item is valid</td></tr>"

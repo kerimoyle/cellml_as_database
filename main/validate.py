@@ -182,7 +182,7 @@ def validate_reset(reset):
     for e in reset.errors.all():
         e.delete()
 
-    if not reset.order:
+    if reset.order == '':
         err = ItemError(
             hints="Reset <i>{r}</i> does not have an order set".format(r=reset.name),
             spec="12.1.2",

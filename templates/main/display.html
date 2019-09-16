@@ -281,17 +281,18 @@
                             let to_check = $('.validity_list_waiting').length;
                             let to_do = $('.validity_list_False').length;
 
-                            $('#todo_count').text(to_do + " items to fix");
-
                             if (to_check === 0) {
                                 // Remove the valid items from the todo list and leave only the errors
-                                $('.validity_list_True').fadeOut();
+                                $('.validity_list_True').fadeOut(1000);
                                 // Update the status
                                 if (to_do === 0) {
                                     $("#validity_div").addClass('validity_banner_True');
                                 } else {
                                     $("#validity_div").addClass('validity_banner_False');
                                 }
+                                $('#todo_count').text(
+                                    $('#todolist .validity_list_False').length+ " item(s) to fix");
+
                                 $('#status_span').text("Done!");
                             }
                         }

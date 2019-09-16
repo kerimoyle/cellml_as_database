@@ -47,7 +47,13 @@ DISPLAY_DICT = {
     'reset': {
         'tabs': [],
         'present_in': [],
-        'foreign_keys': [],
+        'foreign_keys': [
+            {'field': 'component', 'obj_type': 'component', 'title': 'component'},
+            {'field': 'variable', 'obj_type': 'variable', 'title': 'variable'},
+            {'field': 'test_variable', 'obj_type': 'variable', 'title': 'test variable'},
+            {'field': 'test_value', 'obj_type': 'math', 'title': 'test value'},
+            {'field': 'reset_value', 'obj_type': 'math', 'title': 'reset value'},
+        ],
     },
 
     'compoundunit': {
