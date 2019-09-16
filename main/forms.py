@@ -2,6 +2,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django import forms
 from django.contrib.contenttypes.models import ContentType
+from django.db.models.functions import Lower
 
 from main.models import (Math)
 
@@ -76,7 +77,7 @@ class LoginForm(forms.Form):
         self.helper.form_id = 'id-login_form'
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
-        # self.helper.add_input(Submit('login_view', 'Login'))
+        self.helper.add_input(Submit('login_view', 'Login'))
 
         self.fields['username'] = forms.CharField(
             widget=forms.TextInput()
@@ -97,6 +98,8 @@ class RegistrationForm(forms.Form):
         self.helper.form_id = 'id-registration_form'
         self.helper.form_class = 'blueForms'
         self.helper.form_method = 'post'
+
+        self.helper.add_input(Submit('register_view', 'Register'))
 
         self.fields['first_name'] = forms.CharField(
             widget=forms.TextInput()
@@ -146,7 +149,7 @@ class DownstreamLinkForm(forms.Form):
         item = item_model.get_object_for_this_type(id=item_id)
 
         queryset = downstream_model.get_all_objects_for_this_type()
-        queryset = queryset.exclude(id__in=getattr(item, "{}s".format(downstream_type)).all()).order_by('name')
+        queryset = queryset.exclude(id__in=getattr(item, "{}s".format(downstream_type)).all()).order_by(Lower('name'))
 
         super(DownstreamLinkForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()

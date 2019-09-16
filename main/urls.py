@@ -48,6 +48,7 @@ urlpatterns = [
     path('refresh_error_tree/<item_type>/<int:item_id>/', views.refresh_error_tree, name='refresh_error_tree'),
 
     path('set_privacy/', views.set_privacy, name='set_privacy'),
+    path('set_validity/', views.set_validity, name='set_validity'),
     path('show_errors/<item_type>/<int:item_id>/', views.show_errors, name='show_errors'),
 
     path('upload/', views.upload, name='upload'),

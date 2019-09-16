@@ -1,0 +1,211 @@
+<div id="tab_validity" class="tab-pane fade">
+    <div class="button_bar">
+        <button id="validity_div" class="btn btn-secondary validity_banner_{{ item.is_valid }}">
+            <span id="status_span"><b>Last checked: </b>{{ item.last_checked }}</span>
+        </button>
+
+        <button id="check_validity" class="btn btn-default">
+            <i class="fa fa-refresh"></i> Check validity
+        </button>
+    </div>
+    <br>
+
+    <div class="col-md-12">
+        <div id="progress_holder_id" class="progress hidden">
+            <div id="progress_bar_id" class="progress-bar" role="progressbar" style="width: 0;"
+                 aria-valuenow="0"
+                 aria-valuemin="0"
+                 aria-valuemax="{{ item.child_list.list_length }}">
+                0%
+            </div>
+        </div>
+
+        <div id="todo_count"></div>
+
+        <table id="todolist_table" class="display table">
+            <thead>
+            <tr>
+                <th></th>
+                <th>Item</th>
+                <th>Message</th>
+            </tr>
+            </thead>
+            <tbody class="rowlink" data-link="row" id="todolist">
+            {% if error_tree %}
+                {{ error_tree|safe }}
+            {% else %}
+                <tr class="empty"><td colspan="3">No validity errors found</td></tr>
+            {% endif %}
+            </tbody>
+        </table>
+
+    </div>
+
+    <div class="hidden" id="checklist">
+        {{ item.child_list.html|safe }}
+    </div>
+</div>
+
+
+<script>
+    let processed_count = 0;
+
+    $(document).ready(function () {
+
+        {% if item.child_list %}
+            $("#check_validity").click(function (e) {
+                e.preventDefault();
+
+                // Populate check list
+                $('#checklist').children().addClass('validity_list_waiting');
+
+                // Clear the todolist
+                $('#todolist').html("");
+                $('#validity_div').removeClass().addClass('btn btn-secondary');
+
+                if (confirm("Really check {{ item.child_list.list_length }} items?")) {
+                    processed_count = 0;
+                    // Reset the progress bar
+                    $('#progress_holder_id').removeClass("hidden");
+                    $('#progress_bar_id').width("0%");
+                    $('#status_span').html("<b>Checking now ... </b>");
+                    ProcessCheckList();
+                }
+            });
+
+        {% endif %}
+    });
+
+
+    {% if item.child_list %}
+        function ProcessCheckList() {
+            // jQuery on an empty object, we are going to use this as our Queue
+            let ajaxQueue = $({});
+            $.ajaxQueue = function (ajaxOpts) {
+                let jqXHR,
+                    dfd = $.Deferred(),
+                    promise = dfd.promise();
+                ajaxQueue.queue(doRequest);
+                promise.abort = function (statusText) {
+                    if (jqXHR) {
+                        return jqXHR.abort(statusText);
+                    }
+                    let queue = ajaxQueue.queue(),
+                        index = $.inArray(doRequest, queue);
+                    if (index > -1) {
+                        queue.splice(index, 1);
+                    }
+                    dfd.rejectWith(ajaxOpts.context || ajaxOpts,
+                        [promise, statusText, ""]);
+                    return promise;
+                };
+
+                function doRequest(next) {
+                    jqXHR = $.ajax(ajaxOpts)
+                        .then(next, next)
+                        .done(dfd.resolve)
+                        .fail(dfd.reject);
+                }
+
+                return promise;
+            };
+
+            $(".validity_list_waiting").each(function (e) {
+                let my_split = $(this).attr('id').split('__');
+                $.ajaxQueue({
+                    url: '/ajax_validate/',
+                    data: {
+                        item_type: my_split[0],
+                        item_id: my_split[1],
+                    },
+                    type: 'GET',
+                    context: this,
+                    success: function (data) {
+
+
+                        // UPDATING THIS TAB ITEMS
+                        $(this).removeClass("validity_list_waiting").addClass('validity_list_'+data['is_valid']);
+                        $(this).html("");
+                        $('#todolist').prepend(data['html']);
+
+
+                        let id="#v__"+my_split[0]+"__"+my_split[1]+"__";
+                        $(id+"infoicon").removeClass().addClass('validity_icon_'+data['is_valid']);
+                        $(id+"icon").removeClass().addClass('validity_icon_'+data['is_valid']);
+                        $(id+"inforow").removeClass().addClass('validity_list_'+data['is_valid']);
+
+
+                        // PROGRESS BAR STUFF
+                        processed_count = processed_count + 1;
+                        let percentage = String(Math.floor(
+                            processed_count * 100 / {{ item.child_list.list_length }}
+                        )) + "%";
+                        $('#progress_bar_id').width(percentage).text(percentage);
+
+
+                        // END OF QUEUE STUFF
+                        let to_check = $('.validity_list_waiting').length;
+                        if (to_check === 0) {
+                            let to_do = $('#todolist .validity_list_False').length;
+                            // Remove the valid items from the todo list and leave only the errors
+                            $('#todolist .validity_list_True').fadeOut(1000);
+                            // Update the status
+                            if (to_do === 0) {
+                                $("#validity_div").addClass('validity_banner_True');
+                            } else {
+                                $("#validity_div").addClass('validity_banner_False');
+                            }
+                            $('#todo_count').text(
+                                to_do + " item(s) to fix"
+                            );
+                            UpdateParentValidity(to_do);
+                            $('#status_span').text("Done!");
+                            if(to_do===0){
+                                $('#todolist_table').fadeOut();
+                            }
+                        }
+                    },
+                    {#error: function (data) {#}
+                    {#    alert("Oop!");#}
+                    {#    alert(data);#}
+                    {# }#}
+                });
+            });
+        }
+    {% endif %}
+    function Unlink(related_name, related_id) {
+        $('input[name="unlink_item_type"]').val("{{ item_type }}");
+        $('input[name="unlink_item_id"]').val("{{ item.id }}");
+        $('input[name="unlink_related_name"]').val(related_name);
+        $('input[name="unlink_related_id"]').val(related_id);
+        $("form#unlink_form ").submit();
+    }
+
+    function SetPrivate() {
+        $('input[name="item_type"]').val("{{ item_type }}");
+        $('input[name="item_id"]').val("{{ item.id }}");
+        $('input[name="privacy_level"]').val("private");
+        $("form#privacy_form ").submit();
+    }
+
+    function SetPublic() {
+        $('input[name="item_type"]').val("{{ item_type }}");
+        $('input[name="item_id"]').val("{{ item.id }}");
+        $('input[name="privacy_level"]').val("public");
+        $("form#privacy_form ").submit();
+    }
+
+    function UpdateParentValidity(to_do) {
+        $.ajax({
+            type: 'GET',
+            url: {% url 'main:set_validity' %},
+            data: {
+                'item_type': '{{ item_type }}',
+                'item_id':{{ item.id }},
+                'todo': to_do
+            },
+        });
+    }
+
+
+</script>

@@ -12,8 +12,20 @@ MODEL_NAME_DICT = {
     'variable': 'variable',
 }
 
+DOWNSTREAM_VALIDATION_DICT = {
+    'cellmodel': ['components', 'compoundunits'],
+    'component': ['variables', 'maths', 'resets'],
+    'compoundunit': [],
+    'variable': [],
+    'math': [],
+    'encapsulation': [],
+    'unit': []
+}
+
 DISPLAY_DICT = {
     'component': {
+        'summary_template': 'main/tab_summary_children.html',
+        'validity_template': 'main/tab_validity.html',
         'tabs': [
             {'field': 'variables', 'obj_type': 'variable', 'title': 'Variables',
              'template': 'main/tab_default.html'},
@@ -28,6 +40,8 @@ DISPLAY_DICT = {
     },
 
     'variable': {
+        'summary_template': 'main/tab_summary_nochildren.html',
+        'validity_template': None,
         'tabs': [
             {'field': 'equivalent_variables', 'obj_type': 'variable', 'title': 'Equivalent variables',
              'template': 'main/tab_default.html'},
@@ -45,12 +59,22 @@ DISPLAY_DICT = {
     },
 
     'reset': {
+        'summary_template': 'main/tab_summary_nochildren.html',
+        'validity_template': None,
         'tabs': [],
         'present_in': [],
-        'foreign_keys': [],
+        'foreign_keys': [
+            {'field': 'component', 'obj_type': 'component', 'title': 'component'},
+            {'field': 'variable', 'obj_type': 'variable', 'title': 'variable'},
+            {'field': 'test_variable', 'obj_type': 'variable', 'title': 'test variable'},
+            {'field': 'test_value', 'obj_type': 'math', 'title': 'test value'},
+            {'field': 'reset_value', 'obj_type': 'math', 'title': 'reset value'},
+        ],
     },
 
     'compoundunit': {
+        'summary_template': 'main/tab_summary_nochildren.html',
+        'validity_template': 'main/tab_validity.html',
         'tabs': [
             {'field': 'product_of', 'obj_type': 'compoundunit', 'title': 'Product of',
              'template': 'main/tab_units.html'},
@@ -65,6 +89,8 @@ DISPLAY_DICT = {
         'foreign_keys': []
     },
     'cellmodel': {
+        'summary_template': 'main/tab_summary_children.html',
+        'validity_template': 'main/tab_validity.html',
         'tabs': [
             {'field': 'components', 'obj_type': 'component', 'title': 'Components',
              'template': 'main/tab_default.html'},

@@ -20,7 +20,7 @@ from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationFo
 from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
     get_item_upstream_attributes, copy_item, \
     delete_item, convert_to_cellml_model, get_item_downstream_attributes, draw_error_tree, draw_object_tree, \
-    add_child_errors, draw_error_branch, build_object_child_list, get_local_error_messages
+    add_child_errors, draw_error_branch, draw_object_child_tree, get_local_error_messages
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset
 from main.validate import VALIDATE_DICT
 
@@ -192,7 +192,7 @@ def create(request, item_type, in_modal):
         if form.is_valid():
             item = form.save()
             item.owner = person
-            item.child_list = build_object_child_list(item)
+            item.child_list = draw_object_child_tree(item)
             item.save()
             return redirect(reverse('main:display',
                                     kwargs={'item_type': item_type, 'item_id': item.id}))
@@ -557,7 +557,6 @@ def link_upstream(request, item_type, item_id, related_name):
     form.helper.form_method = 'post'
     form.fields[related_name].queryset = r.related_model.objects.filter(owner=request.user.person)
     form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
-    # form.helper.add_input(Submit('submit', "Save"))
     form.helper.form_action = reverse('main:link_upstream',
                                       kwargs={'item_type': item_type, 'item_id': item_id, 'related_name': related_name})
 
@@ -566,7 +565,7 @@ def link_upstream(request, item_type, item_id, related_name):
         'item': item,
         'form': form,
     }
-    return render(request, 'main/form_modal.html', context)
+    return render(request, 'main/form_modal_searchable.html', context)
 
 
 @login_required
@@ -839,12 +838,19 @@ def display(request, item_type, item_id):
             tab['title']
         ))
 
+    item.child_list = draw_object_child_tree(item)
+    item.save()
+
     context = {
         'item': item,
         'item_type': item_type,
         'data': data,
         'present_in': present_in,
         'foreign_keys': foreign_keys,
+        'summary_tab': DISPLAY_DICT[item_type]['summary_template'],
+        'validity_tab':
+            None if DISPLAY_DICT[item_type]['summary_template'] is None
+            else DISPLAY_DICT[item_type]['validity_template'],
         'error_tree': None if item.error_tree is None else item.error_tree['tree_html'],
         'locals': local_fields,
         'menu': MENU_OPTIONS['display'],
@@ -954,12 +960,23 @@ def display_reset(request, item_id):
         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
         return redirect('main:error')
 
+    foreign_keys = []
+    for tab in DISPLAY_DICT['reset']['foreign_keys']:
+        field = tab['field']
+        foreign_keys.append((
+            field,
+            tab['obj_type'],
+            getattr(item, field),
+            tab['title']
+        ))
+
     context = {
         'item': item,
         'item_type': "reset",
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
-        'item_fields': ['variable', 'test_variable', 'reset_value', 'test_value', 'component', 'order']
+        'foreign_keys': foreign_keys,
+        # 'item_fields': ['variable', 'test_variable', 'reset_value', 'test_value', 'component']
     }
     return render(request, 'main/display_reset.html', context)
 
@@ -1051,7 +1068,7 @@ def upload(request):
             model.owner = request.user.person
             model.imported_from = None
             model.privacy = 'private'
-            model.child_list = build_object_child_list(model)
+            model.child_list = draw_object_child_tree(model)
             model.save()
 
             # Delete the TemporaryStorage object, also deletes the uploaded file TODO Check what is wanted here?
@@ -1331,6 +1348,7 @@ def show_errors(request, item_type, item_id):
 
 # ------------------------------- AJAX FUNCTIONS ----------------------------------------
 
+
 def validate(request, item_type, item_id):
     """
     :param request:
@@ -1411,17 +1429,19 @@ def ajax_validate(request):
     item.last_checked = datetime.datetime.now(pytz.utc)
 
     style = "validity_list_{}".format(item.is_valid)
+    # error_tree = draw_object_error_tree(item)
     error_tree = get_local_error_messages(item)
     item.error_tree = {'tree_html': error_tree}
 
-    item.child_list = build_object_child_list(item)
+    item.child_list = draw_object_child_tree(item)
 
     item.save()
 
     data = {
         'status': 200,
-        'style': style,
-        'html': error_tree
+        # 'style': style,
+        'html': error_tree,
+        'is_valid': is_valid,
     }
 
     return JsonResponse(data)
@@ -1479,4 +1499,35 @@ def refresh_error_tree(request, item_type, item_id):
         'tree_html': item.error_tree['tree_html'],
     }
 
+    return JsonResponse(data)
+
+
+def set_validity(request):
+    # TODO not sure why this doesn't work with a POST request?
+    item_id = request.GET.get('item_id')
+    item_type = request.GET.get('item_type')
+    todo = request.GET.get('todo')
+
+    try:
+        item_model = ContentType.objects.get(app_label="main", model=item_type)
+    except Exception as e:
+        messages.error(request, "Couldn't find an object type called '{}'".format(item_type))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    try:
+        item = item_model.get_object_for_this_type(id=item_id)
+    except Exception as e:
+        messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+        messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+        return redirect('main:error')
+
+    item.is_valid = int(todo) == 0
+    error_tree, length_of_tree = draw_error_branch(item)
+    item.error_tree = {'tree_html': error_tree, 'error_count': length_of_tree}
+    item.save()
+
+    data = {
+        'status': 200
+    }
     return JsonResponse(data)

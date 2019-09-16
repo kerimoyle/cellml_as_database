@@ -1,0 +1,99 @@
+<div id="tab_information" class="tab-pane fade in active">
+    <br>
+    <div class="col-md-12">
+        <table class="datatables display table" id="table-information">
+            <thead>
+            <tr>
+                <th></th>
+                <th>Field</th>
+                <th>Value</th>
+                <th></th>
+            </tr>
+            </thead>
+
+            <tbody class="rowlink" data-link="row">
+            {% for field, obj, errors, validity in locals %}
+                <tr class="validity_{{ validity }}">
+                    <td>
+                        {% if validity != None %}
+                            <a onclick="LoadModalData(
+                                    'Edit {{ field }}',
+                                    '{% url 'main:edit_field' item_type=item_type item_id=item.id item_field=field %}'
+                                    );"
+                               data-toggle="modal"
+                               data-target="#formModal"></a>
+                        {% endif %}
+                        <span class="validity_icon_{{ validity }}"></span></td>
+                    <td>{{ field }}</td>
+                    <td>{{ obj }}</td>
+                    <td>
+                        {% for e in errors %}
+                            {{ e.hints|safe }}<br>
+                        {% endfor %}
+                    </td>
+                </tr>
+            {% endfor %}
+
+            <tr>
+                <td></td>
+                <td>owner</td>
+                <td colspan="3">
+                    {% if item.owner %}{{ item.owner|title }}
+                    {% else %}
+                        <p class="empty">None</p>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>provenance</td>
+                <td colspan="3">
+                    {% if item.imported_from %}{{ item.imported_from }}
+                    {% else %}
+                        <p class="empty">None</p>
+                    {% endif %}
+                </td>
+            </tr>
+
+            {% for field_name, obj_type, obj, title in foreign_keys %}
+                <tr class="validity_{{ obj.is_valid }}">
+                    <td><span class="validity_icon_{{ obj.is_valid }}"></span></td>
+                    <td>
+                        {{ title|lower }}
+                    </td>
+                    <td colspan="2">
+                        {% if obj is not None %}
+                            <a href="{% url 'main:display' item_type=obj_type item_id=obj.id %}">
+                                <div class="validity_{{ obj.is_valid }}">
+                                    {{ obj.name }}
+                                </div>
+                            </a>
+                        {% else %}
+                            <p class="empty">None</p>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+
+            {% for field_name, obj_type, objs, title in present_in %}
+                <tr>
+                    <td></td>
+                    <td>
+                        {{ title|lower }}
+                    </td>
+                    <td>
+                        {% for obj in objs.all %}
+                            <a href="{% url 'main:display' item_type=obj_type item_id=obj.id %}">
+                                {{ obj.name }}
+                            </a><br>
+                        {% empty %}
+                            <p class="empty">None</p>
+                        {% endfor %}
+                    </td>
+                </tr>
+            {% endfor %}
+
+            </tbody>
+        </table>
+    </div>
+</div>
