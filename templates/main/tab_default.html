@@ -32,9 +32,9 @@
                 </thead>
                 <tbody class="rowlink" data-link="row">
                 {% for obj in objs %}
-                    <tr class="validity_{{ obj.is_valid }}">
+                    <tr id="v__{{ obj_type }}__{{ obj.id }}__inforow" class="validity_list_{{ obj.is_valid }}">
                         <td>
-                            <span class="validity_icon_{{ obj.is_valid }}"></span>
+                            <span id="v__{{ obj_type }}__{{ obj.id }}__infoicon" class="validity_icon_{{ obj.is_valid }}"></span>
                         </td>
                         <td>
                             <a href="{% url 'main:display' item_type=obj_type item_id=obj.id %}"></a>

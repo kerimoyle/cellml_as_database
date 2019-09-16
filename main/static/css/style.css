@@ -191,7 +191,16 @@ iframe {
     color: #12490f;
 }
 
+.validity_list_true {
+    color: #12490f;
+}
+
 .validity_list_False {
+    color: darkred;
+    padding: 10px;
+}
+
+.validity_list_false {
     color: darkred;
     padding: 10px;
 }
@@ -216,10 +225,24 @@ iframe {
     font-style: normal;
     content: "\f00c";
     font-family: FontAwesome;
-    color:darkgreen;
+    color: darkgreen;
+}
+
+.validity_icon_true::after {
+    font-style: normal;
+    content: "\f00c";
+    font-family: FontAwesome;
+    color: darkgreen;
 }
 
 .validity_icon_False::after {
+    font-style: normal;
+    font-family: FontAwesome;
+    content: '\f12a';
+    color: darkred;
+}
+
+.validity_icon_false::after {
     font-style: normal;
     font-family: FontAwesome;
     content: '\f12a';

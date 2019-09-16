@@ -1,0 +1,184 @@
+{% load crispy_forms_tags %}
+{% load static %}
+{% load foe_tags %}
+
+<div id="tab_information" class="tab-pane fade in active">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="col-sm-6"><h3>Information</h3></div>
+            <div class="col-sm-6 button_bar">
+                <a onclick="LoadModalData('Edit local information','{% url 'main:edit_locals' item_type=item_type item_id=item.id %}');"
+                   data-toggle="modal"
+                   data-target="#formModal"
+                   style="text-decoration: none;">
+                    <button class="btn btn-default">
+                        <i class="fa fa-pencil"></i> Edit locals
+                    </button>
+                </a>
+            </div>
+
+            <div class="col-sm-12">
+                <table class="datatables display table">
+                    <tbody>
+                    <tr>
+                        <td>Notes</td>
+                        <td>
+                            {% if item.notes %}{{ item.notes|linebreaksbr }}
+                            {% else %}<span class="empty">No notes given</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Owner</td>
+                        <td>
+                            {% if item.owner %}{{ item.owner|title }}
+                            {% else %}<span class="empty">None</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <div class="col-md-8">
+            <div class="col-sm-6"><h3>Contents</h3></div>
+            <div class="col-sm-6 button_bar">
+                <button id="check_local_validity" class="btn btn-default">
+                    <i class="fa fa-refresh"></i> Check validity
+                </button>
+            </div>
+
+            <div class="col-sm-12">
+                <table class="datatables display table">
+                    <thead>
+                    <th></th>
+                    <th>Field</th>
+                    <th>Value</th>
+                    <th>Messages</th>
+                    <th></th>
+                    </thead>
+                    <tbody class="rowlink" data-link="row">
+
+                    {% for field, value, errors, validity in locals %}
+                        <tr id="v_{{ field }}_row"  class="validity_{{ validity }}">
+                            <td>
+                                {% if validity != None %}
+                                    <a onclick="LoadModalData(
+                                            'Edit {{ field }}',
+                                            '{% url 'main:edit_field' item_type=item_type item_id=item.id item_field=field %}'
+                                            );"
+                                       data-toggle="modal"
+                                       data-target="#formModal"></a>
+                                {% endif %}
+                                <span id="v_{{ field }}_icon" class="validity_icon_{{ validity }}"></span></td>
+                            <td>{{ field }}</td>
+                            <td>{{ value|safe }}</td>
+                            <td>
+                                {% for e in errors %}
+                                    {{ e.hints|safe }}<br>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+
+                    {% for f, obj_type, obj_item, title in foreign_keys %}
+                        <tr id="v_{{ f }}_row">
+                            <td>
+                                {% if obj_item is not None %}
+                                    <a href="{% url 'main:display' item_type=obj_type item_id=obj_item.id %}"></a>
+                                {% endif %}
+                                <span id="v_{{ f }}_icon" class="validity_icon_waiting"></span></td>
+                            <td>{{ title }}</td>
+                            <td>{% getattribute item f %}</td>
+                            <td>
+                                <div id="v_{{ f }}"></div>
+                            </td>
+                            <td class="rowlink-skip">
+                                <a onclick="LoadModalData(
+                                        'Edit {{ f }}',
+                                        '{% url 'main:link_upstream' item_type=obj_type item_id=obj_item.id related_name=f %}'
+                                        );"
+                                   data-toggle="modal"
+                                   data-target="#formModal"
+                                   style="text-decoration: none;">
+                                    Change
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<form id="privacy_form" action="{% url 'main:set_privacy' %}" method='POST' hidden>
+    {% csrf_token %}
+    <input type="text" name="item_type" id="item_type" value="{{ item_type }}">
+    <input type="text" name="item_id" id="item_id" value="{{ item.id }}">
+    <input type="text" name="privacy_level" id="privacy_level" value="">
+</form>
+
+
+<script>
+
+    $(document).ready(function () {
+
+        $("#check_local_validity").click(function (e) {
+            e.preventDefault();
+
+            // Preventing multiple lines of errors on repressing the button
+            $("div[id^=v_]").html("");
+
+            $.ajax({
+                url: "/validate/{{ item_type }}/{{ item.id }}",
+
+                success: function (data) {
+
+
+                    $("span[id$=_icon]").each(function () {
+                        $(this).html("");
+                        $(this).removeClass().addClass('validity_icon_None');
+                    });
+                    $("tr[id$=_row]").each(function () {
+                        $(this).removeClass().addClass('validity_None');
+                    });
+
+
+                    $.each(data['fields'], function (index, value) {
+                        $.each(value[0], function (index, value2) {
+                            let id = "#v_" + value2;
+                            let html = $(id).html();
+                            let text = value[2] + ": " + value[1] + "<br>";
+                            text = html + text;
+
+                            $(id).html(text);
+                            $(id + "_icon").removeClass().addClass('validity_icon_False');
+                            $(id + "_row").removeClass().addClass('validity_False');
+
+                        });
+                    });
+                }
+            });
+        });
+    });
+
+    function SetPrivate() {
+        $('input[name="privacy_level"]').val("private");
+        $("form#privacy_form ").submit();
+    }
+
+    function SetPublic() {
+        $('input[name="privacy_level"]').val("public");
+        $("form#privacy_form ").submit();
+    }
+</script>
+
+
+

@@ -5,6 +5,7 @@ from django.db.models import ForeignKey, ManyToManyField, AutoField, ManyToOneRe
 from django.forms import modelform_factory
 from django.shortcuts import redirect
 
+from main.defines import DOWNSTREAM_VALIDATION_DICT
 from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Unit, \
     Math, Prefix, Person
 
@@ -24,6 +25,7 @@ def add_child_errors(parent, tree):
 def draw_error_tree(item):
     tree = []
     tree = add_child_errors(item, tree)
+    tree = set(tree)
     tree_html = '<table class ="display table" id="table-info" ><thead><tr><th>Specification reference</th>' \
                 '<th>Message</th><th>Go to item</th></tr></thead><tbody>'
 
@@ -42,6 +44,7 @@ def draw_error_tree(item):
 def draw_error_branch(item):
     tree = []
     tree = add_child_errors(item, tree)
+    tree = set(tree)
     tree_html = ""
     for err in item.errors.all():
         tree_html += "<tr class='validity_list_False'>" + \
@@ -52,12 +55,6 @@ def draw_error_branch(item):
 
     for child_item, child_type, errors in tree:
         for err in errors:
-            # tree_html += "<tr>"
-            # tree_html += "<td>" + err.spec + "</td>"
-            # tree_html += "<td>" + err.hints + "</td>"
-            # tree_html += "<td><a href = '/display/" + child_type + "/" + str(child_item.id) + "'>"
-            # tree_html += "Open <i>" + child_item.name + "</i></a></td></tr>"
-
             tree_html += "<tr class='validity_list_False'>" + \
                          "<td class='validity_icon_False'></td>" + \
                          "<td>" + err.spec + "</td>" + \
@@ -70,18 +67,18 @@ def draw_error_branch(item):
 
 def get_local_error_messages(item):
     if item.errors.count() > 0:
-        html = "<tr class='validity_list_False'><td class='validity_icon_False'><a href='/display/" + type(
-            item).__name__.lower() + "/" + str(item.id) + \
+        html = "<tr class='validity_list_False'><td class='validity_icon_False'><a href='/display/" + \
+               type(item).__name__.lower() + "/" + str(item.id) + \
                "'></a></td><td>" + item.name + "</td>"
         html += "<td>"
         for err in item.errors.all():
             html += err.spec + ": " + err.hints + "<br>"
         html += "</td></tr>"
     else:
-        html = "<tr class='validity_list_True'><td class='validity_icon_True'><a href='/display/" + type(
-            item).__name__.lower() + "/" + str(item.id) + \
-               "'></a></td><td>" + item.name + "</td>"
-        html += "<td>Item is valid</td></tr>"
+        html = "<tr class='validity_list_True'><td class='validity_icon_True'>" + \
+               "<a href='/display/" + type(item).__name__.lower() + "/" + str(item.id) + "'></a>" + \
+               "</td><td>" + item.name + "</td>"
+        html += "<td>" + type(item).__name__ + " is valid</td></tr>"
     return html
 
 
@@ -116,7 +113,7 @@ def draw_object_tree(item):
 
 
 def add_item_branches(item, tree):
-    tree.append((item, type(item).__name__.lower()))
+    # tree.append((item, type(item).__name__.lower()))
     children = get_item_downstream_attributes(item)
     for child in children:
         tree.append((child[2],
@@ -125,19 +122,34 @@ def add_item_branches(item, tree):
     return tree
 
 
-def build_object_child_list(item):
-    child_list = []
-    child_list = add_item_branches(item, child_list)
-    child_list = set(child_list)
+def draw_object_child_tree(item):
+    child_list = build_object_child_list(item)
 
     html = ""
     for child, child_type in child_list:
         # html += "<tr class='validity_list_waiting' id='" + child_type + "__" + str(child.id) + "__v'>" + \
         #         "<td>" + child_type + ": " + child.name + "</td></tr>"
-        html += "<div class='validity_list_waiting' id='" + child_type + "__" + str(child.id) + "__v'>" + \
-                child_type + " <i>" + child.name + "</i></div>"
+        html += "<tr><td><div class='validity_list_waiting' id='" + child_type + "__" + str(child.id) + "__checklist'>" \
+                + child_type + " <i>" + child.name + "</i></div></td></tr>"
 
     return {'html': html, 'list_length': len(child_list)}
+
+
+def build_object_child_list(item):
+    child_list = []
+    child_list = add_item_branches(item, child_list)
+    set_child_list = set(child_list)
+    return set_child_list
+
+
+def draw_object_error_tree(item):
+    child_list = build_object_child_list(item)
+
+    error_list = ''
+    for child, child_type in child_list:
+        error_list += get_local_error_messages(child)
+
+    return {'html': error_list, 'list_length': len(error_list)}
 
 
 # -------------------------------- PREVIEW FUNCTIONS FOR CELLML ITEMS ----------------------------
@@ -762,8 +774,10 @@ def get_item_upstream_attributes(item, excluding=[]):
 
 
 def get_downstream_fields(item_model, excluding=[]):
-    downstream_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
-                         type(x) == ManyToOneRel or type(x) == ManyToManyRel]
+    # downstream_fields = [x.name for x in item_model.model_class()._meta.get_fields(include_parents=False) if
+    #                      type(x) == ManyToOneRel or type(x) == ManyToManyRel]
+
+    downstream_fields = DOWNSTREAM_VALIDATION_DICT[item_model.model_class().__name__.lower()]
 
     for e in excluding:
         if e in downstream_fields:

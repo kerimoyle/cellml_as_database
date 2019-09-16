@@ -120,7 +120,8 @@ def validate_compoundunit(cu):
             hints="Invalid compound_units name <i>{n}</i>: {h}".format(
                 n=cu.name,
                 h=hints),
-            spec='8.1.1'
+            spec='8.1.1',
+            fields=['name']
         )
         err.save()
         cu.errors.add(err)
@@ -128,7 +129,8 @@ def validate_compoundunit(cu):
     if CompoundUnit.objects.filter(name=cu.name, is_standard=True).count() > 0:
         err = ItemError(
             hints="The name cannot be the same as a built-in units name, <i>{}</i>".format(cu.name),
-            spec="8.1.3"
+            spec="8.1.3",
+            fields=['name']
         )
         err.save()
         cu.errors.add(err)
@@ -159,7 +161,8 @@ def validate_unit(unit):
         err = ItemError(
             hints="Unit in units <i>{p}</i> points to a blank unit".format(
                 p=unit.parent_cu.name),
-            spec='9.1.1'
+            spec='9.1.1',
+            fields=['child_cu']
         )
         err.save()
         unit.parent_cu.errors.add(err)
@@ -182,7 +185,7 @@ def validate_reset(reset):
     for e in reset.errors.all():
         e.delete()
 
-    if reset.order == '':
+    if reset.order == '' or reset.order is None:
         err = ItemError(
             hints="Reset <i>{r}</i> does not have an order set".format(r=reset.name),
             spec="12.1.2",
@@ -293,7 +296,8 @@ def validate_component_locally(component):
             hints="Invalid component name <i>{n}</i>: {h}".format(
                 n=component.name,
                 h=hints),
-            spec='10.1.1'
+            spec='10.1.1',
+            fields=['name']
         )
         err.save()
         component.errors.add(err)
@@ -307,6 +311,7 @@ def validate_component_locally(component):
                 x=d['name_count'],
                 m=component.name),
             spec='11.1.1.1',
+            fields=['variables']
         )
         err.save()
         component.errors.add(err)  # It's an error of the *component* not of the variable itself ...
@@ -349,7 +354,8 @@ def validate_cellmodel_locally(model):
             hints="Invalid model name <i>{n}</i>: {h}".format(
                 n=model.name,
                 h=hints),
-            spec='4.2.1'
+            spec='4.2.1',
+            fields=['name']
         )
         err.save()
         model.errors.add(err)
@@ -405,7 +411,6 @@ def validate_cellmodel_locally(model):
 
 
 def validate_cellmodel(model):
-
     is_valid = validate_cellmodel_locally(model)
 
     for component in model.components.all():
