@@ -1380,18 +1380,30 @@ def validate(request, item_type, item_id):
 
     item.save()
 
-    errors = ""
-    for e in item.errors.all():
-        errors += "{}: {}<br>".format(e.spec, e.hints)
-
     style = "btn btn-secondary validity_banner_{}".format(item.is_valid)
+
+    local_attrs = get_item_local_attributes(item, ['cellml_index',
+                                                   'privacy',
+                                                   'error_tree',
+                                                   'child_list'])
+    local_fields = []
+    skip_fields = ['is_valid', 'last_checked']
+    for local in local_attrs:
+        errs = item.errors.filter(fields__icontains=local[0])
+        errors = []
+        for e in errs:
+            errors.append("{}: {}<br>".format(e.spec, e.hints))
+
+        validity = None if local[0] in skip_fields else errs.count() == 0
+
+        local_fields.append((local[0], local[1], errors, validity))
 
     data = {
         'status': 200,
         'style': style,
         'last_checked': "{}".format(item.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
-        'errors': errors,
-        'fields': list(item.errors.all().values_list('fields', 'hints', 'spec'))
+        # 'errors': errors,
+        'fields': local_fields
     }
 
     return JsonResponse(data)

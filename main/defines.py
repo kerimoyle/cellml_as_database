@@ -53,8 +53,8 @@ DISPLAY_DICT = {
         #     ],
         'foreign_keys':
             [
-                {'field': 'component', 'obj_type': 'component', 'title': 'Component'},
-                {'field': 'compoundunit', 'obj_type': 'compoundunit', 'title': 'Units'},
+                {'field': 'component', 'obj_type': 'component', 'title': 'component'},
+                {'field': 'compoundunit', 'obj_type': 'compoundunit', 'title': 'units'},
             ]
     },
 
@@ -138,4 +138,18 @@ MENU_OPTIONS = {
         'create': MODEL_CLASSES,
         'browse': MODEL_CLASSES,
     }
+}
+
+
+KIND_DICT = {
+    'COMPONENT': 'component',
+    'CONNECTION': '',
+    'ENCAPSULATION': '',
+    'IMPORT': '',
+    'MATHML': 'math',
+    'MODEL': 'cellmodel',
+    'UNDEFINED': '',
+    'UNITS': 'compoundunit',
+    'VARIABLE': 'variable',
+    'XML': ''
 }

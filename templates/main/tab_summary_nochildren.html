@@ -46,6 +46,11 @@
         <div class="col-md-8">
             <div class="col-sm-6"><h3>Contents</h3></div>
             <div class="col-sm-6 button_bar">
+
+                <button id="validity_div" class="btn btn-secondary">
+                    <span id="status_span"><b>Last checked: </b>{{ item.last_checked }}</span>
+                </button>
+
                 <button id="check_local_validity" class="btn btn-default">
                     <i class="fa fa-refresh"></i> Check validity
                 </button>
@@ -63,7 +68,7 @@
                     <tbody class="rowlink" data-link="row">
 
                     {% for field, value, errors, validity in locals %}
-                        <tr id="v_{{ field }}_row"  class="validity_{{ validity }}">
+                        <tr id="v_{{ field }}_row" class="validity_list_{{ validity }}">
                             <td>
                                 {% if validity != None %}
                                     <a onclick="LoadModalData(
@@ -77,9 +82,11 @@
                             <td>{{ field }}</td>
                             <td>{{ value|safe }}</td>
                             <td>
-                                {% for e in errors %}
-                                    {{ e.hints|safe }}<br>
-                                {% endfor %}
+                                <div id="v_{{ field }}_errors">
+                                    {% for e in errors %}
+                                        {{ e.hints|safe }}<br>
+                                    {% endfor %}
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
@@ -94,18 +101,7 @@
                             <td>{{ title }}</td>
                             <td>{% getattribute item f %}</td>
                             <td>
-                                <div id="v_{{ f }}"></div>
-                            </td>
-                            <td class="rowlink-skip">
-                                <a onclick="LoadModalData(
-                                        'Edit {{ f }}',
-                                        '{% url 'main:link_upstream' item_type=obj_type item_id=obj_item.id related_name=f %}'
-                                        );"
-                                   data-toggle="modal"
-                                   data-target="#formModal"
-                                   style="text-decoration: none;">
-                                    Change
-                                </a>
+                                <div id="v_{{ f }}_errors"></div>
                             </td>
                         </tr>
                     {% endfor %}
@@ -133,6 +129,9 @@
         $("#check_local_validity").click(function (e) {
             e.preventDefault();
 
+            $('#validity_div').removeClass().addClass('btn btn-secondary');
+            $('#status_span').html("<b>Checking now ... </b>");
+
             // Preventing multiple lines of errors on repressing the button
             $("div[id^=v_]").html("");
 
@@ -141,32 +140,41 @@
 
                 success: function (data) {
 
-
-                    $("span[id$=_icon]").each(function () {
-                        $(this).html("");
-                        $(this).removeClass().addClass('validity_icon_None');
-                    });
-                    $("tr[id$=_row]").each(function () {
-                        $(this).removeClass().addClass('validity_None');
-                    });
-
+                    {#$("tr[id$=_row]").each(function () {#}
+                    {#    $(this).removeClass().addClass('validity_list_None');#}
+                    {# });#}
 
                     $.each(data['fields'], function (index, value) {
-                        $.each(value[0], function (index, value2) {
-                            let id = "#v_" + value2;
-                            let html = $(id).html();
-                            let text = value[2] + ": " + value[1] + "<br>";
-                            text = html + text;
 
-                            $(id).html(text);
-                            $(id + "_icon").removeClass().addClass('validity_icon_False');
-                            $(id + "_row").removeClass().addClass('validity_False');
+                        let field = value[0];
+                        let errors = value[2];
+                        let validity = value[3];
 
+                        let error_div = $("#v_" + field + "_errors");
+                        error_div.html("");
+
+                        $("#v_" + field + "_icon").removeClass().addClass('validity_icon_' + validity);
+                        $("#v_" + field + "_row").removeClass().addClass('validity_list_' + validity);
+
+                        $.each(errors, function (index, error_string) {
+                            let html = error_div.html();
+                            error_div.html(html+error_string);
                         });
                     });
                 }
             });
         });
+    });
+
+    $(document).ajaxStop(function () {
+        let todo = $('.validity_list_False').length + $('.validity_list_false').length;
+        if (todo === 0) {
+            $("#validity_div").addClass('validity_banner_True');
+            $('#status_span').text("Item is valid");
+        } else {
+            $("#validity_div").addClass('validity_banner_False');
+            $('#status_span').text("Finished checking: " + todo + " issues");
+        }
     });
 
     function SetPrivate() {

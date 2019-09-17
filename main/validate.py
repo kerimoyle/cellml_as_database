@@ -8,6 +8,8 @@ from main.functions import draw_error_tree
 from main.models import ItemError, CompoundUnit
 
 
+
+
 def validate_variable(variable):
     # Variables are all local validation - no need for a duplicate
     for e in variable.errors.all():
@@ -507,6 +509,17 @@ def validate_connections(model):
     return is_valid
 
 
+VALIDATE_DICT = {
+    'cellmodel': validate_cellmodel_locally,
+    'variable': validate_variable,
+    'compoundunit': validate_compoundunit,
+    'math': validate_math,
+    'component': validate_component_locally,
+    'reset': validate_reset,
+    'unit': validate_unit,
+}
+
+
 def fetch_connected_resets(variable, local_done_list, reset_map):
     for equiv in variable.equivalent_variables.exclude(id__in=local_done_list):
         component = equiv.component
@@ -577,30 +590,6 @@ def cyclic_variable_found(parent, child, check_list, all_variable_list):
             return True, check_list, all_variable_list
 
     return False, check_list, all_variable_list
-
-
-VALIDATE_DICT = {
-    'cellmodel': validate_cellmodel_locally,
-    'variable': validate_variable,
-    'compoundunit': validate_compoundunit,
-    'math': validate_math,
-    'component': validate_component_locally,
-    'reset': validate_reset,
-    'unit': validate_unit,
-}
-
-KIND_DICT = {
-    'COMPONENT': 'component',
-    'CONNECTION': '',
-    'ENCAPSULATION': '',
-    'IMPORT': '',
-    'MATHML': 'math',
-    'MODEL': 'cellmodel',
-    'UNDEFINED': '',
-    'UNITS': 'compoundunit',
-    'VARIABLE': 'variable',
-    'XML': ''
-}
 
 
 def is_cellml_identifier(name):

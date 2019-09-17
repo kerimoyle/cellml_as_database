@@ -125,14 +125,16 @@ def add_item_branches(item, tree):
 def draw_object_child_tree(item):
     child_list = build_object_child_list(item)
 
-    html = ""
+    html = "<tr><td><div class='validity_list_waiting' id=" + type(item).__name__.lower() + "__" + \
+           str(item.id) + "__checklist'>" + type(item).__name__.lower() + " <i>" + item.name + "</i></div></td></tr>"
+
     for child, child_type in child_list:
         # html += "<tr class='validity_list_waiting' id='" + child_type + "__" + str(child.id) + "__v'>" + \
         #         "<td>" + child_type + ": " + child.name + "</td></tr>"
-        html += "<tr><td><div class='validity_list_waiting' id='" + child_type + "__" + str(child.id) + "__checklist'>" \
-                + child_type + " <i>" + child.name + "</i></div></td></tr>"
+        html += "<tr><td><div class='validity_list_waiting' id='" + child_type + "__" + str(child.id) + \
+                "__checklist'>" + child_type + " <i>" + child.name + "</i></div></td></tr>"
 
-    return {'html': html, 'list_length': len(child_list)}
+    return {'html': html, 'list_length': len(child_list)+1}
 
 
 def build_object_child_list(item):

@@ -13,7 +13,7 @@
 
             <tbody class="rowlink" data-link="row">
             {% for field, obj, errors, validity in locals %}
-                <tr class="validity_{{ validity }}">
+                <tr class="validity_list_{{ validity }}">
                     <td>
                         {% if validity != None %}
                             <a onclick="LoadModalData(
@@ -56,7 +56,7 @@
             </tr>
 
             {% for field_name, obj_type, obj, title in foreign_keys %}
-                <tr class="validity_{{ obj.is_valid }}">
+                <tr class="validity_list_{{ obj.is_valid }}">
                     <td><span class="validity_icon_{{ obj.is_valid }}"></span></td>
                     <td>
                         {{ title|lower }}
