@@ -8,6 +8,8 @@ from main.functions import draw_error_tree
 from main.models import ItemError, CompoundUnit
 
 
+
+
 def validate_variable(variable):
     # Variables are all local validation - no need for a duplicate
     for e in variable.errors.all():

@@ -53,8 +53,8 @@ DISPLAY_DICT = {
         #     ],
         'foreign_keys':
             [
-                {'field': 'component', 'obj_type': 'component', 'title': 'Component'},
-                {'field': 'compoundunit', 'obj_type': 'compoundunit', 'title': 'Units'},
+                {'field': 'component', 'obj_type': 'component', 'title': 'component'},
+                {'field': 'compoundunit', 'obj_type': 'compoundunit', 'title': 'units'},
             ]
     },
 
