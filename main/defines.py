@@ -139,3 +139,17 @@ MENU_OPTIONS = {
         'browse': MODEL_CLASSES,
     }
 }
+
+
+KIND_DICT = {
+    'COMPONENT': 'component',
+    'CONNECTION': '',
+    'ENCAPSULATION': '',
+    'IMPORT': '',
+    'MATHML': 'math',
+    'MODEL': 'cellmodel',
+    'UNDEFINED': '',
+    'UNITS': 'compoundunit',
+    'VARIABLE': 'variable',
+    'XML': ''
+}
