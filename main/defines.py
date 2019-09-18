@@ -37,9 +37,10 @@ DISPLAY_DICT = {
         ],
         'foreign_keys': [
             {'field': 'parent_component', 'obj_type': 'component', 'title': 'Parent component'},
+            {'field': 'model', 'obj_type': 'cellmodel', 'title': 'Model'},
         ],
         'present_in': [
-            {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Models'},
+            # {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Models'},
         ]
     },
 

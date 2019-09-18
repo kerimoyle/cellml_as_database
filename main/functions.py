@@ -261,7 +261,7 @@ def load_model(in_model, owner):
 
     # Add the components
     for c in range(in_model.componentCount()):
-        load_component(c, in_model, model, owner)
+        load_component(c, in_model, model, model, owner)
 
     # Add the compound units
     for u in range(in_model.unitsCount()):
@@ -275,24 +275,48 @@ def load_model(in_model, owner):
     for component in model.components.all():
         connect_component_items(component, model, in_model, owner)
 
+    for component in model.components.all():
+        connect_equivalent_variables(component, in_model)
 
-
-    # for c_unit in model.compoundunits.all():
-    #     for unit in c_unit.units.all():
-    #
-    #         other_unit = model.units.filter(name=unit.reference).first()
-    #         if other_unit:
-    #             unit.based_on_compound_unit = other_unit
-    #             unit.save()
-    #             continue
-
-    # If we get to this point then the unit for this compound unit does not exist in the model: add todo item
+    # TODO Test custom units load correctly
 
     return model
 
 
-def connect_component_items(component, model, in_entity, owner):
+def connect_equivalent_variables(component, in_entity):
+    in_component = in_entity.component(component.cellml_index)
 
+    for v in range(0, in_component.variableCount()):
+        in_variable = in_component.variable(v)
+
+        variable = component.variables.filter(name=in_variable.name()).first()
+
+        for ev in range(0, in_variable.equivalentVariableCount()):
+
+            in_equiv = in_variable.equivalentVariable(ev)
+            in_equiv_component = in_equiv.parentComponent()
+            in_equiv_grandparent = in_equiv_component.parentComponent()
+            if not in_equiv_grandparent:
+                in_equiv_grandparent = in_equiv_component.parentModel()
+
+            out_equiv_component = component.model.all_components.filter(name=in_equiv_component.name()).first()
+
+            # Look for variable in the sibling component set
+            if out_equiv_component:
+                out_equiv_variable = out_equiv_component.variables.filter(name=in_equiv.name()).first()
+            else:
+                pass
+
+            if out_equiv_variable:
+                variable.equivalent_variables.add(out_equiv_variable)
+            else:
+                pass
+
+    for child_component in component.child_components.all():
+        connect_equivalent_variables(child_component, in_component)
+
+
+def connect_component_items(component, model, in_entity, owner):
     in_component = in_entity.component(component.cellml_index)
 
     for variable in component.variables.all():
@@ -331,17 +355,6 @@ def connect_component_items(component, model, in_entity, owner):
 
         variable.save()
 
-        # Set equivalent variables
-        # TODO How to get the parent component of the "other" variable from SWIG?
-        # for ev in range(in_variable.equivalentVariableCount()):
-        #     in_ev = in_variable.equivalentVariable(ev)
-        #     in_other_comp = in_ev.parent()
-        #     eq_component = model.components.filter(name=in_other_comp.name()).first()
-        #     if eq_component:
-        #         eq_var = eq_component.variables.filter(name=in_ev.name()).first()
-        #         if eq_var:
-        #             variable.equivalent_variables.add(eq_var)
-
     for reset in component.resets.all():
         # add the variable, test_variable
         in_reset = in_component.reset(reset.cellml_index)
@@ -352,7 +365,7 @@ def connect_component_items(component, model, in_entity, owner):
         connect_component_items(child_component, model, in_component, owner)
 
 
-def load_component(index, in_entity, out_parent, owner):
+def load_component(index, in_entity, out_parent, out_model, owner):
     in_component = in_entity.component(index)
 
     out_component = Component(
@@ -360,13 +373,15 @@ def load_component(index, in_entity, out_parent, owner):
         cellml_index=index,
         cellml_id=in_component.id(),
         owner=owner,
+        model=out_model,
     )
-    if type(out_parent).__name__.lower() == 'cellmodel':
-        out_component.save()
-        out_component.models.add(out_parent)
-    else:
+    # Parent and child components represent the encapsulation structure, model simply records the presence in the model
+    if type(out_parent).__name__.lower() == 'component':
         out_component.parent_component = out_parent
-        out_component.save()
+    else:
+        out_component.parent_model = out_model
+
+    out_component.save()
 
     # Load variables in this component
     for v in range(in_component.variableCount()):
@@ -386,8 +401,7 @@ def load_component(index, in_entity, out_parent, owner):
         math.components.add(out_component)
 
     for c in range(0, in_component.componentCount()):
-        load_component(c, in_component, out_component, owner)
-
+        load_component(c, in_component, out_component, out_model, owner)
 
     # Load errors from this component
     # error_count = in_component.errorCount()

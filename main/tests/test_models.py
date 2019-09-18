@@ -50,8 +50,9 @@ class CellModelTestCase(TestCase):
             name="c1",
             owner=self.person
         )
+
+        self.component.model = self.model
         self.component.save()
-        self.component.models.add(self.model)
 
     def test_name(self):
         m = CellModel.objects.get(name='model1')
