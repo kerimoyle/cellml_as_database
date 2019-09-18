@@ -51,12 +51,14 @@
 
 <script>
     let processed_count = 0;
-
+    let validity_button_clicked = false;
     $(document).ready(function () {
 
         {% if item.child_list %}
             $("#check_validity").click(function (e) {
                 e.preventDefault();
+                // Record button click
+                validity_button_clicked = true;
 
                 // Populate check list
                 $('#checklist').children().addClass('validity_list_waiting');
@@ -151,7 +153,8 @@
         $(document).ajaxStop(function () {
             // END OF QUEUE STUFF
             let to_check = $('.validity_list_waiting').length;
-            if (to_check === 0) {
+            if ((to_check === 0)&&(validity_button_clicked)) {
+
                 let to_do = $('#todolist .validity_list_False').length;
                 // Remove the valid items from the todo list and leave only the errors
                 $('#todolist .validity_list_True').fadeOut(1000);
@@ -169,6 +172,7 @@
                 if (to_do === 0) {
                     $('#todolist_table').fadeOut();
                 }
+                validity_button_clicked = false;
             }
         });
     {% endif %}

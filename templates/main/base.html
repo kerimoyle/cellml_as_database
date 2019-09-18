@@ -78,17 +78,13 @@
                             <li class="nav-item"><a class="nav-link" href="{% url 'main:logout_view' %}">LOG OUT</a>
                             </li>
                         </ul>
-
                     {% else %}
                         <ul class="nav navbar-nav navbar-right">
                             <li class="nav-item"><a class="nav-link" href="{% url 'main:login_view' %}">LOG IN</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'main:register' %}">REGISTER</a></li>
                         </ul>
-
                     {% endif %}
                 </div>
-
-
             </div>
         </nav>
     {% endblock navigation %}
@@ -99,16 +95,19 @@
 {% endif %}{% endblock messages %}</div>
 <div class="container-fluid" id="main_container">
     <div class="row">
+
         <div class="col-sm-8">
             <h1>{% block title %}{% endblock title %}</h1>
+            {% block breadcrumbs %}{% endblock breadcrumbs %}
+            {% block subtitle %}{% endblock subtitle %}
             {% block privacy %}
                 {% if item %}
                     <span class="privacy-{{ item.privacy }}"><b>Visibility:</b> {{ item.privacy|title }}
                         {% if not can_change_privacy %} (inherited){% endif %}</span>
                 {% endif %}
             {% endblock privacy %}
-            {% block subtitle %}{% endblock subtitle %}
         </div>
+
         <div class="col-sm-4 button_bar">
             <div class="button_bar" style="padding-top:15px;">
                 {% block title_buttons %}
@@ -244,16 +243,16 @@
         {% endblock datatables %}
 
 
-        $(document).ready(function() {
+        $(document).ready(function () {
             // show active tab on reload
             if (location.hash !== '') $('a[href="' + location.hash + '"]').tab('show');
 
             // remember the hash in the URL without jumping
-            $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
-                if(history.pushState) {
-                    history.pushState(null, null, '#'+$(e.target).attr('href').substr(1));
+            $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+                if (history.pushState) {
+                    history.pushState(null, null, '#' + $(e.target).attr('href').substr(1));
                 } else {
-                    location.hash = '#'+$(e.target).attr('href').substr(1);
+                    location.hash = '#' + $(e.target).attr('href').substr(1);
                 }
             });
         });

@@ -838,6 +838,7 @@ def display(request, item_type, item_id):
             tab['title']
         ))
 
+    # TODO This should be moved to wherever the item can be altered, including by downstream m2m fields
     item.child_list = draw_object_child_tree(item)
     item.save()
 

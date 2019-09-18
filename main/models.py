@@ -191,7 +191,7 @@ class Math(NamedCellMLEntity):
     math_ml = TextField(blank=True)
 
     imported_from = ForeignKey('Math', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
-    depends_on = ForeignKey('MAth', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
+    depends_on = ForeignKey('Math', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     # TODO how to make a parent fk to *either* model or reset - should be generic fk?
     def __str__(self):
