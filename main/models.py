@@ -200,7 +200,9 @@ class Math(NamedCellMLEntity):
 
 class Component(NamedCellMLEntity):
     models = ManyToManyField("CellModel", blank=True, related_name="components")
-
+    # This field represents the effects of encapsulation
+    parent_component = ForeignKey('Component', related_name='child_components', on_delete=DO_NOTHING, blank=True,
+                                  null=True)
     imported_from = ForeignKey('Component', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
     depends_on = ForeignKey('Component', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 

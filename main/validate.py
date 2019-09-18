@@ -8,8 +8,6 @@ from main.functions import draw_error_tree
 from main.models import ItemError, CompoundUnit
 
 
-
-
 def validate_variable(variable):
     # Variables are all local validation - no need for a duplicate
     for e in variable.errors.all():
@@ -324,6 +322,9 @@ def validate_component_locally(component):
 
 def validate_component(component):
     is_valid = validate_component_locally(component)
+
+    for child_component in component.child_components.all():
+        is_valid = validate_component(child_component) and is_valid
 
     for variable in component.variables.all():
         is_valid = validate_variable(variable) and is_valid

@@ -1052,6 +1052,21 @@ def upload(request):
             # Parse the model using libcellml:
             parser = libcellml.Parser()
             in_model = parser.parseModel(cellml_text)
+            if parser.errorCount() > 0:
+                for e in range(0, parser.errorCount()):
+                    err = parser.error(e)
+                    messages.error(request,
+                                   "{}".format(err.description()))
+                return redirect('main:error')
+
+            # validator = libcellml.Validator()
+            # validator.validateModel(in_model)
+            # if validator.errorCount() > 0:
+            #     for e in range(0, validator.errorCount()):
+            #         err = validator.error(e)
+            #         messages.error(request,
+            #                        "{}".format(err.description()))
+            #     return redirect('main:error')
 
             # Load into database
             model = load_model(in_model, person)
