@@ -838,10 +838,9 @@ def display(request, item_type, item_id):
             tab['title']
         ))
 
+    # TODO This should be moved to wherever the item can be altered, including by downstream m2m fields
     item.child_list = draw_object_child_tree(item)
     item.save()
-
-    # breadcrumbs = get_breadcrumbs(item)
 
     context = {
         'item': item,
@@ -858,7 +857,6 @@ def display(request, item_type, item_id):
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
         'can_change_privacy': can_change_privacy,
-        # 'breadcrumbs': breadcrumbs
     }
     return render(request, 'main/display.html', context)
 
