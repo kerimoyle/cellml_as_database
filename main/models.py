@@ -122,7 +122,7 @@ class Variable(NamedCellMLEntity):
     depends_on = ForeignKey('Variable', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return "{} ({})".format(self.name, self.component.name)
 
 
 def get_default_prefix():
@@ -210,6 +210,8 @@ class Component(NamedCellMLEntity):
     depends_on = ForeignKey('Component', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     def __str__(self):
+        if self.child_components.count():
+            return "{} (encapsulates {} components)".format(self.name, self.child_components.count())
         return self.name
 
 
