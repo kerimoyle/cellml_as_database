@@ -841,6 +841,8 @@ def display(request, item_type, item_id):
     item.child_list = draw_object_child_tree(item)
     item.save()
 
+    # breadcrumbs = get_breadcrumbs(item)
+
     context = {
         'item': item,
         'item_type': item_type,
@@ -856,6 +858,7 @@ def display(request, item_type, item_id):
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
         'can_change_privacy': can_change_privacy,
+        # 'breadcrumbs': breadcrumbs
     }
     return render(request, 'main/display.html', context)
 

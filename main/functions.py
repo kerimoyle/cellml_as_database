@@ -5,7 +5,7 @@ from django.db.models import ForeignKey, ManyToManyField, AutoField, ManyToOneRe
 from django.forms import modelform_factory
 from django.shortcuts import redirect
 
-from main.defines import DOWNSTREAM_VALIDATION_DICT
+from main.defines import DOWNSTREAM_VALIDATION_DICT, BREADCRUMB_DICT
 from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Unit, \
     Math, Prefix, Person
 

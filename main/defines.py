@@ -140,7 +140,6 @@ MENU_OPTIONS = {
     }
 }
 
-
 KIND_DICT = {
     'COMPONENT': 'component',
     'CONNECTION': '',
@@ -152,4 +151,14 @@ KIND_DICT = {
     'UNITS': 'compoundunit',
     'VARIABLE': 'variable',
     'XML': ''
+}
+
+BREADCRUMB_DICT = {
+    'cellmodel': None,
+    'model': None,
+    'component': ['cellmodel'],
+    'variable': ['component', 'cellmodel'],
+    'compoundunit': ['cellmodel'],
+    'reset': ['component', 'cellmodel'],
+    'encapsulation': ['cellmodel']
 }
