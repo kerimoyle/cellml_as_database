@@ -62,7 +62,7 @@ def validate_variable(variable):
             is_valid = False
 
     if initial_component_id is not None:
-        if initial_component_id != variable.component:
+        if initial_component_id != variable.component.id:
             err = ItemError(
                 hints=
                 "Variable <i>{v}</i> in component <i>{c}</i> is initialised by variable <i>{vi}</i> "
