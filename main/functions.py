@@ -347,11 +347,16 @@ def connect_component_items(component, model, in_entity, owner):
             variable.compoundunit = model.compoundunits.filter(name=in_units.name()).first()
 
         initial_value = in_variable.initialValue()
-        if type(initial_value).__name__ == 'str':
-            iv = Variable.objects.filter(name=initial_value, component=component).first()
-            variable.initial_value_variable = iv
+
+        if initial_value == "":
+            pass
         else:
-            variable.initial_value_constant = initial_value
+            try:
+                initial_value = float(initial_value)
+                variable.initial_value_constant = initial_value
+            except ValueError:
+                variable.initial_value_constant = None
+                variable.initial_value_variable = component.variables.filter(name=initial_value).first()
 
         variable.save()
 
@@ -578,17 +583,6 @@ def load_variable(index, in_component, out_component, owner):
     out_variable.component = out_component
     out_variable.save()
 
-    # Load errors from this variable
-    # TODO no idea why this isn't working anymore?
-    # error_count = in_variable.errorCount()
-    # for i in range(0, error_count):
-    #     e = in_variable.errors(i)
-    #     err = ItemError(
-    #         hints=e.description(),
-    #         spec=e.specificationHeading(),
-    #     )
-    #     err.save()
-    #     out_variable.errors.add(err)
     return
 
 

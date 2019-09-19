@@ -109,6 +109,7 @@ class Variable(NamedCellMLEntity):
     ]
 
     equivalent_variables = ManyToManyField("Variable", symmetrical=True, blank=True)
+
     initial_value_constant = FloatField(null=True, blank=True)
     initial_value_variable = ForeignKey('Variable', related_name='will_initialise', on_delete=DO_NOTHING, null=True,
                                         blank=True)
@@ -250,7 +251,6 @@ class TemporaryStorage(DjangoModel):
     # This is the storage and reading of the initial cellml file
     file = FileField(blank=False)
     tree = TextField(blank=True)
-    model_name = CharField(blank=False, max_length=100)
     owner = ForeignKey(Person, related_name="stored_files", on_delete=CASCADE, null=True, blank=True)
 
 

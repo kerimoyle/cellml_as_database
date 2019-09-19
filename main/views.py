@@ -1045,6 +1045,7 @@ def upload(request):
                 f = open(storage.file.path, "r")
                 cellml_text = f.read()
             except Exception as e:
+                storage.delete()
                 messages.error(request, "Could not read the file at '{}'".format(storage.file.path))
                 messages.error(request, "{}: {}".format(type(e).__name__, e.args))
                 return redirect('main:error')
@@ -1053,41 +1054,24 @@ def upload(request):
             parser = libcellml.Parser()
             in_model = parser.parseModel(cellml_text)
             if parser.errorCount() > 0:
+                storage.delete()
                 for e in range(0, parser.errorCount()):
                     err = parser.error(e)
                     messages.error(request,
                                    "{}".format(err.description()))
                 return redirect('main:error')
 
-            # validator = libcellml.Validator()
-            # validator.validateModel(in_model)
-            # if validator.errorCount() > 0:
-            #     for e in range(0, validator.errorCount()):
-            #         err = validator.error(e)
-            #         messages.error(request,
-            #                        "{}".format(err.description()))
-            #     return redirect('main:error')
-
             # Load into database
             model = load_model(in_model, person)
 
-            # Keep track of origins
-            # imported_from = ImportedEntity(
-            #     source_type="temporarystorage",
-            #     source_id=storage.id,
-            #     attribution="Uploaded from {}".format(storage.file.name)
-            # )
-            # imported_from.save()
-
             model.uploaded_from = storage.file.name
-            model.name = storage.model_name
             model.owner = request.user.person
             model.imported_from = None
             model.privacy = 'private'
             model.child_list = draw_object_child_tree(model)
             model.save()
 
-            # Delete the TemporaryStorage object, also deletes the uploaded file TODO Check what is wanted here?
+            # Delete the TemporaryStorage object, also deletes the uploaded file
             storage.delete()
 
             return redirect(reverse('main:display', kwargs={'item_type': 'cellmodel', 'item_id': model.id}))
