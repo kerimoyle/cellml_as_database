@@ -38,7 +38,7 @@
                         </td>
                         <td>
                             <a href="{% url 'main:display' item_type=obj_type item_id=obj.id %}"></a>
-                            {{ obj.name }}
+                            {{ obj }}
                         </td>
                         <td>{{ obj.owner }}</td>
                         {% if can_edit %}

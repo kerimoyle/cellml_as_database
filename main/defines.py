@@ -14,7 +14,7 @@ MODEL_NAME_DICT = {
 
 DOWNSTREAM_VALIDATION_DICT = {
     'cellmodel': ['components', 'compoundunits'],
-    'component': ['variables', 'maths', 'resets'],
+    'component': ['child_components', 'variables', 'maths', 'resets'],
     'compoundunit': [],
     'variable': [],
     'math': [],
@@ -27,16 +27,21 @@ DISPLAY_DICT = {
         'summary_template': 'main/tab_summary_children.html',
         'validity_template': 'main/tab_validity.html',
         'tabs': [
+            {'field': 'child_components', 'obj_type': 'component', 'title': 'Encapsulated components',
+             'template': 'main/tab_default.html'},
             {'field': 'variables', 'obj_type': 'variable', 'title': 'Variables',
              'template': 'main/tab_default.html'},
             {'field': 'maths', 'obj_type': 'math', 'title': 'Maths', 'template': 'main/tab_maths.html'},
             {'field': 'resets', 'obj_type': 'reset', 'title': 'Resets', 'template': 'main/tab_default.html'},
+
         ],
-        'foreign_keys': [],
-        'present_in':
-            [
-                {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Models'},
-            ]
+        'foreign_keys': [
+            {'field': 'parent_component', 'obj_type': 'component', 'title': 'Parent component'},
+            {'field': 'model', 'obj_type': 'cellmodel', 'title': 'Model'},
+        ],
+        'present_in': [
+            # {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Models'},
+        ]
     },
 
     'variable': {

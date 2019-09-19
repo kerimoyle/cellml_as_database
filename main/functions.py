@@ -134,7 +134,7 @@ def draw_object_child_tree(item):
         html += "<tr><td><div class='validity_list_waiting' id='" + child_type + "__" + str(child.id) + \
                 "__checklist'>" + child_type + " <i>" + child.name + "</i></div></td></tr>"
 
-    return {'html': html, 'list_length': len(child_list)+1}
+    return {'html': html, 'list_length': len(child_list) + 1}
 
 
 def build_object_child_list(item):
@@ -259,10 +259,9 @@ def load_model(in_model, owner):
     )
     model.save()
 
-    # TODO Add the encapsulations
     # Add the components
     for c in range(in_model.componentCount()):
-        load_component(c, in_model, model, owner)
+        load_component(c, in_model, model, model, owner)
 
     # Add the compound units
     for u in range(in_model.unitsCount()):
@@ -274,85 +273,115 @@ def load_model(in_model, owner):
 
     # Once everything is loaded into the database, we have to make the connections between items
     for component in model.components.all():
-        in_component = in_model.component(component.cellml_index)
-        for variable in component.variables.all():
-            # Link to units if they exist, or set to None
-            in_variable = in_component.variable(variable.cellml_index)
-            in_units = in_variable.units()
-            if type(in_units).__name__ == 'str':
-                u = CompoundUnit.objects.filter(is_standard=True, name=in_units).first()
-                if u is not None:
-                    # Then is built-in unit
-                    variable.compoundunit = u
-                else:
-                    u = CompoundUnit.objects.filter(name=in_units, models=model).first()
-                    if u is not None:
-                        variable.compoundunit = u
-                    else:
-                        # Then is new base unit.  Create compound unit with no downstream
-                        u_new = CompoundUnit(
-                            name=in_units,
-                            symbol=in_units,
-                            is_standard=False,
-                            owner=owner,
-                        )
-                        u_new.save()
-                        u_new.models.add(model)
-                        variable.compoundunit = u_new
-            else:
-                variable.compoundunit = model.compoundunits.filter(name=in_units.name()).first()
+        connect_component_items(component, model, in_model, owner)
 
-            initial_value = in_variable.initialValue()
-            if type(initial_value).__name__ == 'str':
-                iv = Variable.objects.filter(name=initial_value, component=component).first()
-                variable.initial_value_variable = iv
-            else:
-                variable.initial_value_constant = initial_value
+    for component in model.components.all():
+        connect_equivalent_variables(component, in_model)
 
-            variable.save()
-
-            # Set equivalent variables
-            # TODO How to get the parent component of the "other" variable from SWIG?
-            # for ev in range(in_variable.equivalentVariableCount()):
-            #     in_ev = in_variable.equivalentVariable(ev)
-            #     in_other_comp = in_ev.parent()
-            #     eq_component = model.components.filter(name=in_other_comp.name()).first()
-            #     if eq_component:
-            #         eq_var = eq_component.variables.filter(name=in_ev.name()).first()
-            #         if eq_var:
-            #             variable.equivalent_variables.add(eq_var)
-
-        for reset in component.resets.all():
-            # add the variable, test_variable
-            in_reset = in_component.reset(reset.cellml_index)
-            reset.variable = component.variables.filter(name=in_reset.variable.name()).first()
-            reset.test_variable = component.variables.filter(name=in_reset.test_variable.name()).first()
-
-    # for c_unit in model.compoundunits.all():
-    #     for unit in c_unit.units.all():
-    #
-    #         other_unit = model.units.filter(name=unit.reference).first()
-    #         if other_unit:
-    #             unit.based_on_compound_unit = other_unit
-    #             unit.save()
-    #             continue
-
-    # If we get to this point then the unit for this compound unit does not exist in the model: add todo item
+    # TODO Test custom units load correctly
 
     return model
 
 
-def load_component(index, in_model, model, owner):
-    in_component = in_model.component(index)
+def connect_equivalent_variables(component, in_entity):
+    in_component = in_entity.component(component.cellml_index)
+
+    for v in range(0, in_component.variableCount()):
+        in_variable = in_component.variable(v)
+
+        variable = component.variables.filter(name=in_variable.name()).first()
+
+        for ev in range(0, in_variable.equivalentVariableCount()):
+
+            in_equiv = in_variable.equivalentVariable(ev)
+            in_equiv_component = in_equiv.parentComponent()
+            in_equiv_grandparent = in_equiv_component.parentComponent()
+            if not in_equiv_grandparent:
+                in_equiv_grandparent = in_equiv_component.parentModel()
+
+            out_equiv_component = component.model.all_components.filter(name=in_equiv_component.name()).first()
+
+            # Look for variable in the sibling component set
+            if out_equiv_component:
+                out_equiv_variable = out_equiv_component.variables.filter(name=in_equiv.name()).first()
+            else:
+                pass
+
+            if out_equiv_variable:
+                variable.equivalent_variables.add(out_equiv_variable)
+            else:
+                pass
+
+    for child_component in component.child_components.all():
+        connect_equivalent_variables(child_component, in_component)
+
+
+def connect_component_items(component, model, in_entity, owner):
+    in_component = in_entity.component(component.cellml_index)
+
+    for variable in component.variables.all():
+        # Link to units if they exist, or set to None
+        in_variable = in_component.variable(variable.cellml_index)
+        in_units = in_variable.units()
+        if type(in_units).__name__ == 'str':
+            u = CompoundUnit.objects.filter(is_standard=True, name=in_units).first()
+            if u is not None:
+                # Then is built-in unit
+                variable.compoundunit = u
+            else:
+                u = CompoundUnit.objects.filter(name=in_units, models=model).first()
+                if u is not None:
+                    variable.compoundunit = u
+                else:
+                    # Then is new base unit.  Create compound unit with no downstream
+                    u_new = CompoundUnit(
+                        name=in_units,
+                        symbol=in_units,
+                        is_standard=False,
+                        owner=owner,
+                    )
+                    u_new.save()
+                    u_new.models.add(model)
+                    variable.compoundunit = u_new
+        else:
+            variable.compoundunit = model.compoundunits.filter(name=in_units.name()).first()
+
+        initial_value = in_variable.initialValue()
+        if type(initial_value).__name__ == 'str':
+            iv = Variable.objects.filter(name=initial_value, component=component).first()
+            variable.initial_value_variable = iv
+        else:
+            variable.initial_value_constant = initial_value
+
+        variable.save()
+
+    for reset in component.resets.all():
+        # add the variable, test_variable
+        in_reset = in_component.reset(reset.cellml_index)
+        reset.variable = component.variables.filter(name=in_reset.variable.name()).first()
+        reset.test_variable = component.variables.filter(name=in_reset.test_variable.name()).first()
+
+    for child_component in component.child_components.all():
+        connect_component_items(child_component, model, in_component, owner)
+
+
+def load_component(index, in_entity, out_parent, out_model, owner):
+    in_component = in_entity.component(index)
 
     out_component = Component(
         name=in_component.name(),
         cellml_index=index,
         cellml_id=in_component.id(),
         owner=owner,
+        model=out_model,
     )
+    # Parent and child components represent the encapsulation structure, model simply records the presence in the model
+    if type(out_parent).__name__.lower() == 'component':
+        out_component.parent_component = out_parent
+    else:
+        out_component.parent_model = out_model
+
     out_component.save()
-    out_component.models.add(model)
 
     # Load variables in this component
     for v in range(in_component.variableCount()):
@@ -371,6 +400,9 @@ def load_component(index, in_model, model, owner):
         math.save()
         math.components.add(out_component)
 
+    for c in range(0, in_component.componentCount()):
+        load_component(c, in_component, out_component, out_model, owner)
+
     # Load errors from this component
     # error_count = in_component.errorCount()
     # for i in range(0, error_count):
@@ -383,6 +415,48 @@ def load_component(index, in_model, model, owner):
     #     out_component.errors.add(err)
 
     return
+
+
+# def load_component(index, in_model, model, owner):
+#     in_component = in_model.component(index)
+#
+#     out_component = Component(
+#         name=in_component.name(),
+#         cellml_index=index,
+#         cellml_id=in_component.id(),
+#         owner=owner,
+#     )
+#     out_component.save()
+#
+#     # Load variables in this component
+#     for v in range(in_component.variableCount()):
+#         load_variable(v, in_component, out_component, owner)
+#
+#     # Load resets in this component
+#     for r in range(in_component.resetCount()):
+#         load_reset(r, in_component, out_component, owner)
+#
+#     # Load math in this component
+#     if in_component.math():
+#         math = Math(
+#             math_ml=in_component.math(),
+#             owner=owner,
+#         )
+#         math.save()
+#         math.components.add(out_component)
+#
+#     # Load errors from this component
+#     # error_count = in_component.errorCount()
+#     # for i in range(0, error_count):
+#     #     e = in_component.errors(i)
+#     #     err = ItemError(
+#     #         hints=e.description(),
+#     #         spec=e.specificationHeading(),
+#     #     )
+#     #     err.save()
+#     #     out_component.errors.add(err)
+#
+#     return
 
 
 def load_compound_units(index, in_model, model, owner):

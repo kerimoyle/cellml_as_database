@@ -122,7 +122,7 @@ class Variable(NamedCellMLEntity):
     depends_on = ForeignKey('Variable', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return "{} ({})".format(self.name, self.component.name)
 
 
 def get_default_prefix():
@@ -199,12 +199,19 @@ class Math(NamedCellMLEntity):
 
 
 class Component(NamedCellMLEntity):
-    models = ManyToManyField("CellModel", blank=True, related_name="components")
+    model = ForeignKey("CellModel", blank=True, related_name="all_components", on_delete=DO_NOTHING, null=True)
+
+    # These fields represents the effects of encapsulation
+    parent_component = ForeignKey('Component', related_name='child_components', on_delete=DO_NOTHING, blank=True,
+                                  null=True)
+    parent_model = ForeignKey("CellModel", blank=True, related_name="components", on_delete=DO_NOTHING, null=True)
 
     imported_from = ForeignKey('Component', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
     depends_on = ForeignKey('Component', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     def __str__(self):
+        if self.child_components.count():
+            return "{} (encapsulates {} components)".format(self.name, self.child_components.count())
         return self.name
 
 
