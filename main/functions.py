@@ -278,8 +278,6 @@ def load_model(in_model, owner):
     for component in model.components.all():
         connect_equivalent_variables(component, in_model)
 
-    # TODO Test custom units load correctly
-
     return model
 
 
@@ -323,28 +321,26 @@ def connect_component_items(component, model, in_entity, owner):
         # Link to units if they exist, or set to None
         in_variable = in_component.variable(variable.cellml_index)
         in_units = in_variable.units()
-        if type(in_units).__name__ == 'str':
-            u = CompoundUnit.objects.filter(is_standard=True, name=in_units).first()
-            if u is not None:
-                # Then is built-in unit
-                variable.compoundunit = u
-            else:
-                u = CompoundUnit.objects.filter(name=in_units, models=model).first()
-                if u is not None:
-                    variable.compoundunit = u
-                else:
-                    # Then is new base unit.  Create compound unit with no downstream
-                    u_new = CompoundUnit(
-                        name=in_units,
-                        symbol=in_units,
-                        is_standard=False,
-                        owner=owner,
-                    )
-                    u_new.save()
-                    u_new.models.add(model)
-                    variable.compoundunit = u_new
+        if in_units == '':
+            pass
         else:
-            variable.compoundunit = model.compoundunits.filter(name=in_units.name()).first()
+            builtin_unit = CompoundUnit.objects.filter(is_standard=True, name=in_units).first()
+            spec_unit = CompoundUnit.objects.filter(name=in_units, models=model).first()
+            if builtin_unit is not None:
+                variable.compoundunit = builtin_unit
+            elif spec_unit is not None:
+                variable.compoundunit = spec_unit
+            else:
+                # Then is new base unit.  Create compound unit with no downstream
+                u_new = CompoundUnit(
+                    name=in_units,
+                    symbol=in_units,  # not sure about this one?
+                    is_standard=False,
+                    owner=owner,
+                )
+                u_new.save()
+                u_new.models.add(model)
+                variable.compoundunit = u_new
 
         initial_value = in_variable.initialValue()
 
