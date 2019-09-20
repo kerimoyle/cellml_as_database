@@ -233,9 +233,15 @@ class Reset(NamedCellMLEntity):  # TODO should this be inherited or not?
     imported_from = ForeignKey('Reset', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
     depends_on = ForeignKey('Reset', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
+    def __str__(self):
+        c = "None"
+        v = "None"
+        if self.component:
+            c = self.component.name
+        if self.variable:
+            v = self.variable.name
 
-def __str__(self):
-    return self.name
+        return "{r} ({c}, {v})".format(r=self.name, c=c, v=v)
 
 
 class CellModel(NamedCellMLEntity):

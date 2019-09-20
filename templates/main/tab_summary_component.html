@@ -12,7 +12,7 @@
                    data-target="#formModal"
                    style="text-decoration: none;">
                     <button class="btn btn-default">
-                        <i class="fa fa-pencil"></i> Edit locals
+                        <i class="fa fa-pencil"></i> Edit
                     </button>
                 </a>
             </div>
@@ -52,7 +52,7 @@
                 </button>
 
                 <button id="check_local_validity" class="btn btn-default">
-                    <i class="fa fa-refresh"></i> Check all validity
+                    <i class="fa fa-refresh"></i> Check validity
                 </button>
             </div>
 
@@ -63,7 +63,7 @@
                     <th>Field</th>
                     <th>Value</th>
                     <th>Messages</th>
-                    <th>Edit</th>
+                    <th></th>
                     </thead>
                     <tbody class="rowlink" data-link="row">
 
@@ -88,16 +88,6 @@
                                     {% endfor %}
                                 </div>
                             </td>
-                            <td class="rowlink-skip">
-                                <a onclick="LoadModalData(
-                                            'Edit {{ field }}',
-                                            '{% url 'main:edit_field' item_type=item_type item_id=item.id item_field=field %}'
-                                            );"
-                                       data-toggle="modal"
-                                       data-target="#formModal">
-                                    Edit
-                                </a>
-                            </td>
                         </tr>
                     {% endfor %}
 
@@ -107,25 +97,15 @@
                                 {% if obj_item is not None %}
                                     <a href="{% url 'main:display' item_type=obj_type item_id=obj_item.id %}"></a>
                                 {% endif %}
-                                <span id="v_{{ f }}_icon" class="validity_icon_{{ validity }}"></span>
-                            </td>
+                                <span id="v_{{ f }}_icon" class="validity_icon_{{ validity }}"></span></td>
                             <td>{{ title }}</td>
                             <td>{% getattribute item f %}</td>
                             <td>
                                 <div id="v_{{ f }}_errors"></div>
                             </td>
-                            <td class="rowlink-skip">
-                                <a onclick="LoadModalData(
-                                        'Edit {{ f }}',
-                                        '{% url 'main:edit_field' item_type=item_type item_id=item.id item_field=f %}'
-                                        );"
-                                   data-toggle="modal"
-                                   data-target="#formModal">
-                                    Edit
-                                </a>
-                            </td>
                         </tr>
                     {% endfor %}
+
                     </tbody>
                 </table>
             </div>
@@ -157,7 +137,13 @@
 
             $.ajax({
                 url: "/validate/{{ item_type }}/{{ item.id }}",
+
                 success: function (data) {
+
+                    {#$("tr[id$=_row]").each(function () {#}
+                    {#    $(this).removeClass().addClass('validity_list_None');#}
+                    {# });#}
+
                     $.each(data['fields'], function (index, value) {
 
                         let field = value[0];
@@ -172,12 +158,9 @@
 
                         $.each(errors, function (index, error_string) {
                             let html = error_div.html();
-                            error_div.html(html + error_string);
+                            error_div.html(html+error_string);
                         });
                     });
-                },
-                error: function () {
-                    alert("Something went wrong ... ");
                 }
             });
         });

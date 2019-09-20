@@ -45,6 +45,7 @@ def validate_variable(variable):
         err.save()
         variable.errors.add(err)
         is_valid = False
+    # Check that the units of the initialising variable are the same as for this variable
     elif initial_unit_id is not None:
         if initial_unit_id != variable.compoundunit.id:
             err = ItemError(
@@ -55,12 +56,13 @@ def validate_variable(variable):
                     vi=variable.initial_value_variable.name,
                     ui=variable.initial_value_variable.compoundunit.name),
                 spec="11?",
-                fields=["initial_value"]
+                fields=["initial_value_variable"]
             )
             err.save()
             variable.errors.add(err)
             is_valid = False
 
+    # Check that the variable has access to the initialising variable
     if initial_component_id is not None:
         if initial_component_id != variable.component.id:
             err = ItemError(
@@ -78,6 +80,7 @@ def validate_variable(variable):
             variable.errors.add(err)
             is_valid = False
 
+    # Check that there is only one method of initialisation
     if variable.initial_value_variable is not None and variable.initial_value_constant is not None:
         err = ItemError(
             hints=
@@ -89,6 +92,27 @@ def validate_variable(variable):
                 ci=variable.initial_value_constant),
             spec="11.1.2.1",
             fields=['initial_value_variable', 'initial_value_constant']
+        )
+        err.save()
+        variable.errors.add(err)
+        is_valid = False
+
+    # Check that directly related resets have unique orders
+    duplicated_orders = [x[0] for x in variable.reset_variables.values_list('order')]
+    unique_orders = list(set(duplicated_orders))
+    for x in unique_orders:
+        duplicated_orders.remove(x)
+
+    for rv in variable.reset_variables.filter(order__in=duplicated_orders):
+        err = ItemError(
+            hints="Variable <i>{v}</i> in component <i>{c}</i> contains more than one reset with order of "
+                  "<i>{o}</i>.".format(
+                                    v=variable.name,
+                                    c=variable.component.name,
+                                    o=rv.order
+                                ),
+            spec="??",  # TODO find spec reference for resets
+            fields=['reset_variables']  # TODO not sure what this should be
         )
         err.save()
         variable.errors.add(err)
@@ -255,7 +279,7 @@ def validate_reset(reset):
                     v=reset.variable.name,
                     vc=reset.variable.component.name),
                 spec="12",  # TODO find correct code for resets
-                fields=['variable', 'component']
+                fields=['variable']
             )
             err.save()
             reset.errors.add(err)
@@ -270,7 +294,7 @@ def validate_reset(reset):
                     v=reset.test_variable.name,
                     vc=reset.test_variable.component.name),
                 spec="12",  # TODO find correct code for resets
-                fields=['test_variable', 'component']
+                fields=['test_variable']
             )
             err.save()
             reset.errors.add(err)
@@ -434,40 +458,47 @@ def validate_cellmodel(model):
     return is_valid
 
 
+def validate_equivalent_variable(component, variable):
+    is_valid = True
+    # Check that equivalent variables are not in the same component
+    for ev in variable.equivalent_variables.filter(component=component):
+        err = ItemError(
+            hints="Variable <i>{v1}</i> and equivalent variable <i>{v2}</i> are both in the same component "
+                  "<i>{c}</i>".format(v1=variable.name,
+                                      v2=ev.name,
+                                      c=component.name
+                                      ),
+            spec="17.1.2",
+            fields=['component']  # TODO not sure what this should be
+        )
+        err.save()
+        component.errors.add(err)
+        is_valid = False
+
+    # Check that the variables have a valid parent component
+    for ev in variable.equivalent_variables.filter(component__isnull=True):
+        err = ItemError(
+            hints="Variable <i>{ev}</i> is equivalent to variable <i>{v}</i> in component <i>{c}</i> but "
+                  "does not have a parent component".format(ev=ev.name,
+                                                            v=variable.name,
+                                                            c=component.name,
+                                                            ),
+            spec="17.?",
+            fields=['component']  # TODO not sure what this should be
+        )
+        err.save()
+        ev.errors.add(err)
+        component.errors.add(err)
+        is_valid = False
+
+    return is_valid
+
+
 def validate_connections(model):
     is_valid = True
-    for component in model.components.all():
+    for component in model.all_components.all():
         for variable in component.variables.filter(equivalent_variables__isnull=False):
-            # Check that equivalent variables are not in the same component
-            for ev in variable.equivalent_variables.filter(component=component):
-                err = ItemError(
-                    hints="Variable <i>{v1}</i> and equivalent variable <i>{v2}</i> are both in the same component "
-                          "<i>{c}</i>".format(
-                        v1=variable.name,
-                        v2=ev.name,
-                        c=component.name
-                    ),
-                    spec="17.1.2",
-                )
-                err.save()
-                component.errors.add(err)
-                is_valid = False
-
-                # Check that the variables have a valid parent component
-                if ev.component is None:
-                    err = ItemError(
-                        hints="Variable <i>{ev}</i> is equivalent to variable <i>{v}</i> in component <i>{c}</i> but "
-                              "does not have a parent component".format(
-                            ev=ev.name,
-                            v=variable.name,
-                            c=component.name,
-                        ),
-                        spec="17.?",
-                    )
-                    err.save()
-                    ev.errors.add(err)
-                    component.errors.add(err)
-                    is_valid = False
+            is_valid = validate_equivalent_variable(component, variable)
 
     cycle_list = model_cyclic_variables_found(model)
     loop_count = len(cycle_list)
@@ -510,12 +541,22 @@ def validate_connections(model):
     return is_valid
 
 
-VALIDATE_DICT = {
+VALIDATE_SHALLOW_DICT = {
     'cellmodel': validate_cellmodel_locally,
     'variable': validate_variable,
     'compoundunit': validate_compoundunit,
     'math': validate_math,
     'component': validate_component_locally,
+    'reset': validate_reset,
+    'unit': validate_unit,
+}
+
+VALIDATE_DEEP_DICT = {
+    'cellmodel': validate_cellmodel,
+    'variable': validate_variable,
+    'compoundunit': validate_compoundunit,
+    'math': validate_math,
+    'component': validate_component,
     'reset': validate_reset,
     'unit': validate_unit,
 }
@@ -539,7 +580,7 @@ def model_cyclic_variables_found(model):
     total_list = []
     hint_list = []
 
-    for component in model.components.all():
+    for component in model.all_components.all():
         for variable in component.variables.annotate(num_ev=Count('equivalent_variables')
                                                      ).filter(num_ev__gte=2).exclude(id__in=all_variable_list):
             for eq in variable.equivalent_variables.all():

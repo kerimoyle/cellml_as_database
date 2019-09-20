@@ -5,7 +5,7 @@ from django.db.models import ForeignKey, ManyToManyField, AutoField, ManyToOneRe
 from django.forms import modelform_factory
 from django.shortcuts import redirect
 
-from main.defines import DOWNSTREAM_VALIDATION_DICT, BREADCRUMB_DICT
+from main.defines import DOWNSTREAM_VALIDATION_DICT, LOCAL_DICT
 from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Unit, \
     Math, Prefix, Person
 
@@ -868,12 +868,14 @@ def get_item_downstream_attributes(item, excluding=[]):
 
 def get_item_local_attributes(item, excluding=[]):
     # Get the local attributes of this item (ie: not fk, m2m, o2o)
-    local_fields = get_local_fields(ContentType.objects.get_for_model(item))
+    # local_fields = get_local_fields(ContentType.objects.get_for_model(item))
+
+    local_fields = LOCAL_DICT[type(item).__name__.lower()]
 
     for l in excluding:
         try:
             local_fields.remove(l)
-        except KeyError:
+        except ValueError:
             pass
 
     item_locals = []
@@ -978,6 +980,7 @@ def link_copy(request, from_item, to_item, exclude=[], options=[]):
 
     to_item.depends_on = from_item
     to_item.imported_from = from_item
+    to_item.owner = request.user.person
     to_item.save()
 
     return from_item, to_item
@@ -1033,6 +1036,7 @@ def deep_copy(request, from_item, to_item, exclude=[], options=[]):
 
     to_item.depends_on = None
     to_item.imported_from = from_item.imported_from
+    to_item.owner = request.user.person
     to_item.save()
 
     return from_item, to_item
