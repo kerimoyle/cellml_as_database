@@ -5,7 +5,7 @@ from django.db.models import ForeignKey, ManyToManyField, AutoField, ManyToOneRe
 from django.forms import modelform_factory
 from django.shortcuts import redirect
 
-from main.defines import DOWNSTREAM_VALIDATION_DICT, BREADCRUMB_DICT
+from main.defines import DOWNSTREAM_VALIDATION_DICT, LOCAL_DICT
 from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Unit, \
     Math, Prefix, Person
 
@@ -278,8 +278,6 @@ def load_model(in_model, owner):
     for component in model.components.all():
         connect_equivalent_variables(component, in_model)
 
-    # TODO Test custom units load correctly
-
     return model
 
 
@@ -323,35 +321,38 @@ def connect_component_items(component, model, in_entity, owner):
         # Link to units if they exist, or set to None
         in_variable = in_component.variable(variable.cellml_index)
         in_units = in_variable.units()
-        if type(in_units).__name__ == 'str':
-            u = CompoundUnit.objects.filter(is_standard=True, name=in_units).first()
-            if u is not None:
-                # Then is built-in unit
-                variable.compoundunit = u
-            else:
-                u = CompoundUnit.objects.filter(name=in_units, models=model).first()
-                if u is not None:
-                    variable.compoundunit = u
-                else:
-                    # Then is new base unit.  Create compound unit with no downstream
-                    u_new = CompoundUnit(
-                        name=in_units,
-                        symbol=in_units,
-                        is_standard=False,
-                        owner=owner,
-                    )
-                    u_new.save()
-                    u_new.models.add(model)
-                    variable.compoundunit = u_new
+        if in_units == '':
+            pass
         else:
-            variable.compoundunit = model.compoundunits.filter(name=in_units.name()).first()
+            builtin_unit = CompoundUnit.objects.filter(is_standard=True, name=in_units).first()
+            spec_unit = CompoundUnit.objects.filter(name=in_units, models=model).first()
+            if builtin_unit is not None:
+                variable.compoundunit = builtin_unit
+            elif spec_unit is not None:
+                variable.compoundunit = spec_unit
+            else:
+                # Then is new base unit.  Create compound unit with no downstream
+                u_new = CompoundUnit(
+                    name=in_units,
+                    symbol=in_units,  # not sure about this one?
+                    is_standard=False,
+                    owner=owner,
+                )
+                u_new.save()
+                u_new.models.add(model)
+                variable.compoundunit = u_new
 
         initial_value = in_variable.initialValue()
-        if type(initial_value).__name__ == 'str':
-            iv = Variable.objects.filter(name=initial_value, component=component).first()
-            variable.initial_value_variable = iv
+
+        if initial_value == "":
+            pass
         else:
-            variable.initial_value_constant = initial_value
+            try:
+                initial_value = float(initial_value)
+                variable.initial_value_constant = initial_value
+            except ValueError:
+                variable.initial_value_constant = None
+                variable.initial_value_variable = component.variables.filter(name=initial_value).first()
 
         variable.save()
 
@@ -578,17 +579,6 @@ def load_variable(index, in_component, out_component, owner):
     out_variable.component = out_component
     out_variable.save()
 
-    # Load errors from this variable
-    # TODO no idea why this isn't working anymore?
-    # error_count = in_variable.errorCount()
-    # for i in range(0, error_count):
-    #     e = in_variable.errors(i)
-    #     err = ItemError(
-    #         hints=e.description(),
-    #         spec=e.specificationHeading(),
-    #     )
-    #     err.save()
-    #     out_variable.errors.add(err)
     return
 
 
@@ -878,12 +868,14 @@ def get_item_downstream_attributes(item, excluding=[]):
 
 def get_item_local_attributes(item, excluding=[]):
     # Get the local attributes of this item (ie: not fk, m2m, o2o)
-    local_fields = get_local_fields(ContentType.objects.get_for_model(item))
+    # local_fields = get_local_fields(ContentType.objects.get_for_model(item))
+
+    local_fields = LOCAL_DICT[type(item).__name__.lower()]
 
     for l in excluding:
         try:
             local_fields.remove(l)
-        except KeyError:
+        except ValueError:
             pass
 
     item_locals = []
@@ -988,6 +980,7 @@ def link_copy(request, from_item, to_item, exclude=[], options=[]):
 
     to_item.depends_on = from_item
     to_item.imported_from = from_item
+    to_item.owner = request.user.person
     to_item.save()
 
     return from_item, to_item
@@ -1043,6 +1036,7 @@ def deep_copy(request, from_item, to_item, exclude=[], options=[]):
 
     to_item.depends_on = None
     to_item.imported_from = from_item.imported_from
+    to_item.owner = request.user.person
     to_item.save()
 
     return from_item, to_item

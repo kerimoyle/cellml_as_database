@@ -109,6 +109,7 @@ class Variable(NamedCellMLEntity):
     ]
 
     equivalent_variables = ManyToManyField("Variable", symmetrical=True, blank=True)
+
     initial_value_constant = FloatField(null=True, blank=True)
     initial_value_variable = ForeignKey('Variable', related_name='will_initialise', on_delete=DO_NOTHING, null=True,
                                         blank=True)
@@ -232,9 +233,15 @@ class Reset(NamedCellMLEntity):  # TODO should this be inherited or not?
     imported_from = ForeignKey('Reset', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
     depends_on = ForeignKey('Reset', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
+    def __str__(self):
+        c = "None"
+        v = "None"
+        if self.component:
+            c = self.component.name
+        if self.variable:
+            v = self.variable.name
 
-def __str__(self):
-    return self.name
+        return "{r} ({c}, {v})".format(r=self.name, c=c, v=v)
 
 
 class CellModel(NamedCellMLEntity):
@@ -250,7 +257,6 @@ class TemporaryStorage(DjangoModel):
     # This is the storage and reading of the initial cellml file
     file = FileField(blank=False)
     tree = TextField(blank=True)
-    model_name = CharField(blank=False, max_length=100)
     owner = ForeignKey(Person, related_name="stored_files", on_delete=CASCADE, null=True, blank=True)
 
 

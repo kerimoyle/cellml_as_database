@@ -1,0 +1,41 @@
+<div id="tab_{{ field_name }}" class="tab-pane fade">
+    <div class="col-md-12">
+        <div class="button_bar">
+            <a href="{% url 'main:create' item_type=obj_type %}" target="_blank">
+                <button id="add_new_{{ obj_type }}" class="btn btn-default">
+                    <i class="fa fa-plus"></i> Create a new {{ obj_type }}
+                </button>
+            </a>
+        </div>
+
+        {% if objs.all %}
+            <br>
+            <table class="datatables display table table-hover" id="table-{{ obj_type }}{{ field_name }}"
+                   style="width:100%;">
+                <thead>
+                <th></th>
+                <th>Name</th>
+                <th>Order</th>
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for obj in objs %}
+                    <tr id="v__{{ obj_type }}__{{ obj.id }}__inforow" class="validity_list_{{ obj.is_valid }}">
+                        <td>
+                            <span id="v__{{ obj_type }}__{{ obj.id }}__infoicon" class="validity_icon_{{ obj.is_valid }}"></span>
+                        </td>
+                        <td>
+                            <a href="{% url 'main:display' item_type=obj_type item_id=obj.id %}"></a>
+                            {{ obj }}
+                        </td>
+                        <td>{{ obj.order }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}<div class="col-md-12">
+                <p class="empty">No {{ field_name }} items linked to here.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+

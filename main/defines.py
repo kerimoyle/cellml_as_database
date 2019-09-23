@@ -19,25 +19,47 @@ DOWNSTREAM_VALIDATION_DICT = {
     'variable': [],
     'math': [],
     'encapsulation': [],
-    'unit': []
+    'unit': [],
+    'reset': []
+}
+
+LOCAL_DICT = {
+    'cellmodel': ['name', 'cellml_id'],
+    'component': ['name'],
+    'compoundunit': ['name'],
+    'variable': ['name', 'cellml_id', 'initial_value_constant'],
+    'math': [],
+    'encapsulation': [],
+    'reset': ['name', 'order']
+}
+
+FOREIGN_DICT = {
+    'cellmodel': [],
+    'component': [],
+    'compoundunit': [],
+    'variable': ['initial_value_variable', 'compoundunit', 'component'],
+    'math': [],
+    'encapsulation': [],
+    'reset': ['component', 'variable', 'test_variable', 'test_value', 'reset_value']
 }
 
 DISPLAY_DICT = {
     'component': {
-        'summary_template': 'main/tab_summary_children.html',
+        'summary_template': 'main/tab_summary_nochildren.html',
         'validity_template': 'main/tab_validity.html',
         'tabs': [
             {'field': 'child_components', 'obj_type': 'component', 'title': 'Encapsulated components',
-             'template': 'main/tab_default.html'},
+             'template': 'main/tab_default.html', 'related_name': 'parent_component'},
             {'field': 'variables', 'obj_type': 'variable', 'title': 'Variables',
-             'template': 'main/tab_default.html'},
-            {'field': 'maths', 'obj_type': 'math', 'title': 'Maths', 'template': 'main/tab_maths.html'},
-            {'field': 'resets', 'obj_type': 'reset', 'title': 'Resets', 'template': 'main/tab_default.html'},
-
+             'template': 'main/tab_default.html', 'related_name': 'component'},
+            {'field': 'maths', 'obj_type': 'math', 'title': 'Maths', 'template': 'main/tab_maths.html',
+             'related_name': 'component'},
+            {'field': 'resets', 'obj_type': 'reset', 'title': 'Resets', 'template': 'main/tab_default.html',
+             'related_name': 'component'},
         ],
         'foreign_keys': [
-            {'field': 'parent_component', 'obj_type': 'component', 'title': 'Parent component'},
-            {'field': 'model', 'obj_type': 'cellmodel', 'title': 'Model'},
+            {'field': 'parent_component', 'obj_type': 'component', 'title': 'parent encapsulating component'},
+            {'field': 'model', 'obj_type': 'cellmodel', 'title': 'parent model'},
         ],
         'present_in': [
             # {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Models'},
@@ -46,21 +68,23 @@ DISPLAY_DICT = {
 
     'variable': {
         'summary_template': 'main/tab_summary_nochildren.html',
-        'validity_template': None,
+        'validity_template': 'main/tab_validity.html',
         'tabs': [
             {'field': 'equivalent_variables', 'obj_type': 'variable', 'title': 'Equivalent variables',
-             'template': 'main/tab_default.html'},
+             'template': 'main/tab_default.html', 'related_name': 'equivalent_variables'},
+            {'field': 'reset_variables', 'obj_type': 'reset', 'title': 'Variable is reset by',
+             'template': 'main/tab_reset.html', 'related_name': 'variable'},
+            {'field': 'reset_test_variables', 'obj_type': 'reset', 'title': 'Variable will reset',
+             'template': 'main/tab_reset.html', 'related_name': 'test_variable'},
         ],
-        'present_in': [],
-        #     [
-        #         {'field': 'component', 'obj_type': 'component', 'title': 'Component'},
-        #         {'field': 'compoundunit', 'obj_type': 'compoundunit', 'title': 'Units'},
-        #     ],
-        'foreign_keys':
-            [
-                {'field': 'component', 'obj_type': 'component', 'title': 'component'},
-                {'field': 'compoundunit', 'obj_type': 'compoundunit', 'title': 'units'},
-            ]
+        'present_in': [
+
+        ],
+        'foreign_keys': [
+            {'field': 'initial_value_variable', 'obj_type': 'variable', 'title': 'initial_value_variable'},
+            {'field': 'compoundunit', 'obj_type': 'compoundunit', 'title': 'compoundunit'},
+            {'field': 'component', 'obj_type': 'component', 'title': 'component'},
+        ]
     },
 
     'reset': {
@@ -82,19 +106,20 @@ DISPLAY_DICT = {
         'validity_template': 'main/tab_validity.html',
         'tabs': [
             {'field': 'product_of', 'obj_type': 'compoundunit', 'title': 'Product of',
-             'template': 'main/tab_units.html'},
+             'template': 'main/tab_units.html', 'related_name': 'parent_cu'},
             {'field': 'part_of', 'obj_type': 'compoundunit', 'title': 'Used in units',
-             'template': 'main/tab_compoundunits.html'},
+             'template': 'main/tab_compoundunits.html', 'related_name': 'child_cu'},
             {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Used in models',
-             'template': 'main/tab_fyi.html'},
-            {'field': 'variables', 'obj_type': 'variable', 'title': 'Used by variables',
-             'template': 'main/tab_fyi.html'},
+             'template': 'main/tab_fyi.html', 'related_name': 'compoundunits'},
+            # {'field': 'variables', 'obj_type': 'variable', 'title': 'Used by variables',
+            #  'template': 'main/tab_fyi.html', 'related_name': 'compoundunit'},
         ],
         'present_in': [],
         'foreign_keys': []
     },
+
     'cellmodel': {
-        'summary_template': 'main/tab_summary_children.html',
+        'summary_template': 'main/tab_summary_nochildren.html',
         'validity_template': 'main/tab_validity.html',
         'tabs': [
             {'field': 'components', 'obj_type': 'component', 'title': 'Components',

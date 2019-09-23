@@ -34,7 +34,8 @@
                 {% for obj in objs %}
                     <tr id="v__{{ obj_type }}__{{ obj.id }}__inforow" class="validity_list_{{ obj.is_valid }}">
                         <td>
-                            <span id="v__{{ obj_type }}__{{ obj.id }}__infoicon" class="validity_icon_{{ obj.is_valid }}"></span>
+                            <span id="v__{{ obj_type }}__{{ obj.id }}__infoicon"
+                                  class="validity_icon_{{ obj.is_valid }}"></span>
                         </td>
                         <td>
                             <a href="{% url 'main:display' item_type=obj_type item_id=obj.id %}"></a>
@@ -50,10 +51,29 @@
                 {% endfor %}
                 </tbody>
             </table>
-        {% else %}<div class="col-md-12">
+        {% else %}
+            <div class="col-md-12">
                 <p class="empty">No {{ field_name }} items linked to here.</p>
             </div>
         {% endif %}
     </div>
 </div>
+<form id="unlink_form" action="{% url 'main:link_remove' %}" method="POST" hidden>
+    {% csrf_token %}
+    <input type="text" name="unlink_item_type" id="unlink_item_type" value="">
+    <input type="text" name="unlink_item_id" id="unlink_item_id" value="">
+    <input type="text" name="unlink_related_name" id="unlink_related_name" value="">
+    <input type="text" name="unlink_related_id" id="unlink_related_id" value="">
+</form>
+
+<script>
+    function Unlink(related_name, related_id) {
+        $('input[name="unlink_item_type"]').val("{{ item_type }}");
+        $('input[name="unlink_item_id"]').val("{{ item.id }}");
+        $('input[name="unlink_related_name"]').val(related_name);
+        $('input[name="unlink_related_id"]').val(related_id);
+        $("form#unlink_form ").submit();
+    }
+</script>
+
 

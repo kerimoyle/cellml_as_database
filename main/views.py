@@ -15,14 +15,13 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
-from main.defines import MENU_OPTIONS, DISPLAY_DICT
+from main.defines import MENU_OPTIONS, DISPLAY_DICT, LOCAL_DICT, FOREIGN_DICT
 from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
-from main.functions import load_model, get_edit_locals_form, get_item_local_attributes, \
-    get_item_upstream_attributes, copy_item, \
+from main.functions import load_model, get_edit_locals_form, get_item_upstream_attributes, copy_item, \
     delete_item, convert_to_cellml_model, get_item_downstream_attributes, draw_error_tree, draw_object_tree, \
-    add_child_errors, draw_error_branch, draw_object_child_tree, get_local_error_messages
+    add_child_errors, draw_error_branch, draw_object_child_tree, get_local_error_messages, get_edit_form
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset
-from main.validate import VALIDATE_DICT
+from main.validate import VALIDATE_SHALLOW_DICT, VALIDATE_DEEP_DICT
 
 
 def test(request):
@@ -453,10 +452,7 @@ def edit_field(request, item_type, item_id, item_field):
 
     if check_ownership(request, item):
 
-        all_fields = item_model.model_class()._meta.fields
-        excluding = [x.name for x in all_fields if x.name != item_field]
-
-        edit_form = get_edit_locals_form(item_model, excluding)
+        edit_form = get_edit_form(item_model, [item_field])
 
         if request.POST:
             form = edit_form(request.POST, instance=item)
@@ -468,8 +464,7 @@ def edit_field(request, item_type, item_id, item_field):
 
         form.helper = FormHelper()
         form.helper.form_method = "POST"
-        form.helper.attrs = {'target': '_top',
-                             'id': 'modal_form_id'}  # Triggers reload of the parent page of this modal
+        form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
         form.helper.form_action = reverse('main:edit_field',
                                           kwargs={'item_type': item_type, 'item_id': item_id, 'item_field': item_field})
 
@@ -791,17 +786,41 @@ def display(request, item_type, item_id):
             l=item.owner.last_name))
         return redirect('main:error')
 
-    local_attrs = get_item_local_attributes(item, ['cellml_index',
-                                                   'privacy',
-                                                   'error_tree',
-                                                   'child_list'])
-    local_fields = []
-    skip_fields = ['is_valid', 'last_checked']
-    for local in local_attrs:
-        errs = item.errors.filter(fields__icontains=local[0])
-        validity = None if local[0] in skip_fields else errs.count() == 0
+    # local_attrs = get_item_local_attributes(item, ['cellml_index',
+    #                                                'privacy',
+    #                                                'error_tree',
+    #                                                'child_list',
+    #                                                'is_valid',
+    #                                                'last_checked',
+    #                                                'notes'])
+    # local_fields = []
+    # skip_fields = ['is_valid', 'last_checked']
+    # for local in local_attrs:
+    #     errs = item.errors.filter(fields__icontains=local[0])
+    #     validity = None if local[0] in skip_fields else errs.count() == 0
+    #
+    #     local_fields.append((local[0], local[1], errs, validity))
 
-        local_fields.append((local[0], local[1], errs, validity))
+    fields = []
+    for field in LOCAL_DICT[item_type]:
+        errs = item.errors.filter(fields__icontains=field)
+        errors = []
+        for e in errs:
+            errors.append("{}: {}<br>".format(e.spec, e.hints))
+        validity = errs.count() == 0
+        value = getattr(item, field)
+        fields.append((field, value, errors, validity))
+
+    foreign_keys = []
+    for tab in DISPLAY_DICT[item_type]['foreign_keys']:
+        field = tab['field']
+        foreign_keys.append((
+            field,
+            tab['obj_type'],
+            getattr(item, field),
+            tab['title'],
+            None if getattr(item, field) is None else getattr(item, field).is_valid
+        ))
 
     can_change_privacy = len(
         get_item_upstream_attributes(item, ['errors', 'owner', 'imported_from', 'annotations'])
@@ -828,16 +847,6 @@ def display(request, item_type, item_id):
             tab['title']
         ))
 
-    foreign_keys = []
-    for tab in DISPLAY_DICT[item_type]['foreign_keys']:
-        field = tab['field']
-        foreign_keys.append((
-            field,
-            tab['obj_type'],
-            getattr(item, field),
-            tab['title']
-        ))
-
     # TODO This should be moved to wherever the item can be altered, including by downstream m2m fields
     item.child_list = draw_object_child_tree(item)
     item.save()
@@ -853,7 +862,7 @@ def display(request, item_type, item_id):
             None if DISPLAY_DICT[item_type]['summary_template'] is None
             else DISPLAY_DICT[item_type]['validity_template'],
         'error_tree': None if item.error_tree is None else item.error_tree['tree_html'],
-        'locals': local_fields,
+        'locals': fields,
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
         'can_change_privacy': can_change_privacy,
@@ -1045,6 +1054,7 @@ def upload(request):
                 f = open(storage.file.path, "r")
                 cellml_text = f.read()
             except Exception as e:
+                storage.delete()
                 messages.error(request, "Could not read the file at '{}'".format(storage.file.path))
                 messages.error(request, "{}: {}".format(type(e).__name__, e.args))
                 return redirect('main:error')
@@ -1053,41 +1063,24 @@ def upload(request):
             parser = libcellml.Parser()
             in_model = parser.parseModel(cellml_text)
             if parser.errorCount() > 0:
+                storage.delete()
                 for e in range(0, parser.errorCount()):
                     err = parser.error(e)
                     messages.error(request,
                                    "{}".format(err.description()))
                 return redirect('main:error')
 
-            # validator = libcellml.Validator()
-            # validator.validateModel(in_model)
-            # if validator.errorCount() > 0:
-            #     for e in range(0, validator.errorCount()):
-            #         err = validator.error(e)
-            #         messages.error(request,
-            #                        "{}".format(err.description()))
-            #     return redirect('main:error')
-
             # Load into database
             model = load_model(in_model, person)
 
-            # Keep track of origins
-            # imported_from = ImportedEntity(
-            #     source_type="temporarystorage",
-            #     source_id=storage.id,
-            #     attribution="Uploaded from {}".format(storage.file.name)
-            # )
-            # imported_from.save()
-
             model.uploaded_from = storage.file.name
-            model.name = storage.model_name
             model.owner = request.user.person
             model.imported_from = None
             model.privacy = 'private'
             model.child_list = draw_object_child_tree(model)
             model.save()
 
-            # Delete the TemporaryStorage object, also deletes the uploaded file TODO Check what is wanted here?
+            # Delete the TemporaryStorage object, also deletes the uploaded file
             storage.delete()
 
             return redirect(reverse('main:display', kwargs={'item_type': 'cellmodel', 'item_id': model.id}))
@@ -1390,36 +1383,40 @@ def validate(request, item_type, item_id):
         return redirect('main:error')
 
     # Select the function to call from the dictionary
-    is_valid = VALIDATE_DICT[item_type](item)
+    is_valid = VALIDATE_DEEP_DICT[item_type](item)
     item.is_valid = is_valid
     item.last_checked = datetime.datetime.now(pytz.utc)
-
     item.save()
 
-    style = "btn btn-secondary validity_banner_{}".format(item.is_valid)
+    fields = []
+    for field in LOCAL_DICT[item_type]:
+        errs = item.errors.filter(fields__icontains=field)
+        errors = []
+        for e in errs:
+            errors.append("{}: {}<br>".format(e.spec, e.hints))
+        validity = errs.count() == 0
+        value = getattr(item, field)
+        fields.append((field, value, errors, validity))
 
-    local_attrs = get_item_local_attributes(item, ['cellml_index',
-                                                   'privacy',
-                                                   'error_tree',
-                                                   'child_list'])
-    local_fields = []
-    skip_fields = ['is_valid', 'last_checked']
-    for local in local_attrs:
-        errs = item.errors.filter(fields__icontains=local[0])
+    for field in FOREIGN_DICT[item_type]:
+        linked_item = getattr(item, field)
+        errs = item.errors.filter(fields__icontains=field)
         errors = []
         for e in errs:
             errors.append("{}: {}<br>".format(e.spec, e.hints))
 
-        validity = None if local[0] in skip_fields else errs.count() == 0
+        if linked_item is not None:
+            fields.append((field, linked_item.name, errors, linked_item.is_valid and errs.count() == 0))
+        else:
+            fields.append((field, "None", errors, errs.count() == 0))
 
-        local_fields.append((local[0], local[1], errors, validity))
+    style = "btn btn-secondary validity_banner_{}".format(item.is_valid)
 
     data = {
         'status': 200,
         'style': style,
         'last_checked': "{}".format(item.last_checked.strftime("%b. %d, %Y, %-I:%M %p")),
-        # 'errors': errors,
-        'fields': local_fields
+        'fields': fields
     }
 
     return JsonResponse(data)
@@ -1452,7 +1449,7 @@ def ajax_validate(request):
         return redirect('main:error')
 
     # Select the function to call from the dictionary
-    is_valid = VALIDATE_DICT[item_type](item)
+    is_valid = VALIDATE_SHALLOW_DICT[item_type](item)
     item.is_valid = is_valid
     item.last_checked = datetime.datetime.now(pytz.utc)
 
