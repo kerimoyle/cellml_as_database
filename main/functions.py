@@ -10,6 +10,10 @@ from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Uni
     Math, Prefix, Person
 
 
+def is_standard_unit(unit):
+    return unit.name in [x[0] for x in CompoundUnit.objects.filter(is_standard=True).values_list('name')]
+
+
 # --------------------- PREVIEW FUNCTIONS -------------------------------------
 
 def add_child_errors(parent, tree):
@@ -272,10 +276,13 @@ def load_model(in_model, owner):
         u.save()
 
     # Once everything is loaded into the database, we have to make the connections between items
-    for component in model.components.all():
+    # Note that components are loaded twice - once into the all_components field of the parent model, independently of
+    # the encapsulation structure, and again into the encapsulated_components field, which reflects the hierarchy, if
+    # present
+    for component in model.encapsulated_components.all():
         connect_component_items(component, model, in_model, owner)
 
-    for component in model.components.all():
+    for component in model.encapsulated_components.all():
         connect_equivalent_variables(component, in_model)
 
     return model
@@ -416,48 +423,6 @@ def load_component(index, in_entity, out_parent, out_model, owner):
     #     out_component.errors.add(err)
 
     return
-
-
-# def load_component(index, in_model, model, owner):
-#     in_component = in_model.component(index)
-#
-#     out_component = Component(
-#         name=in_component.name(),
-#         cellml_index=index,
-#         cellml_id=in_component.id(),
-#         owner=owner,
-#     )
-#     out_component.save()
-#
-#     # Load variables in this component
-#     for v in range(in_component.variableCount()):
-#         load_variable(v, in_component, out_component, owner)
-#
-#     # Load resets in this component
-#     for r in range(in_component.resetCount()):
-#         load_reset(r, in_component, out_component, owner)
-#
-#     # Load math in this component
-#     if in_component.math():
-#         math = Math(
-#             math_ml=in_component.math(),
-#             owner=owner,
-#         )
-#         math.save()
-#         math.components.add(out_component)
-#
-#     # Load errors from this component
-#     # error_count = in_component.errorCount()
-#     # for i in range(0, error_count):
-#     #     e = in_component.errors(i)
-#     #     err = ItemError(
-#     #         hints=e.description(),
-#     #         spec=e.specificationHeading(),
-#     #     )
-#     #     err.save()
-#     #     out_component.errors.add(err)
-#
-#     return
 
 
 def load_compound_units(index, in_model, model, owner):
@@ -619,6 +584,9 @@ def load_reset(index, in_component, out_component, owner):
     #     out_reset.errors.add(err)
 
 
+# --------------------- COPY FUNCTIONS ----------------------------------
+
+
 # -------------------------------- CONVERSION FUNCTIONS ---------------------------------
 
 def convert_to_cellml_model(in_model):
@@ -628,13 +596,16 @@ def convert_to_cellml_model(in_model):
         out_model.setName(in_model.name)
         out_model.setId(in_model.cellml_id)
 
-        for c in in_model.components.all():
+        for c in in_model.all_components.all():
             component = convert_to_cellml_component(c)
             out_model.addComponent(component)
 
         for cu in in_model.compoundunits.all():
             units = convert_to_cellml_compoundunit(cu)
             out_model.addUnits(units)
+
+        # todo convert_to_cellml_connections
+        # todo convert_to_cellml_encapsulation
 
     return out_model
 

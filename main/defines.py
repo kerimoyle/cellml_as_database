@@ -13,7 +13,7 @@ MODEL_NAME_DICT = {
 }
 
 DOWNSTREAM_VALIDATION_DICT = {
-    'cellmodel': ['components', 'compoundunits'],
+    'cellmodel': ['encapsulated_components', 'compoundunits'],
     'component': ['child_components', 'variables', 'maths', 'resets'],
     'compoundunit': [],
     'variable': [],
@@ -22,6 +22,10 @@ DOWNSTREAM_VALIDATION_DICT = {
     'unit': [],
     'reset': []
 }
+
+
+
+
 
 LOCAL_DICT = {
     'cellmodel': ['name', 'cellml_id'],
@@ -122,7 +126,7 @@ DISPLAY_DICT = {
         'summary_template': 'main/tab_summary_nochildren.html',
         'validity_template': 'main/tab_validity.html',
         'tabs': [
-            {'field': 'components', 'obj_type': 'component', 'title': 'Components',
+            {'field': 'encapsulated_components', 'obj_type': 'component', 'title': 'Encapsulated components',
              'template': 'main/tab_default.html'},
             {'field': 'compoundunits', 'obj_type': 'compoundunit', 'title': 'Units',
              'template': 'main/tab_compoundunits.html'},

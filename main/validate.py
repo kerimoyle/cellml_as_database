@@ -389,7 +389,7 @@ def validate_cellmodel_locally(model):
         is_valid = False
 
     # Check model's components for duplicate names
-    duplicates = model.components.values('name').annotate(name_count=Count('name')).filter(name_count__gt=1)
+    duplicates = model.all_components.values('name').annotate(name_count=Count('name')).filter(name_count__gt=1)
     for d in duplicates:
         err = ItemError(
             hints="Component name <i>{n}</i> is duplicated {x} times in model <i>{m}</i>".format(
@@ -417,7 +417,7 @@ def validate_cellmodel_locally(model):
         is_valid = False
 
     # Check that the set of compound units used by the variables exists in the model
-    required = model.components.values_list('name', 'variables__name', 'variables__compoundunit__name')
+    required = model.all_components.values_list('name', 'variables__name', 'variables__compoundunit__name')
     available = model.compoundunits.values_list('name').distinct()
     missing = [(c, v, u) for c, v, u in required
                if (u,) not in available
@@ -440,7 +440,7 @@ def validate_cellmodel_locally(model):
 def validate_cellmodel(model):
     is_valid = validate_cellmodel_locally(model)
 
-    for component in model.components.all():
+    for component in model.all_components.all():
         is_valid = validate_component(component) and is_valid
 
     for compoundunit in model.compoundunits.all():
@@ -515,7 +515,7 @@ def validate_connections(model):
     else:
         # Check order uniqueness in resets
         total_done_list = []
-        for component in model.components.all():
+        for component in model.all_components.all():
             for variable in component.variables.filter(equivalent_variables__isnull=False).exclude(
                     id__in=total_done_list):
                 local_done_list = []

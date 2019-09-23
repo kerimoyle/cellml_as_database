@@ -149,7 +149,6 @@ class CompoundUnit(NamedCellMLEntity):
     models = ManyToManyField("CellModel", related_name="compoundunits", blank=True)
     is_standard = BooleanField(default=False)
     symbol = CharField(max_length=100, null=True, blank=True)
-    # variables = ManyToManyField("Variable", related_name="compoundunits", blank=True)
 
     imported_from = ForeignKey('CompoundUnit', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
     depends_on = ForeignKey('CompoundUnit', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
@@ -189,7 +188,7 @@ class CompoundUnit(NamedCellMLEntity):
 
 class Math(NamedCellMLEntity):
     components = ManyToManyField("Component", related_name="maths", blank=True)
-    math_ml = TextField(blank=True)
+    math_ml = TextField(blank=True, null=True)
 
     imported_from = ForeignKey('Math', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
     depends_on = ForeignKey('Math', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
@@ -205,7 +204,8 @@ class Component(NamedCellMLEntity):
     # These fields represents the effects of encapsulation
     parent_component = ForeignKey('Component', related_name='child_components', on_delete=DO_NOTHING, blank=True,
                                   null=True)
-    parent_model = ForeignKey("CellModel", blank=True, related_name="components", on_delete=DO_NOTHING, null=True)
+    parent_model = ForeignKey("CellModel", blank=True, related_name="encapsulated_components", on_delete=DO_NOTHING,
+                              null=True)
 
     imported_from = ForeignKey('Component', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
     depends_on = ForeignKey('Component', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)

@@ -15,6 +15,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
+from main.copy import copy_model, copy_component, copy_variable, copy_compoundunit, copy_reset
 from main.defines import MENU_OPTIONS, DISPLAY_DICT, LOCAL_DICT, FOREIGN_DICT
 from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import load_model, get_edit_locals_form, get_item_upstream_attributes, copy_item, \
@@ -275,6 +276,67 @@ def create_unit(request, cu_id, in_modal):
         return render(request, 'main/create.html', context)
 
 
+# @login_required
+# def copy(request, item_type, item_id):
+#     """
+#     Function to duplicate an existing item of item_type
+#     :param request: request
+#     :param item_type: the model class to be duplicated
+#     :param item_id: the id of the item to be duplicated
+#     :return: redirects to edit page of the new item
+#     """
+#
+#     item_model = None
+#     item = None
+#
+#     try:
+#         item_model = ContentType.objects.get(app_label="main", model=item_type)
+#     except Exception as e:
+#         messages.error(request, "Could not get object type called '{}'".format(item_type))
+#         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+#         return redirect('main:error')
+#
+#     try:
+#         item = item_model.get_object_for_this_type(id=item_id)
+#     except Exception as e:
+#         messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+#         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+#         return redirect('main:error')
+#
+#     if request.method == 'POST':
+#         form = CopyForm(request.POST)
+#         if form.is_valid():
+#             options = form.cleaned_data['options']
+#             item, item_copy = copy_item(request, item,
+#                                         ['used_by', 'depends_on', 'imported_from', 'imported_to'],
+#                                         options)
+#             if item_copy:
+#                 return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_copy.id}))
+#
+#     form = CopyForm()
+#     form.helper = FormHelper()
+#     form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
+#     form.helper.form_method = 'post'
+#     form.helper.form_action = reverse('main:copy', kwargs={'item_type': item_type, 'item_id': item_id})
+#
+#     context = {
+#         'form': form,
+#         'modal_text': 'Do you really want to send {}: "{}" to your library? '
+#                       'This will make a copy and allow you to edit it.'.format(item_type, item.name)
+#     }
+#
+#     return render(request, 'main/form_modal.html', context)
+
+
+COPY_DICT = {
+    'cellmodel': copy_model,
+    'component': copy_component,
+    'variable': copy_variable,
+    'compoundunit': copy_compoundunit,
+    'reset': copy_reset,
+}
+
+
 @login_required
 def copy(request, item_type, item_id):
     """
@@ -316,7 +378,6 @@ def copy(request, item_type, item_id):
     form.helper = FormHelper()
     form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
     form.helper.form_method = 'post'
-    # form.helper.add_input(Submit('submit', "OK"))
     form.helper.form_action = reverse('main:copy', kwargs={'item_type': item_type, 'item_id': item_id})
 
     context = {
@@ -326,7 +387,6 @@ def copy(request, item_type, item_id):
     }
 
     return render(request, 'main/form_modal.html', context)
-
 
 @login_required
 def edit_locals(request, item_type, item_id):

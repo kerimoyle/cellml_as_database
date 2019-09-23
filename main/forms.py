@@ -7,7 +7,6 @@ from django.db.models.functions import Lower
 from main.models import (Math)
 
 
-# TODO make levels for copy/importing ...
 class CopyForm(forms.Form):
     class Meta:
         fields = ['item_type', 'item_id', 'options']
