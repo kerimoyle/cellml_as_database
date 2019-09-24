@@ -15,7 +15,8 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
-from main.copy import copy_model, copy_component, copy_variable, copy_compoundunit, copy_reset
+from main.copy import copy_compoundunit, copy_reset, copy_and_link_model, \
+    copy_and_link_component, copy_and_link_variable
 from main.defines import MENU_OPTIONS, DISPLAY_DICT, LOCAL_DICT, FOREIGN_DICT
 from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
 from main.functions import load_model, get_edit_locals_form, get_item_upstream_attributes, copy_item, \
@@ -329,9 +330,9 @@ def create_unit(request, cu_id, in_modal):
 
 
 COPY_DICT = {
-    'cellmodel': copy_model,
-    'component': copy_component,
-    'variable': copy_variable,
+    'cellmodel': copy_and_link_model,
+    'component': copy_and_link_component,
+    'variable': copy_and_link_variable,
     'compoundunit': copy_compoundunit,
     'reset': copy_reset,
 }
@@ -387,6 +388,7 @@ def copy(request, item_type, item_id):
     }
 
     return render(request, 'main/form_modal.html', context)
+
 
 @login_required
 def edit_locals(request, item_type, item_id):

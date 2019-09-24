@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.test import TestCase, RequestFactory
 
-from main.copy import copy_model, copy_component
+from main.copy import copy_and_link_component, copy_and_link_variable, copy_and_link_model
 from main.models import CellModel, Component, Person, CompoundUnit, Variable, Reset
 
 
@@ -110,38 +110,63 @@ class CellModelTestCase(TestCase):
     #     self.assertEqual(m.all_components.all()[0], c)
     #     self.assertEqual(c.model, m)
 
+    def test_copy_variable(self):
+        person = Person.objects.all()[0]
+        m1 = CellModel.objects.get(name='model1')
+        c1 = m1.all_components.filter(name='c1').first()
+        v1 = c1.variables.filter(name='v1a').first()
+
+        v1_copy = copy_and_link_variable(v1, c1, person, False)
+
+        self.assertEqual(v1.compoundunit.name, v1_copy.compoundunit.name)
+
+        self.assertEqual(v1.component.name, v1_copy.component.name)
+        self.assertEqual(v1.equivalent_variables.count(), 1)
+        self.assertEqual(v1_copy.equivalent_variables.count(), 1)
+        self.assertEqual(v1.equivalent_variables.all()[0].name, v1_copy.equivalent_variables.all()[0].name)
+
     def test_copy_component(self):
         person = Person.objects.all()[0]
         m1 = CellModel.objects.get(name='model1')
         c1 = m1.all_components.filter(name='c1').first()
 
-        c1copy = copy_component(c1, m1, m1, person)
-        c1copy.name = "c1copy"
-        c1.save()
-
-        list1 = set([(x[0], x[1]) for x in c1.variables.values_list('name', 'compoundunit__name')])
+        c1copy = copy_and_link_component(c1, m1, m1, person, False)
+        # Have to add _copy to the un-copied one in order to compare the names because of the False in the call above
+        list1 = set([("{}_copy".format(x[0]), x[1]) for x in c1.variables.values_list('name', 'compoundunit__name')])
         list2 = set([(x[0], x[1]) for x in c1copy.variables.values_list('name', 'compoundunit__name')])
         self.assertEqual(list1, list2)
 
-        for v1 in c1.variables.filter(equivalent_variables__isnull=False):
-            v2 = c1copy.variables.filter(name=v1.name).first()
-            list1 = set([x[0] for x in v1.equivalent_variables.values_list('name', 'component__name')])
-            list2 = set([x[0] for x in v2.equivalent_variables.values_list('name', 'component__name')])
-            self.assertEqual(list1, list2)
-
         list1 = set(
-            [(x[0], x[1], x[2]) for x in c1.resets.values_list('variable__name', 'test_variable__name', 'order')]
+            [("{}_copy".format(x[0]), "{}_copy".format(x[1]), x[2]) for x in
+             c1.resets.values_list('variable__name', 'test_variable__name', 'order')]
         )
         list2 = set(
             [(x[0], x[1], x[2]) for x in c1copy.resets.values_list('variable__name', 'test_variable__name', 'order')]
         )
         self.assertEqual(list1, list2)
 
+        # Removing _copy from the names so we can compare directly
+        c2copy = copy_and_link_component(c1, m1, m1, person, True)
+        list1 = set([(x[0], x[1]) for x in c1.variables.values_list('name', 'compoundunit__name')])
+        list2 = set([(x[0], x[1]) for x in c2copy.variables.values_list('name', 'compoundunit__name')])
+        self.assertEqual(list1, list2)
+
+        list1 = set(
+            [(x[0], x[1], x[2]) for x in
+             c1.resets.values_list('variable__name', 'test_variable__name', 'order')]
+        )
+        list2 = set(
+            [(x[0], x[1], x[2]) for x in c2copy.resets.values_list('variable__name', 'test_variable__name', 'order')]
+        )
+        self.assertEqual(list1, list2)
+
+        c1copy.delete()
+
     def test_copy_model(self):
         m1 = CellModel.objects.get(name='model1')
         person = Person.objects.all()[0]
 
-        m2 = copy_model(m1, person)
+        m2 = copy_and_link_model(m1, person, True)
 
         list1 = set([x[0] for x in m1.all_components.values_list('name')])
         list2 = set([x[0] for x in m2.all_components.values_list('name')])

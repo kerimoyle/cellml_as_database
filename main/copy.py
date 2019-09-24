@@ -2,10 +2,10 @@ from main.functions import is_standard_unit
 from main.models import CellModel, Component, Math, Variable, Reset, CompoundUnit, Unit
 
 
-def copy_model(in_model, person):
+def copy_and_link_model(in_model, person, remove_copy=False):
     # Create the CellModel instance:
     model = CellModel(
-        name=in_model.name,
+        name="{}_copy".format(in_model.name),
         cellml_id=in_model.id,
         owner=person,
         # TODO save attribution somehow ...
@@ -17,37 +17,72 @@ def copy_model(in_model, person):
         copy_compoundunit(u, model, person)
 
     # Link the compound units
-    for old_unit in in_model.compoundunits.all():
-        new_unit = model.compoundunits.filter(name=old_unit.name).first()
-        copy_units(new_unit, old_unit, model, person)
+    # for old_unit in in_model.compoundunits.all():
+    #     new_unit = model.compoundunits.filter(name=old_unit.name).first()
+    #     copy_this_unit(new_unit, old_unit, model, person)
 
-    # Add the components
-    for c in in_model.all_components.all():
-        copy_component(c, model, model, person)
+    # # Add the components
+    # for c in in_model.all_components.all():
+    #     copy_component(c, model, model, person)
+
+    if in_model.encapsulated_components.count() > 0:
+        for c in in_model.encapsulated_components.all():
+            copy_and_link_component(c, model, model, person, remove_copy=False)
+    else:
+        for c in in_model.all_components.all():
+            copy_and_link_component(c, model, model, person, remove_copy=False)
 
     # Once everything is loaded into the database, we have to make the connections between items
     # Note that components are loaded twice - once into the all_components field of the parent model, independently of
     # the encapsulation structure, and again into the encapsulated_components field, which reflects the hierarchy, if
     # present
-    for in_component in in_model.encapsulated_components.all():
-        component = model.all_components.filter(name=in_component.name).first()
-        copy_connected_component_items(component, model, in_component, person)
+    # for in_component in in_model.encapsulated_components.all():
+    #     component = model.all_components.filter(name=in_component.name).first()
+    #     link_component(component, in_model, in_component, person)
+        # copy_connected_component_items(component, model, in_component, person)
 
-    for in_component in in_model.encapsulated_components.all():
-        component = model.all_components.filter(name=in_component.name).first()
-        copy_connected_equivalent_variables(component, in_component)
+    # for in_component in in_model.encapsulated_components.all():
+    #     component = model.all_components.filter(name=in_component.name).first()
+    #     copy_connected_equivalent_variables(component, in_component)
+
+    # Remove the _copy extension from everything except the model
+    if remove_copy:
+        for c in model.all_components.all():
+            c.name = c.name.replace('_copy', '')
+            c.save()
+            for v in c.variables.all():
+                v.name = v.name.replace('_copy', '')
+                v.save()
 
     return model
 
 
+def copy_and_link_component(in_component, out_parent, out_model, person, remove_copy=False):
+    out_component = copy_component(in_component, out_parent, out_model, person)
+    out_component = link_component(out_component, out_model, in_component, person)
+    # delete the _copy from variables?
+    if remove_copy:
+        for v in out_component.variables.all():
+            v.name = v.name.replace("_copy", "")
+            v.save()
+    return out_component
+
+
+def copy_and_link_variable(in_variable, out_component, person, remove_copy=False):
+    out_variable = copy_variable(in_variable, out_component, out_component.model, person)
+    out_variable = link_variable(out_variable, out_component.model, in_variable, person)
+    if remove_copy:
+        out_variable.name = out_variable.name.replace("_copy", "")
+        out_variable.save()
+    return out_variable
+
+
 def copy_component(in_component, out_parent, out_model, person):
     # Check whether copying this component will duplicate names in the parent set, and if so, add "copy" to the name
-    name = "{}_copy".format(in_component.name) \
-        if out_model.all_components.filter(name=in_component.name).count() == 0 \
-        else in_component.name
+    name = "{}_copy".format(in_component.name)
 
     out_component = Component(
-        name=name,
+        name="{}_copy".format(in_component.name),
         owner=person,
         model=out_model,
     )
@@ -63,6 +98,7 @@ def copy_component(in_component, out_parent, out_model, person):
     for v in in_component.variables.all():
         copy_variable(v, out_component, out_model, person)
 
+    # This is done in the link components?
     for r in in_component.resets.all():
         copy_reset(r, out_component, person)
 
@@ -72,29 +108,26 @@ def copy_component(in_component, out_parent, out_model, person):
     return out_component
 
 
-def copy_compoundunit(in_units, model, person):
-    if model is not None:
+def copy_compoundunit(in_units, out_model, person):
+    if out_model is not None:
         if in_units.is_standard:
             # Create a reference to the standard unit
             base_unit = CompoundUnit.objects.filter(name=in_units.name, is_standard=True).first()
-            model.units.add(base_unit)
+            out_model.units.add(base_unit)
             return
-        out_compound_unit = model.compoundunits.filter(name=in_units.name).first()
 
-        name = "{}_copy".format(in_units.name) \
-            if model.compoundunits.filter(name=in_units.name).count() == 0 \
-            else in_units.name
+        out_compound_unit = out_model.compoundunits.filter(name=in_units.name).first()
 
         if out_compound_unit is None:
             out_compound_unit = CompoundUnit(
-                name=name,
+                name=in_units.name,
                 owner=person,
             )
             out_compound_unit.save()
-            out_compound_unit.models.add(model)
+            out_compound_unit.models.add(out_model)
         for product in in_units.product_of.all():
-            copy_compoundunit(product, model, person)
-            copy_units(out_compound_unit, product, model, person)
+            copy_compoundunit(product, out_model, person)
+            copy_this_unit(out_compound_unit, product, out_model, person)
         return out_compound_unit
     else:
         # messages.warning(
@@ -102,18 +135,19 @@ def copy_compoundunit(in_units, model, person):
         return None
 
 
-def copy_units(parent_unit, in_compoundunit, model, person):
-    for u in in_compoundunit.product_of.all():
-        if is_standard_unit(u):
-            child_unit = CompoundUnit.objects.filter(name=u.name).first()
+def copy_this_unit(parent_unit, in_compoundunit, model, person):
+    for cu in in_compoundunit.product_of.all():
+        if is_standard_unit(cu):
+            child_unit = CompoundUnit.objects.filter(name=cu.name).first()
         else:
-            child_unit = model.compoundunits.filter(name=u.name).first()  # unit must be in this model first
+            child_unit = model.compoundunits.filter(
+                name=cu.name).first()  # unit must be in this model first
 
         unit = Unit(
-            prefix=u.prefix,
-            multiplier=u.multiplier,
-            exponent=u.exponent,
-            name=u.name,
+            prefix=cu.prefix,
+            multiplier=cu.multiplier,
+            exponent=cu.exponent,
+            name=cu.name,
             parent_cu=parent_unit,
             child_cu=child_unit,
             owner=person,
@@ -124,21 +158,17 @@ def copy_units(parent_unit, in_compoundunit, model, person):
 
 
 def copy_variable(in_variable, out_component, out_model, person):
-    name = "{}_copy".format(in_variable.name) \
-        if out_model.all_components.filter(name=in_variable.name).count() == 0 \
-        else in_variable.name
-
     out_variable = Variable(
-        name=name,
+        name="{}_copy".format(in_variable.name),
         # interface_type=in_variable.interfaceType(),  # TODO get dictionary of interfaceTypes ...
         owner=person,
     )
     out_variable.component = out_component
-    cu = out_model.compoundunits.filter(name="{}_copy".format(in_variable.compoundunit.name)).first()
-    if cu is None:
-        cu = out_model.compoundunits.filter(name=in_variable.compoundunit.name).first()
 
-    out_variable.compoundunit = cu
+    # in link instead?
+    # cu = out_model.compoundunits.filter(name=in_variable.compoundunit.name).first()
+    # out_variable.compoundunit = cu
+
     out_variable.save()
 
     return out_variable
@@ -161,8 +191,8 @@ def copy_reset(in_reset, out_component, person):
         )
         reset_value.save()
 
-    test_variable = out_component.variables.filter(name=in_reset.test_variable.name).first()
-    variable = out_component.variables.filter(name=in_reset.variable.name).first()
+    test_variable = out_component.variables.filter(name="{}_copy".format(in_reset.test_variable.name)).first()
+    variable = out_component.variables.filter(name="{}_copy".format(in_reset.variable.name)).first()
 
     out_reset = Reset(
         order=int(in_reset.order),
@@ -178,72 +208,135 @@ def copy_reset(in_reset, out_component, person):
     return out_reset
 
 
-def copy_connected_equivalent_variables(component, in_component):
-    for in_variable in in_component.variables.all():
+# def copy_connected_equivalent_variables(component, in_component):
+#     for in_variable in in_component.variables.all():
+#         variable = component.variables.filter(name="{}_copy".format(in_variable.name)).first()
+#         copy_equivalent_variables(variable, in_variable)
+#
+#         #
+#         #
+#         # for in_equiv in in_variable.equivalent_variables.all():
+#         #     in_equiv_component = in_equiv.component
+#         #     in_equiv_grandparent = in_equiv_component.parent_component
+#         #     if not in_equiv_grandparent:
+#         #         in_equiv_grandparent = in_equiv_component.parent_model
+#         #
+#         #     out_equiv_component = component.model.all_components.filter(
+#         #         name="{}_copy".format(in_equiv_component.name)).first()
+#         #
+#         #     # Look for variable in the sibling component set
+#         #     if out_equiv_component:
+#         #        out_equiv_variable = out_equiv_component.variables.filter(name="{}_copy".format(in_equiv.name)).first()
+#         #     else:
+#         #         pass
+#         #
+#         #     if out_equiv_variable:
+#         #         variable.equivalent_variables.add(out_equiv_variable)
+#         #     else:
+#         #         pass
+#
+#     # for in_child_component in in_component.child_components.all():
+#     #     child_component = component.child_components.fitler(name="{}_copy".format(in_equiv_component.name)).first()
+#     #     copy_connected_equivalent_variables(child_component, in_child_component)
+#     return
 
-        variable = component.variables.filter(name="{}_copy".format(in_variable.name)).first()
-        if variable is None:
-            variable = component.variables.filter(name=in_variable.name).first()
 
-        for in_equiv in in_variable.equivalent_variables.all():
-            in_equiv_component = in_equiv.component
-            in_equiv_grandparent = in_equiv_component.parent_component
-            if not in_equiv_grandparent:
-                in_equiv_grandparent = in_equiv_component.parent_model
-
-            out_equiv_component = component.model.all_components.filter(name=in_equiv_component.name).first()
-
-            # Look for variable in the sibling component set
-            if out_equiv_component:
-                out_equiv_variable = out_equiv_component.variables.filter(name=in_equiv.name).first()
-            else:
-                pass
-
-            if out_equiv_variable:
-                variable.equivalent_variables.add(out_equiv_variable)
-            else:
-                pass
-
-    for in_child_component in in_component.child_components.all():
-        child_component = component.child_components.fitler(name=in_equiv_component.name).first()
-        copy_connected_equivalent_variables(child_component, in_child_component)
-
-    return
+# def copy_equivalent_variables(variable, in_variable):
+#     for in_equiv in in_variable.equivalent_variables.all():
+#         in_equiv_component = in_equiv.component
+#         in_equiv_grandparent = in_equiv_component.parent_component
+#         if not in_equiv_grandparent:
+#             in_equiv_grandparent = in_equiv_component.parent_model
+#
+#         out_equiv_component = variable.component.model.all_components.filter(
+#             name="{}_copy".format(in_equiv_component.name)
+#         ).first()
+#
+#         # Look for variable in the sibling component set
+#         if out_equiv_component:
+#             out_equiv_variable = out_equiv_component.variables.filter(name="{}_copy".format(in_equiv.name)).first()
+#         else:
+#             pass
+#
+#         if out_equiv_variable:
+#             variable.equivalent_variables.add(out_equiv_variable)
+#         else:
+#             pass
 
 
-def copy_connected_component_items(component, model, in_component, person):
-    for variable in component.variables.all():
-        # Link to units if they exist, or set to None
-        in_variable = in_component.variables.get(name=variable.name)
-        in_units = in_variable.compoundunit
-        if in_units is None:
-            pass
+# def copy_connected_component_items(component, model, in_component, person):
+#     for in_variable in in_component.variables.all():
+#         variable = component.variables.filter(name="{}_copy".format(in_variable.name)).first()
+#         link_variable(variable, model, in_variable, person)
+#
+#     for reset in in_component.resets.all():
+#         copy_reset(reset, component, person)
+#
+#     for child_component in component.child_components.all():
+#         copy_connected_component_items(child_component, model, in_component, person)
+#     return
+
+
+def link_variable(variable, model, in_variable, person):
+    in_units = in_variable.compoundunit
+
+    # Test for built-in units
+    if is_standard_unit(in_units) and model.compoundunits.filter(name=in_units.name).first() is None:
+        model.compoundunits.add(in_units)
+        u_new = in_units
+    elif model.compoundunits.filter(name=in_units.name).first() is None:
+        # Creating new compound unit if it doesn't exist in the model
+        u_new = copy_compoundunit(in_units, model, person)
+    else:
+        u_new = model.compoundunits.filter(name=in_units.name).first()
+
+    variable.compoundunit = u_new
+
+    # Linking to initial variables
+    if in_variable.initial_value_variable is not None:
+        variable.initial_value_variable = variable.component.variables.get(
+            name="{}_copy".format(in_variable.initial_value_variable.name)
+        )
+    else:
+        variable.initial_value_variable = None
+    variable.initial_value_constant = in_variable.initial_value_constant
+    variable.save()
+
+    # Linking for equivalent variables.  Note that these are only copied if the evs exist with _copy in their name, so
+    # are a product of a recent copy operation
+    for ev_in in in_variable.equivalent_variables.filter(component__isnull=False):
+
+        # if the copied variable exists in the same component as the source variable, then duplicate the
+        # equivalent_variable links as they are
+        if in_variable.component.id == variable.component.id:
+            # Search for the equivalent component name in our model
+            ev_component = model.all_components.filter(name=ev_in.component.name).first()
+
+            # Search for the variable in the ev_component
+            if ev_component is not None:
+                ev = ev_component.variables.filter(name=ev_in.name).first()
+                variable.equivalent_variables.add(ev)
+
+        # If the copied variable exists in a different component, then search for variables inside a _copy component
+        # instead
         else:
-            builtin_unit = CompoundUnit.objects.filter(is_standard=True, name=in_units).first()
-            spec_unit = CompoundUnit.objects.filter(name=in_units, models=model).first()
-            if builtin_unit is not None:
-                variable.compoundunit = builtin_unit
-            elif spec_unit is not None:
-                variable.compoundunit = spec_unit
-            else:
-                # Then is new base unit.  Should have been added already??
-                u_new = CompoundUnit(
-                    name=in_units.name,
-                    symbol=in_units.symbol,  # not sure about this one?
-                    is_standard=False,
-                    owner=person,
-                )
-                u_new.save()
-                u_new.models.add(model)
-                variable.compoundunit = u_new
+            ev_component = model.all_components.filter(name="{}_copy".format(ev_in.component.name)).first()
+            if ev_component is not None:
+                ev = ev_component.variables.filter(name="{}_copy".format(ev_in.name)).first()
+                variable.equivalent_variables.add(ev)
 
-        variable.initial_value_variable = component.variables.get(name=in_variable.initial_value_variable.name)
-        variable.initial_value_constant = in_variable.initial_value_constant
-        variable.save()
+    return variable
+
+
+def link_component(component, model, in_component, person):
+    for in_variable in in_component.variables.all():
+        variable = component.variables.filter(name="{}_copy".format(in_variable.name)).first()
+        link_variable(variable, model, in_variable, person)
 
     for reset in in_component.resets.all():
         copy_reset(reset, component, person)
 
     for child_component in component.child_components.all():
-        copy_connected_component_items(child_component, model, in_component, person)
-    return
+        link_component(child_component, model, in_component, person)
+
+    return component
