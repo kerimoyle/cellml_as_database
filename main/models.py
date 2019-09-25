@@ -144,6 +144,14 @@ class Unit(NamedCellMLEntity):
     imported_from = ForeignKey('Unit', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
     depends_on = ForeignKey('Unit', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
+    # TODO should we override the save() method here to update symbols of parent compoundunits?
+
+    def __str__(self):
+        m = "" if self.multiplier == 1.0 else "({})".format(self.multiplier)
+        c = self.child_cu.name if self.child_cu.symbol is None or self.child_cu.symbol == "" else self.child_cu.symbol
+        e = "^{}".format(self.exponent) if self.exponent != 1 else ""
+        return "{m}{p}{c}{e}".format(m=m, p=self.prefix.symbol, c=c, e=e)
+
 
 class CompoundUnit(NamedCellMLEntity):
     models = ManyToManyField("CellModel", related_name="compoundunits", blank=True)
@@ -158,25 +166,7 @@ class CompoundUnit(NamedCellMLEntity):
 
     def save(self, *args, **kwargs):
         # If there is no symbol defined for this compound unit then use the product of the children
-        if self.symbol is None and self.product_of.count() != 0:
-            # Create from amalgamation of children
-            self.symbol = "("
-
-            for unit in self.product_of.all():
-                if unit.child_cu is None:
-                    continue
-                else:
-                    my_symbol = ""
-                    if unit.prefix is not None:
-                        my_symbol += unit.prefix.symbol
-                    if unit.child_cu.symbol:
-                        my_symbol += unit.child_cu.symbol
-                    if unit.exponent != 1:
-                        my_symbol += "<sup>{}</sup>".format(unit.exponent)
-                    self.symbol = "{}{}".format(self.symbol, my_symbol)
-
-            self.symbol = "{})".format(self.symbol)
-
+        self.update_symbol()
         super(CompoundUnit, self).save(args, kwargs)
 
     def delete(self, *args, **kwargs):
@@ -184,6 +174,35 @@ class CompoundUnit(NamedCellMLEntity):
         if self.is_standard:
             return "Could not delete Compound Unit '{}' because it is built-in.".format(self.name)
         super(CompoundUnit, self).delete(args, kwargs)
+
+    def update_symbol(self):
+        if (self.symbol == "" or self.symbol is None) and self.product_of.count() != 0:
+            # Create from amalgamation of children
+            # self.symbol = "("
+
+            for unit in self.product_of.all():
+                if unit.child_cu is None:
+                    continue
+                else:
+                    unit.child_cu.update_symbol()
+                    my_symbol = ""
+                    if unit.prefix != "":
+                        my_symbol += unit.prefix.symbol
+                    if unit.child_cu.symbol:
+                        my_symbol += "({})".format(unit.child_cu.symbol)
+                    if unit.exponent != 1:
+                        my_symbol += "<sup>{}</sup>".format(unit.exponent)
+                    if self.symbol:
+                        self.symbol = "{}.{}".format(self.symbol, my_symbol)
+                    else:
+                        self.symbol = "{}".format(my_symbol)
+
+            # self.symbol = "{})".format(self.symbol)
+        elif self.symbol == "" or self.symbol is None:
+            self.symbol = self.name
+
+        super(CompoundUnit, self).save()
+        return self.symbol
 
 
 class Math(NamedCellMLEntity):

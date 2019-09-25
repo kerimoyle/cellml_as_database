@@ -15,7 +15,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
-from main.copy import copy_compoundunit, copy_reset, copy_and_link_model, \
+from main.copy import copy_and_link_compoundunit, copy_reset, copy_and_link_model, \
     copy_and_link_component, copy_and_link_variable
 from main.defines import MENU_OPTIONS, DISPLAY_DICT, LOCAL_DICT, FOREIGN_DICT
 from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
@@ -333,7 +333,7 @@ COPY_DICT = {
     'cellmodel': copy_and_link_model,
     'component': copy_and_link_component,
     'variable': copy_and_link_variable,
-    'compoundunit': copy_compoundunit,
+    'compoundunit': copy_and_link_compoundunit,
     'reset': copy_reset,
 }
 

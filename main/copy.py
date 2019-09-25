@@ -1,5 +1,5 @@
 from main.functions import is_standard_unit
-from main.models import CellModel, Component, Math, Variable, Reset, CompoundUnit, Unit
+from main.models import CellModel, Component, Math, Variable, Reset, CompoundUnit, Unit, Person
 
 
 def copy_and_link_model(in_model, person, remove_copy=False):
@@ -14,16 +14,7 @@ def copy_and_link_model(in_model, person, remove_copy=False):
 
     # Add the compound units
     for u in in_model.compoundunits.all():
-        copy_compoundunit(u, model, person)
-
-    # Link the compound units
-    # for old_unit in in_model.compoundunits.all():
-    #     new_unit = model.compoundunits.filter(name=old_unit.name).first()
-    #     copy_this_unit(new_unit, old_unit, model, person)
-
-    # # Add the components
-    # for c in in_model.all_components.all():
-    #     copy_component(c, model, model, person)
+        new_u, created = copy_and_link_compoundunit(u, model, person)
 
     if in_model.encapsulated_components.count() > 0:
         for c in in_model.encapsulated_components.all():
@@ -31,19 +22,6 @@ def copy_and_link_model(in_model, person, remove_copy=False):
     else:
         for c in in_model.all_components.all():
             copy_and_link_component(c, model, model, person, remove_copy=False)
-
-    # Once everything is loaded into the database, we have to make the connections between items
-    # Note that components are loaded twice - once into the all_components field of the parent model, independently of
-    # the encapsulation structure, and again into the encapsulated_components field, which reflects the hierarchy, if
-    # present
-    # for in_component in in_model.encapsulated_components.all():
-    #     component = model.all_components.filter(name=in_component.name).first()
-    #     link_component(component, in_model, in_component, person)
-        # copy_connected_component_items(component, model, in_component, person)
-
-    # for in_component in in_model.encapsulated_components.all():
-    #     component = model.all_components.filter(name=in_component.name).first()
-    #     copy_connected_equivalent_variables(component, in_component)
 
     # Remove the _copy extension from everything except the model
     if remove_copy:
@@ -108,53 +86,89 @@ def copy_component(in_component, out_parent, out_model, person):
     return out_component
 
 
-def copy_compoundunit(in_units, out_model, person):
+def copy_and_link_compoundunit(in_units, out_model=None, person=None):
+    if person is None:
+        person = Person.objects.all()[0]
+
+    out_compound_unit = None
+    if in_units.is_standard:
+        # Create a reference to the standard unit
+        base_unit = CompoundUnit.objects.filter(name=in_units.name, is_standard=True).first()
+        out_model.units.add(base_unit)
+        return base_unit, False
+
     if out_model is not None:
-        if in_units.is_standard:
-            # Create a reference to the standard unit
-            base_unit = CompoundUnit.objects.filter(name=in_units.name, is_standard=True).first()
-            out_model.units.add(base_unit)
-            return
-
         out_compound_unit = out_model.compoundunits.filter(name=in_units.name).first()
+        if out_compound_unit is not None:
+            # Then it already exists in the out_model, return
+            return out_compound_unit, False
 
-        if out_compound_unit is None:
-            out_compound_unit = CompoundUnit(
-                name=in_units.name,
+    if out_compound_unit is None:
+        out_compound_unit = CompoundUnit(
+            name=in_units.name,
+            owner=person,
+            symbol=in_units.symbol
+        )
+        out_compound_unit.save()
+        if out_model is not None:
+            out_compound_unit.models.add(out_model)
+
+        for product in in_units.product_of.all():
+            child = None
+            if out_model is None:
+                # duplicate the linked compoundunit
+                child, created = copy_and_link_compoundunit(product.child_cu, out_model, person)
+            elif is_standard_unit(product.child_cu):
+                # then don't need to do anything except link it
+                # try to find in the current model
+                child, created = product.child_cu
+            else:
+                child = out_model.compoundunits.filter(
+                    name=product.child_cu.name).first()
+            if child is None:
+                child, created = copy_and_link_compoundunit(product.child_cu, out_model, person)
+
+            unit = Unit(
+                prefix=product.prefix,
+                multiplier=product.multiplier,
+                exponent=product.exponent,
+                parent_cu=out_compound_unit,
+                child_cu=child,
                 owner=person,
             )
-            out_compound_unit.save()
-            out_compound_unit.models.add(out_model)
-        for product in in_units.product_of.all():
-            copy_compoundunit(product, out_model, person)
-            copy_this_unit(out_compound_unit, product, out_model, person)
-        return out_compound_unit
-    else:
-        # messages.warning(
-        #                  "Did not copy compound unit {cu} as this requires a model first.".format(cu=in_units.name))
-        return None
+            unit.save()
+
+        out_compound_unit.update_symbol()
+
+        return out_compound_unit, True
+    return None, False
 
 
-def copy_this_unit(parent_unit, in_compoundunit, model, person):
-    for cu in in_compoundunit.product_of.all():
-        if is_standard_unit(cu):
-            child_unit = CompoundUnit.objects.filter(name=cu.name).first()
-        else:
-            child_unit = model.compoundunits.filter(
-                name=cu.name).first()  # unit must be in this model first
-
-        unit = Unit(
-            prefix=cu.prefix,
-            multiplier=cu.multiplier,
-            exponent=cu.exponent,
-            name=cu.name,
-            parent_cu=parent_unit,
-            child_cu=child_unit,
-            owner=person,
-        )
-        unit.save()
-
-    return
+# def copy_this_unit(parent_unit, in_compoundunit, model, person):
+#     for cu in in_compoundunit.product_of.all():
+#         child_unit = None
+#         if is_standard_unit(cu):
+#             child_unit = CompoundUnit.objects.filter(name=cu.name).first()
+#         elif model is not None:
+#             child_unit = model.compoundunits.filter(
+#                 name=cu.name).first()  # unit must be in this model first
+#
+#         if child_unit is None:
+#             # Duplicate the entire child unit to the same location as this, then add in
+#             child_unit, created = copy_and_link_compoundunit(in_compoundunit, model, person)
+#
+#         unit = Unit(
+#             prefix=cu.prefix,
+#             multiplier=cu.multiplier,
+#             exponent=cu.exponent,
+#             name=cu.name,
+#             parent_cu=parent_unit,
+#             child_cu=child_unit,
+#             owner=person,
+#         )
+#         unit.save()
+#
+#     return
 
 
 def copy_variable(in_variable, out_component, out_model, person):
@@ -286,7 +300,7 @@ def link_variable(variable, model, in_variable, person):
         u_new = in_units
     elif model.compoundunits.filter(name=in_units.name).first() is None:
         # Creating new compound unit if it doesn't exist in the model
-        u_new = copy_compoundunit(in_units, model, person)
+        u_new, created = copy_and_link_compoundunit(in_units, model, person)
     else:
         u_new = model.compoundunits.filter(name=in_units.name).first()
 

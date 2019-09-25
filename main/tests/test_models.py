@@ -1,8 +1,8 @@
 from django.contrib.auth.models import User
 from django.test import TestCase, RequestFactory
 
-from main.copy import copy_and_link_component, copy_and_link_variable, copy_and_link_model
-from main.models import CellModel, Component, Person, CompoundUnit, Variable, Reset
+from main.copy import copy_and_link_component, copy_and_link_variable, copy_and_link_model, copy_and_link_compoundunit
+from main.models import CellModel, Component, Person, CompoundUnit, Variable, Reset, Unit
 
 
 class CellModelTestCase(TestCase):
@@ -196,3 +196,101 @@ class CellModelTestCase(TestCase):
                 [(x[0], x[1], x[2]) for x in c2.resets.values_list('variable__name', 'test_variable__name', 'order')]
             )
             self.assertEqual(list1, list2)
+
+    def test_copy_compoundunits(self):
+        m1 = CellModel.objects.get(name='model1')
+        person = Person.objects.filter(first_name="Daffy").first()
+
+        # Create a couple of generations of compound units and test that they are copied successfully
+        grandfather = CompoundUnit(name="grandfather", symbol="poppa")
+        grandfather.save()
+        m1.compoundunits.add(grandfather)
+        grandmother = CompoundUnit(name="grandmother", symbol="nanna")
+        grandmother.save()
+        m1.compoundunits.add(grandmother)
+
+        # Check the copy of base unit:
+        greataunt, copied = copy_and_link_compoundunit(grandmother, None, person)
+        greataunt.name = "greataunt"
+        greataunt.save()
+        self.assertEqual("greataunt", greataunt.name)
+        self.assertEqual("nanna", greataunt.symbol)
+        greataunt.symbol = ""
+        greataunt.save()
+        self.assertEqual("greataunt", greataunt.symbol)
+
+        mother = CompoundUnit(name="mother")
+        mother.save()
+        u1 = Unit(child_cu=grandfather, parent_cu=mother, exponent=1)
+        u1.save()
+        u2 = Unit(child_cu=grandmother, parent_cu=mother, exponent=1)
+        u2.save()
+        mother.symbol = ""
+        mother.update_symbol()
+
+        self.assertTrue(grandmother.symbol in mother.symbol and grandfather.symbol in mother.symbol)
+        u1.delete()
+        u2.delete()
+        mother.symbol = ""
+        mother.update_symbol()
+        self.assertEqual(mother.symbol, "mother")
+
+        father = CompoundUnit(name="father", symbol="father")
+        father.save()
+        m1.compoundunits.add(father)
+
+        u3 = Unit(child_cu=grandfather, parent_cu=father, exponent=2)
+        u3.save()
+        u4 = Unit(child_cu=grandmother, parent_cu=father, exponent=3)
+        u4.save()
+
+        father.symbol = ""
+        father.save()  # will update symbol too
+
+        self.assertTrue(
+            "({u})<sup>{e}</sup>".format(u=grandmother.symbol, e=u4.exponent) in father.symbol and
+            "({u})<sup>{e}</sup>".format(u=grandfather.symbol, e=u3.exponent) in father.symbol
+        )
+
+        # Test copying one generation.  This should copy grandmother and grandfather too because model is None
+        uncle, copied = copy_and_link_compoundunit(father, None, person)
+        self.assertTrue(copied)
+        uncle_parents = [x[0] for x in uncle.product_of.values_list('child_cu__name')]
+        self.assertIn("grandfather", uncle_parents)
+        self.assertIn("grandmother", uncle_parents)
+
+        self.assertTrue(
+            "({u})<sup>{e}</sup>".format(u=grandmother.symbol, e=u4.exponent) in uncle.symbol and
+            "({u})<sup>{e}</sup>".format(u=grandfather.symbol, e=u3.exponent) in uncle.symbol
+        )
+
+        # Test copying one generation into the same parent model - shouldn't copy it at all?
+        aunt, copied = copy_and_link_compoundunit(father, m1, person)
+        self.assertFalse(copied)
+
+        # Test copying one generation into another parent model - should copy product_of
+
+        daughter = CompoundUnit(name="daughter")
+        daughter.save()
+
+        u5 = Unit(child_cu=mother, parent_cu=daughter, exponent=4)
+        u5.save()
+        u6 = Unit(child_cu=father, parent_cu=daughter, exponent=5)
+        u6.save()
+
+        daughter.symbol = ""
+        daughter.update_symbol()
+
+        self.assertTrue(mother.symbol in daughter.symbol
+                        and ("({u})<sup>{e}</sup>".format(u=father.symbol, e=u6.exponent) in daughter.symbol))
+
+        son, copied = copy_and_link_compoundunit(daughter, None, person)
+        son.name = "son"
+        son.symbol = ""
+        son.save()
+
+        # There is no specified order to the fields so can't guarantee any order here?
+        self.assertTrue(("({u})<sup>{e}</sup>".format(u=mother.symbol, e=u5.exponent) in son.symbol)
+                        and ("({u})<sup>{e}</sup>".format(u=father.symbol, e=u6.exponent) in son.symbol))
+
+        # TODO pretty sure there are bits here I've missed ...
