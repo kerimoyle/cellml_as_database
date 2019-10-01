@@ -22,29 +22,25 @@
             <table class="datatables display table table-hover" id="table-{{ obj_type }}{{ field_name }}"
                    style="width:100%;">
                 <thead>
-
                 <th>Name</th>
                 <th>Symbol</th>
                 <th>Owner</th>
-                <th></th>
                 {% if can_edit %}
                     <th>Actions</th>
                 {% endif %}
                 <td></td>
-
                 </thead>
                 <tbody class="rowlink" data-link="row">
                 {% for obj in objs %}
                     <tr>
                         <td>
-                            <a href="{% url 'main:display' item_type=obj_type item_id=obj.parent_cu.id %}"></a>
-                            {{ obj.parent_cu.name }}
+                            <a href="{% url 'main:display' item_type=obj_type item_id=obj.child_cu.id %}"></a>
+                            {{ obj.child_cu.name }}
                         </td>
                         <td>
-                            <p class="symbol">{{ obj.parent_cu.symbol|safe }}</p>
+                            <p class="symbol">{{ obj.child_cu.symbol|safe }}</p>
                         </td>
-
-                        <td>{{ obj.parent_cu.owner }}</td>
+                        <td>{{ obj.child_cu.owner }}</td>
                         {% if can_edit %}
                             <td class="rowlink-skip">
                                 <a onclick="Unlink('{{ field_name }}','{{ obj.id }}');">Unlink</a>

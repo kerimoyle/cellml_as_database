@@ -22,7 +22,7 @@ from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationFo
 from main.functions import load_model, get_edit_locals_form, get_item_upstream_attributes, copy_item, \
     delete_item, convert_to_cellml_model, get_item_downstream_attributes, draw_error_tree, draw_object_tree, \
     add_child_errors, draw_error_branch, draw_object_child_tree, get_local_error_messages, get_edit_form
-from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset
+from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset, Component
 from main.validate import VALIDATE_SHALLOW_DICT, VALIDATE_DEEP_DICT
 
 
@@ -125,16 +125,22 @@ def home(request):
                        )
         return redirect('main:error')
 
-    items = []
-    types = ['cellmodel', 'component', 'math', 'compoundunit', 'unit', 'reset', 'variable']
-    for t in types:
-        items.append((
-            t,
-            ContentType.objects.get(app_label='main', model=t).get_all_objects_for_this_type().filter(owner=person)))
+    # items = []
+    # types = ['cellmodel', 'component', 'math', 'compoundunit', 'unit', 'reset', 'variable']
+    # for t in types:
+    #     items.append((
+    #         t,
+    #         ContentType.objects.get(app_label='main', model=t).get_all_objects_for_this_type().filter(owner=person)))
+    #
+    # models =
+
 
     context = {
         'person': person,
-        'data': items,
+        'models': CellModel.objects.filter(owner=person),
+        'components': Component.objects.filter(owner=person),
+        'maths': Math.objects.filter(owner=person),
+        'units': CompoundUnit.objects.filter(owner=person),
         'menu': MENU_OPTIONS['home']
     }
     return render(request, 'main/home.html', context)

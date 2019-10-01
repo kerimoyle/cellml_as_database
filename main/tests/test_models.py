@@ -96,19 +96,19 @@ class CellModelTestCase(TestCase):
 
         self.model.save()
 
-    # def test_name(self):
-    #     m = CellModel.objects.get(name='model1')
-    #
-    #     self.assertEqual(m.name, 'model1')
-    #     self.assertEqual(self.model.name, "model1")
-    #
-    # def test_component(self):
-    #     m = CellModel.objects.get(name='model1')
-    #     c = Component.objects.get(name="c1")
-    #
-    #     self.assertEqual(c.model.name, m.name)
-    #     self.assertEqual(m.all_components.all()[0], c)
-    #     self.assertEqual(c.model, m)
+    def test_name(self):
+        m = CellModel.objects.get(name='model1')
+
+        self.assertEqual(m.name, 'model1')
+        self.assertEqual(self.model.name, "model1")
+
+    def test_component(self):
+        m = CellModel.objects.get(name='model1')
+        c = Component.objects.get(name="c1")
+
+        self.assertEqual(c.model.name, m.name)
+        self.assertEqual(m.all_components.filter(name="c1")[0], c)
+        self.assertEqual(c.model, m)
 
     def test_copy_variable(self):
         person = Person.objects.all()[0]
@@ -294,3 +294,5 @@ class CellModelTestCase(TestCase):
                         and ("({u})<sup>{e}</sup>".format(u=father.symbol, e=u6.exponent) in son.symbol))
 
         # TODO pretty sure there are bits here I've missed ...
+
+
