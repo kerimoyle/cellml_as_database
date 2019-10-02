@@ -96,6 +96,8 @@ DISPLAY_DICT = {
              'template': 'main/tab_reset.html', 'related_name': 'variable'},
             {'field': 'reset_test_variables', 'obj_type': 'reset', 'title': 'Variable will reset',
              'template': 'main/tab_reset.html', 'related_name': 'test_variable'},
+            {'field': 'maths', 'obj_type': 'math', 'title': 'Maths',
+             'template': 'main/tab_fyi.html', 'related_name': 'variables'},
         ],
         'present_in': [
 
@@ -209,7 +211,7 @@ KIND_DICT = {
 BREADCRUMB_DICT = {
     'cellmodel': None,
     'model': None,
-    'component': ['cellmodel'],
+    'component': ['parent_component', 'cellmodel'],
     'variable': ['component', 'cellmodel'],
     'compoundunit': ['cellmodel'],
     'reset': ['component', 'cellmodel'],
