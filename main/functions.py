@@ -408,6 +408,7 @@ def load_component(index, in_entity, out_parent, out_model, owner):
         math = Math(
             math_ml=mathml,  # save raw mathml for printing later
             owner=owner,
+            component=out_component,
         )
         math.save()
 
@@ -423,7 +424,7 @@ def load_component(index, in_entity, out_parent, out_model, owner):
                 except Exception as e:
                     pass
 
-        math.components.add(out_component)
+
 
     # scan mathml for variable names to link
     for c in range(0, in_component.componentCount()):

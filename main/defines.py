@@ -28,7 +28,7 @@ LOCAL_DICT = {
     'component': ['name'],
     'compoundunit': ['name'],
     'variable': ['name', 'cellml_id', 'initial_value_constant'],
-    'math': [],
+    'math': ['name', 'owner'],
     'encapsulation': [],
     'reset': ['name', 'order']
 }
@@ -74,14 +74,14 @@ DISPLAY_DICT = {
         'tabs': [
             # {'field': 'variables', 'obj_type': 'variable', 'title': 'Uses variables',
             #  'template': 'main/tab_fyi.html', 'related_name': 'maths'},
-            {'field': 'components', 'obj_type': 'component', 'title': 'Used in components',
-             'template': 'main/tab_fyi.html', 'related_name': 'parent_component'},
+            # {'field': 'components', 'obj_type': 'component', 'title': 'Used in components',
+            #  'template': 'main/tab_fyi.html', 'related_name': 'parent_component'},
         ],
         'foreign_keys': [
-
+            {'field': 'component', 'obj_type': 'component', 'title': 'parent component'},
         ],
         'present_in': [
-            {'field': 'components', 'obj_type': 'component', 'title': 'parent component'},
+            # {'field': 'components', 'obj_type': 'component', 'title': 'parent component'},
         ]
     },
 

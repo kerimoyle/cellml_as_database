@@ -206,7 +206,7 @@ class CompoundUnit(NamedCellMLEntity):
 
 
 class Math(NamedCellMLEntity):
-    components = ManyToManyField("Component", related_name="maths", blank=True)
+    component = ForeignKey("Component", related_name="maths", blank=True, null=True, on_delete=DO_NOTHING)
     math_ml = TextField(blank=True, null=True)
 
     variables = ManyToManyField("Variable", related_name="maths", blank=True)

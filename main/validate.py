@@ -1,6 +1,7 @@
 """
     This file contains the functions needed to validate any item by calling the libCellML validators.
 """
+import xml.etree.ElementTree as ElementTree
 
 from django.db.models import Count
 
@@ -107,10 +108,10 @@ def validate_variable(variable):
         err = ItemError(
             hints="Variable <i>{v}</i> in component <i>{c}</i> contains more than one reset with order of "
                   "<i>{o}</i>.".format(
-                                    v=variable.name,
-                                    c=variable.component.name,
-                                    o=rv.order
-                                ),
+                v=variable.name,
+                c=variable.component.name,
+                o=rv.order
+            ),
             spec="??",  # TODO find spec reference for resets
             fields=['reset_variables']  # TODO not sure what this should be
         )
@@ -201,7 +202,44 @@ def validate_unit(unit):
 
 
 def validate_math(math):
-    return True
+    # Check that all connected variables are inside this component
+    is_valid = True
+    for e in math.errors.all():
+        e.delete()
+    # Retrieve all variables inside the mathml
+    mathml_tree = ElementTree.fromstring(math.math_ml)
+
+    # Compare list of local variables in this component with the ones used in the mathml
+    available_variables = [x[0] for x in math.component.variables.values_list('name')]
+    referenced_variables = []
+
+    for raw_name in mathml_tree.itertext():
+        variable_name = ''.join(raw_name.split())
+        if variable_name != '':
+            referenced_variables.append(variable_name)
+
+    missing = set(referenced_variables) - set(available_variables)
+    unused = set(available_variables) - set(referenced_variables)
+
+    for m in missing:
+        n = "'{n}' ".format(math.name) if math.name != "" else ""
+        err = ItemError(
+            hints="Maths {n}in component '{c}' references a variable '{v}' which is not inside the component.".format(
+                n=n,
+                c=math.component.name,
+                v=m),
+            spec="14.1.3",
+            fields=["variables"]
+        )
+        err.save()
+        math.errors.add(err)
+        is_valid = False
+
+    # TODO Validate elements in the cellml string
+    # TODO Validate that units are consistent
+    # TODO Warn if multipliers are inconsistent in the units
+
+    return is_valid
 
 
 def validate_reset(reset):
