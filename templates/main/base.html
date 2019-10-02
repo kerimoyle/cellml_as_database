@@ -97,8 +97,7 @@
     <div class="row">
 
         <div class="col-sm-8">
-            <h1>{% block title %}{% endblock title %}</h1>
-            {% block breadcrumbs %}{% endblock breadcrumbs %}
+            <h1>{% block breadcrumbs %}{% endblock breadcrumbs %}{% block title %}{% endblock title %}</h1>
             {% block subtitle %}{% endblock subtitle %}
             {% block privacy %}
                 {% if item %}
