@@ -1,50 +1,213 @@
 {% extends "main/base.html" %}
 
-{% block title %}{{ person.first_name }}'s home{% endblock title %}
+{% block title %}{{ person.first_name }}'s library{% endblock title %}
 
 {% block todo %}{% endblock todo %}
 
+{% block tabs %}
+    {{ block.super }}
+    <ul class="nav nav-tabs">
+        <li class="active"><a id="tab_cellmodel1" data-toggle="tab" href="#tab_cellmodel">Models</a></li>
+        <li><a id="tab_component1" data-toggle="tab" href="#tab_component">Components</a></li>
+        <li><a id="tab_maths1" data-toggle="tab" href="#tab_maths">Maths</a></li>
+        <li><a id="tab_units1" data-toggle="tab" href="#tab_units">Units</a></li>
+    </ul>
+{% endblock tabs %}
+
 {% block content %}
-    <div class="row">
-        <div class="col-sm-12">
-            <h3>Objects you own</h3>
-            <table class="datatables display table table-hover" id="table-connections">
-                <thead>
-                <tr>
-                    <th>Type</th>
-                    <th>Name</th>
-                    <th>Privacy</th>
-                    <th></th>
-                </tr>
-                </thead>
-                <tbody class="rowlink" data-link="row">
-                {% for type, items in data %}
-                    {% for item in items %}
+    <div class="tab-content">
+
+        <div id="tab_cellmodel" class="tab-pane fade in active">
+            <div class="row">
+                <br>
+                <div class="col-md-12">
+                    <table class="datatables display table table-hover" id="table-cellmodels" style="width: 100%;">
+                        <thead>
                         <tr>
-                            <td>
-                                <a href="{% url 'main:display' item_type=type item_id=item.id %}"></a>
-                                {{ type }}
-                            </td>
-                            <td>
-                                <b>{{ item.name }}</b><br>
-                                <p>{{ item.notes|linebreaks }}</p>
-                            </td>
-                            <td>{{ item.privacy|title }}</td>
-                            <td class="rowlink-skip">
-                                <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type=type item_id=item.id %}');"
-                                   data-toggle="modal"
-                                   data-target="#formModal"
-                                   style="text-decoration: none;">
-                                    <button class="btn btn-default pull-right"><i class="fa fa-trash"></i> Delete
-                                    </button>
-                                </a>
-                            </td>
+                            <th>Name</th>
+                            <th>Privacy</th>
+                            <th></th>
                         </tr>
-                    {% endfor %}
-                {% endfor %}
-                </tbody>
-            </table>
+                        </thead>
+                        <tbody class="rowlink" data-link="row">
+                        {% for item in models %}
+                            <tr class="validity_list_{{ item.is_valid }}">
+                                <td>
+                                    <a href="{% url 'main:display' item_type='cellmodel' item_id=item.id %}"></a>
+                                    <b>{{ item.name }}</b><br>
+                                    <p>{{ item.notes|linebreaks }}</p>
+                                </td>
+                                <td>{{ item.privacy|title }}</td>
+                                <td class="rowlink-skip">
+                                    <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type='cellmodel' item_id=item.id %}');"
+                                       data-toggle="modal"
+                                       data-target="#formModal"
+                                       style="text-decoration: none;">
+                                        <button class="btn btn-default pull-right"><i class="fa fa-trash"></i>
+                                            Delete
+                                        </button>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="tab_component" class="tab-pane fade">
+            <div class="row">
+                <br>
+                <div class="col-md-12">
+                    <table class="datatables display table table-hover" id="table-components" style="width:100%;">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody class="rowlink" data-link="row">
+                        {% for item in components %}
+                            <tr class="validity_list_{{ item.is_valid }}">
+                                <td>
+                                    <a href="{% url 'main:display' item_type='component' item_id=item.id %}"></a>
+                                    <b>{{ item.name }}</b><br>
+                                    <p>{{ item.notes|linebreaks }}</p>
+                                </td>
+                                <td>{{ item.privacy|title }}</td>
+                                <td class="rowlink-skip">
+                                    <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type='component' item_id=item.id %}');"
+                                       data-toggle="modal"
+                                       data-target="#formModal"
+                                       style="text-decoration: none;">
+                                        <button class="btn btn-default pull-right"><i class="fa fa-trash"></i>
+                                            Delete
+                                        </button>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="tab_maths" class="tab-pane fade">
+            <div class="row">
+                <br>
+                <div class="col-md-12">
+                    <table class="datatables display table table-hover" id="table-maths" style="width:100%;">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Privacy</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody class="rowlink" data-link="row">
+                        {% for item in maths %}
+                            <tr class="validity_list_{{ item.is_valid }}">
+                                <td>
+                                    <a href="{% url 'main:display' item_type='math' item_id=item.id %}"></a>
+                                    <b>{{ item.name }}</b><br>
+                                    <p>{{ item.notes|linebreaks }}</p>
+                                </td>
+                                <td>{{ item.privacy|title }}</td>
+                                <td class="rowlink-skip">
+                                    <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type='math' item_id=item.id %}');"
+                                       data-toggle="modal"
+                                       data-target="#formModal"
+                                       style="text-decoration: none;">
+                                        <button class="btn btn-default pull-right"><i class="fa fa-trash"></i>
+                                            Delete
+                                        </button>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="tab_units" class="tab-pane fade">
+            <div class="row">
+                <br>
+                <div class="col-md-12">
+                    <table class="datatables display table table-hover" id="table-units" style="width:100%;">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Symbol</th>
+                            <th>Privacy</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody class="rowlink" data-link="row">
+                        {% for item in units %}
+                            <tr class="validity_list_{{ item.is_valid }}">
+                                <td>
+                                    <a href="{% url 'main:display' item_type='compoundunit' item_id=item.id %}"></a>
+                                    <b>{{ item.name }}</b><br>
+                                    <p>{{ item.notes|linebreaks }}</p>
+                                </td>
+                                <td class="symbol">{{ item.symbol }}</td>
+                                <td>{{ item.privacy|title }}</td>
+                                <td class="rowlink-skip">
+                                    <a onclick="LoadModalData('Delete?','{% url 'main:delete' item_type='compoundunit' item_id=item.id %}');"
+                                       data-toggle="modal"
+                                       data-target="#formModal"
+                                       style="text-decoration: none;">
+                                        <button class="btn btn-default pull-right"><i class="fa fa-trash"></i>
+                                            Delete
+                                        </button>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
 {% endblock content %}
+{% block datatables %}
+
+    $(document).ready(function () {
+
+    $('#table-cellmodels').DataTable({
+    "bLengthChange": false, //thought this line could hide the LengthMenu
+    "bInfo": false,
+    "pageLength": 25
+    });
+
+    $('#table-components').DataTable({
+    "bLengthChange": false, //thought this line could hide the LengthMenu
+    "bInfo": false,
+    "pageLength": 25
+    });
+
+    $('#table-maths').DataTable({
+    "bLengthChange": false, //thought this line could hide the LengthMenu
+    "bInfo": false,
+    "pageLength": 25
+    });
+
+    $('#table-units').DataTable({
+    "bLengthChange": false, //thought this line could hide the LengthMenu
+    "bInfo": false,
+    "pageLength": 25
+    });
+    });
+
+{% endblock %}
+

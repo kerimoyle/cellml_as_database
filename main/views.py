@@ -15,12 +15,14 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
+from main.copy import copy_and_link_compoundunit, copy_reset, copy_and_link_model, \
+    copy_and_link_component, copy_and_link_variable
 from main.defines import MENU_OPTIONS, DISPLAY_DICT, LOCAL_DICT, FOREIGN_DICT
-from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
+from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm, DeleteUnitForm
 from main.functions import load_model, get_edit_locals_form, get_item_upstream_attributes, copy_item, \
     delete_item, convert_to_cellml_model, get_item_downstream_attributes, draw_error_tree, draw_object_tree, \
     add_child_errors, draw_error_branch, draw_object_child_tree, get_local_error_messages, get_edit_form
-from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset
+from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset, Component
 from main.validate import VALIDATE_SHALLOW_DICT, VALIDATE_DEEP_DICT
 
 
@@ -123,16 +125,21 @@ def home(request):
                        )
         return redirect('main:error')
 
-    items = []
-    types = ['cellmodel', 'component', 'math', 'compoundunit', 'unit', 'reset', 'variable']
-    for t in types:
-        items.append((
-            t,
-            ContentType.objects.get(app_label='main', model=t).get_all_objects_for_this_type().filter(owner=person)))
+    # items = []
+    # types = ['cellmodel', 'component', 'math', 'compoundunit', 'unit', 'reset', 'variable']
+    # for t in types:
+    #     items.append((
+    #         t,
+    #         ContentType.objects.get(app_label='main', model=t).get_all_objects_for_this_type().filter(owner=person)))
+    #
+    # models =
 
     context = {
         'person': person,
-        'data': items,
+        'models': CellModel.objects.filter(owner=person),
+        'components': Component.objects.filter(owner=person),
+        'maths': Math.objects.filter(owner=person),
+        'units': CompoundUnit.objects.filter(owner=person),
         'menu': MENU_OPTIONS['home']
     }
     return render(request, 'main/home.html', context)
@@ -275,6 +282,67 @@ def create_unit(request, cu_id, in_modal):
         return render(request, 'main/create.html', context)
 
 
+# @login_required
+# def copy(request, item_type, item_id):
+#     """
+#     Function to duplicate an existing item of item_type
+#     :param request: request
+#     :param item_type: the model class to be duplicated
+#     :param item_id: the id of the item to be duplicated
+#     :return: redirects to edit page of the new item
+#     """
+#
+#     item_model = None
+#     item = None
+#
+#     try:
+#         item_model = ContentType.objects.get(app_label="main", model=item_type)
+#     except Exception as e:
+#         messages.error(request, "Could not get object type called '{}'".format(item_type))
+#         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+#         return redirect('main:error')
+#
+#     try:
+#         item = item_model.get_object_for_this_type(id=item_id)
+#     except Exception as e:
+#         messages.error(request, "Couldn't find {} object with id of '{}'".format(item_type, item_id))
+#         messages.error(request, "{}: {}".format(type(e).__name__, e.args))
+#         return redirect('main:error')
+#
+#     if request.method == 'POST':
+#         form = CopyForm(request.POST)
+#         if form.is_valid():
+#             options = form.cleaned_data['options']
+#             item, item_copy = copy_item(request, item,
+#                                         ['used_by', 'depends_on', 'imported_from', 'imported_to'],
+#                                         options)
+#             if item_copy:
+#                 return redirect(reverse('main:display', kwargs={'item_type': item_type, 'item_id': item_copy.id}))
+#
+#     form = CopyForm()
+#     form.helper = FormHelper()
+#     form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
+#     form.helper.form_method = 'post'
+#     form.helper.form_action = reverse('main:copy', kwargs={'item_type': item_type, 'item_id': item_id})
+#
+#     context = {
+#         'form': form,
+#         'modal_text': 'Do you really want to send {}: "{}" to your library? '
+#                       'This will make a copy and allow you to edit it.'.format(item_type, item.name)
+#     }
+#
+#     return render(request, 'main/form_modal.html', context)
+
+
+COPY_DICT = {
+    'cellmodel': copy_and_link_model,
+    'component': copy_and_link_component,
+    'variable': copy_and_link_variable,
+    'compoundunit': copy_and_link_compoundunit,
+    'reset': copy_reset,
+}
+
+
 @login_required
 def copy(request, item_type, item_id):
     """
@@ -316,7 +384,6 @@ def copy(request, item_type, item_id):
     form.helper = FormHelper()
     form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
     form.helper.form_method = 'post'
-    # form.helper.add_input(Submit('submit', "OK"))
     form.helper.form_action = reverse('main:copy', kwargs={'item_type': item_type, 'item_id': item_id})
 
     context = {
@@ -642,6 +709,7 @@ def link_downstream(request, item_type, item_id, related_name):
 
 # ---------------------- DELETE VIEWS -------------------
 
+
 @login_required
 def link_remove(request):
     if request.method == "POST":
@@ -746,6 +814,33 @@ def delete(request, item_type, item_id):
     context = {
         'form': form,
         'modal_text': "Are you sure you want to delete '{i}'?".format(i=item.name)
+    }
+
+    return render(request, 'main/form_modal.html', context)
+
+
+@login_required
+def delete_unit(request):
+    if request.method == 'POST':
+        form = DeleteUnitForm(request.POST)
+        if form.is_valid():
+            unit_id = form.cleaned_data["unit_id"]
+            unit = Unit.objects.get(id=unit_id)
+            if request.user.person != unit.owner:
+                messages.error(request, "You do not have the right permissions to remove this sub-unit")
+                return redirect(request.META.get('HTTP_REFERER'))
+            unit.delete()
+            return redirect(request.META.get("HTTP_REFERER"))
+
+    form = DeleteForm()
+    form.helper = FormHelper()
+    form.helper.form_action = reverse('main:delete_unit')
+    form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
+    form.helper.form_method = 'POST'
+
+    context = {
+        'form': form,
+        'modal_text': "Are you sure you want to remove the sub-unit?"
     }
 
     return render(request, 'main/form_modal.html', context)
@@ -861,7 +956,12 @@ def display(request, item_type, item_id):
         'validity_tab':
             None if DISPLAY_DICT[item_type]['summary_template'] is None
             else DISPLAY_DICT[item_type]['validity_template'],
-        'error_tree': None if item.error_tree is None else item.error_tree['tree_html'],
+        'plot_tab':
+            None if DISPLAY_DICT[item_type]['plot_template'] is None
+            else DISPLAY_DICT[item_type]['plot_template'],
+        'error_tree':
+            None if item.error_tree is None
+            else item.error_tree['tree_html'],
         'locals': fields,
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,

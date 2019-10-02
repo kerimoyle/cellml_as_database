@@ -13,14 +13,14 @@ iframe {
 }
 
 .todo {
-    background: #bcc2c8;
-    color: #600000;
+    background: #fffaef;
+    color: #4f5d72;
     padding: 7px;
 }
 
 .todo::before {
     float: left;
-    content: "TODO: ";
+    content: "TODO:";
     font-weight: bold;
 }
 
@@ -207,21 +207,10 @@ iframe {
     padding: 10px;
 }
 
-/*.validity_list_waiting {*/
-/*    color: #999999;*/
-/*    padding: 10px;*/
-/*    width: 100%;*/
-/*}*/
-
-/*.validity_list_waiting::before {*/
-/*    font-family: FontAwesome;*/
-/*    content: '\f017';*/
-/*}*/
-
-/*.validity_icon_waiting {*/
-/*    font-family: FontAwesome;*/
-/*    content: '\f017';*/
-/*}*/
+.mathml {
+    white-space: pre;
+    font-family: "Courier New", Courier, monospace;
+}
 
 .validity_icon_True::after {
     font-style: normal;

@@ -1,0 +1,79 @@
+<div id="tab_{{ field_name }}" class="tab-pane fade">
+    <div class="col-md-12">
+        <div class="button_bar">
+            <a onclick="LoadModalData('Include {{ field_name }}',
+                    {#'{% url 'main:link_downstream' item_type=item_type item_id=item.id related_name=field_name %}'#}
+                    '{% url 'main:create_unit' cu_id=item.id in_modal=True %}'
+                    );"
+               data-toggle="modal"
+               data-target="#formModal"
+               style="text-decoration: none;">
+                <button class="btn btn-default">
+                    <i class="fa fa-chain"></i> Include existing {{ obj_type }}
+                </button>
+            </a>
+            <a href="{% url 'main:create' item_type=obj_type %}" target="_blank">
+                <button id="add_new_{{ obj_type }}" class="btn btn-default">
+                    <i class="fa fa-plus"></i> Create a new {{ obj_type }}
+                </button>
+            </a>
+        </div>
+        <br>
+        {% if objs.all %}
+            <table class="datatables display table table-hover" id="table-{{ obj_type }}{{ field_name }}"
+                   style="width:100%;">
+                <thead>
+                <th>Name</th>
+                <th>Multiplier</th>
+                <th>Prefix</th>
+                <th>Sub unit</th>
+                <th>Exponent</th>
+                <th>Owner</th>
+                {% if can_edit %}
+                    <th>Actions</th>
+                {% endif %}
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for obj in objs %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'main:display' item_type=obj_type item_id=obj.child_cu.id %}"></a>
+                            {{ obj.child_cu.name }}
+                        </td>
+                        <td>{{ obj.multiplier }}</td>
+                        <td><span class="symbol">{{ obj.prefix.symbol }}</span>
+                            {% if obj.prefix.name %}({{ obj.prefix.name }}){% endif %}
+                        </td>
+                        <td>
+                            <p class="symbol">{{ obj.child_cu.symbol|safe }}</p>
+                        </td>
+                        <td>{{ obj.exponent }}</td>
+                        <td>{{ obj.child_cu.owner }}</td>
+                        {% if can_edit %}
+                            <td class="rowlink-skip">
+                                <a onclick="LoadModalData('Edit unit factor','{% url 'main:edit_unit' item_id=obj.id %}');"
+                                   data-toggle="modal"
+                                   data-target="#formModal">Edit</a>
+                                <br>
+                                <a onclick="LoadModalData('Delete unit factor?','{% url 'main:delete_unit' unit_id=obj.child_cu.id %}');"
+                                   data-toggle="modal"
+                                   data-target="#formModal">Remove</a>
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty">This compound units item does not contain any other sub unit items.</p>
+        {% endif %}
+    </div>
+</div>
+
+{#<form id="delete_unit_form" action="{% url 'main:delete_unit' %}" method="POST" hidden>#}
+{#    {% csrf_token %}#}
+{#    <input type="text" name="unit_id" id="unit_id" value="">#}
+{#</form>#}
+
+
+

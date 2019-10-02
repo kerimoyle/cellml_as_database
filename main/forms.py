@@ -7,7 +7,6 @@ from django.db.models.functions import Lower
 from main.models import (Math)
 
 
-# TODO make levels for copy/importing ...
 class CopyForm(forms.Form):
     class Meta:
         fields = ['item_type', 'item_id', 'options']
@@ -170,4 +169,15 @@ class UnlinkForm(forms.Form):
         super(UnlinkForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_id = 'id-unlink_form'
+        self.helper.form_class = 'blueForms'
+
+
+class DeleteUnitForm(forms.Form):
+    class Meta:
+        fields = ['unit_id']
+
+    def __init__(self, *args, **kwargs):
+        super(DeleteUnitForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_id = 'id-delete_unit_form'
         self.helper.form_class = 'blueForms'

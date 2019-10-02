@@ -13,7 +13,7 @@ MODEL_NAME_DICT = {
 }
 
 DOWNSTREAM_VALIDATION_DICT = {
-    'cellmodel': ['components', 'compoundunits'],
+    'cellmodel': ['encapsulated_components', 'compoundunits'],
     'component': ['child_components', 'variables', 'maths', 'resets'],
     'compoundunit': [],
     'variable': [],
@@ -28,7 +28,7 @@ LOCAL_DICT = {
     'component': ['name'],
     'compoundunit': ['name'],
     'variable': ['name', 'cellml_id', 'initial_value_constant'],
-    'math': [],
+    'math': ['name', 'owner'],
     'encapsulation': [],
     'reset': ['name', 'order']
 }
@@ -47,12 +47,13 @@ DISPLAY_DICT = {
     'component': {
         'summary_template': 'main/tab_summary_nochildren.html',
         'validity_template': 'main/tab_validity.html',
+        'plot_template': None,
         'tabs': [
             {'field': 'child_components', 'obj_type': 'component', 'title': 'Encapsulated components',
              'template': 'main/tab_default.html', 'related_name': 'parent_component'},
             {'field': 'variables', 'obj_type': 'variable', 'title': 'Variables',
              'template': 'main/tab_default.html', 'related_name': 'component'},
-            {'field': 'maths', 'obj_type': 'math', 'title': 'Maths', 'template': 'main/tab_maths.html',
+            {'field': 'maths', 'obj_type': 'math', 'title': 'Maths', 'template': 'main/tab_default.html',
              'related_name': 'component'},
             {'field': 'resets', 'obj_type': 'reset', 'title': 'Resets', 'template': 'main/tab_default.html',
              'related_name': 'component'},
@@ -66,9 +67,28 @@ DISPLAY_DICT = {
         ]
     },
 
+    'math': {
+        'summary_template': 'main/tab_maths.html',
+        'validity_template': 'main/tab_validity.html',
+        'plot_template': 'main/tab_plot.html',
+        'tabs': [
+            # {'field': 'variables', 'obj_type': 'variable', 'title': 'Uses variables',
+            #  'template': 'main/tab_fyi.html', 'related_name': 'maths'},
+            # {'field': 'components', 'obj_type': 'component', 'title': 'Used in components',
+            #  'template': 'main/tab_fyi.html', 'related_name': 'parent_component'},
+        ],
+        'foreign_keys': [
+            {'field': 'component', 'obj_type': 'component', 'title': 'parent component'},
+        ],
+        'present_in': [
+            # {'field': 'components', 'obj_type': 'component', 'title': 'parent component'},
+        ]
+    },
+
     'variable': {
         'summary_template': 'main/tab_summary_nochildren.html',
         'validity_template': 'main/tab_validity.html',
+        'plot_template': None,
         'tabs': [
             {'field': 'equivalent_variables', 'obj_type': 'variable', 'title': 'Equivalent variables',
              'template': 'main/tab_default.html', 'related_name': 'equivalent_variables'},
@@ -76,6 +96,8 @@ DISPLAY_DICT = {
              'template': 'main/tab_reset.html', 'related_name': 'variable'},
             {'field': 'reset_test_variables', 'obj_type': 'reset', 'title': 'Variable will reset',
              'template': 'main/tab_reset.html', 'related_name': 'test_variable'},
+            {'field': 'maths', 'obj_type': 'math', 'title': 'Maths',
+             'template': 'main/tab_fyi.html', 'related_name': 'variables'},
         ],
         'present_in': [
 
@@ -90,6 +112,7 @@ DISPLAY_DICT = {
     'reset': {
         'summary_template': 'main/tab_summary_nochildren.html',
         'validity_template': None,
+        'plot_template': None,
         'tabs': [],
         'present_in': [],
         'foreign_keys': [
@@ -104,11 +127,12 @@ DISPLAY_DICT = {
     'compoundunit': {
         'summary_template': 'main/tab_summary_nochildren.html',
         'validity_template': 'main/tab_validity.html',
+        'plot_template': None,
         'tabs': [
             {'field': 'product_of', 'obj_type': 'compoundunit', 'title': 'Product of',
-             'template': 'main/tab_units.html', 'related_name': 'parent_cu'},
+             'template': 'main/tab_childunits.html', 'related_name': 'parent_cu'},
             {'field': 'part_of', 'obj_type': 'compoundunit', 'title': 'Used in units',
-             'template': 'main/tab_compoundunits.html', 'related_name': 'child_cu'},
+             'template': 'main/tab_parentunits.html', 'related_name': 'child_cu'},
             {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Used in models',
              'template': 'main/tab_fyi.html', 'related_name': 'compoundunits'},
             # {'field': 'variables', 'obj_type': 'variable', 'title': 'Used by variables',
@@ -121,8 +145,9 @@ DISPLAY_DICT = {
     'cellmodel': {
         'summary_template': 'main/tab_summary_nochildren.html',
         'validity_template': 'main/tab_validity.html',
+        'plot_template': None,
         'tabs': [
-            {'field': 'components', 'obj_type': 'component', 'title': 'Components',
+            {'field': 'encapsulated_components', 'obj_type': 'component', 'title': 'Encapsulated components',
              'template': 'main/tab_default.html'},
             {'field': 'compoundunits', 'obj_type': 'compoundunit', 'title': 'Units',
              'template': 'main/tab_compoundunits.html'},
@@ -186,7 +211,7 @@ KIND_DICT = {
 BREADCRUMB_DICT = {
     'cellmodel': None,
     'model': None,
-    'component': ['cellmodel'],
+    'component': ['parent_component', 'cellmodel'],
     'variable': ['component', 'cellmodel'],
     'compoundunit': ['cellmodel'],
     'reset': ['component', 'cellmodel'],

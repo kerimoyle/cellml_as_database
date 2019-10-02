@@ -149,7 +149,7 @@
                 </tr>
                 </thead>
                 <tbody class="rowlink" data-link="row">
-                {% for c in item.components.all %}
+                {% for c in item.encapsulated_components.all %}
                     <tr>
                         <td>
                             <a href="{% url 'main:display' item_type='component' item_id=c.id %}"></a>

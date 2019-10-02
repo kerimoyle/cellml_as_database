@@ -71,7 +71,7 @@
                 </thead>
                 <tbody class="rowlink" data-link="row">
                 {% for u in item.compoundunits.all %}
-                    <tr>
+                    <tr class="validity_list_{{ u.is_valid }}">
                         <td>
                             <div class="validity_icon_{{ u.is_valid }}"></div>
                         </td>
