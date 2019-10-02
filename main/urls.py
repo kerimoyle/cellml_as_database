@@ -20,6 +20,7 @@ urlpatterns = [
     path('create/<item_type>/', views.create, name='create', kwargs={'in_modal': False}),
 
     path('delete/<item_type>/<int:item_id>/', views.delete, name='delete'),
+    path('delete_unit/<int:unit_id>/', views.delete_unit, name='delete_unit'),
     # path('display/cellmodel/<int:item_id>/', views.display_model, name='display_model'),  # aliased ...
     # path('display/compoundunit/<int:item_id>/', views.display_compoundunit, name='display_compoundunit'),
     # aliased ...

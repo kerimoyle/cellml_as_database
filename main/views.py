@@ -18,7 +18,7 @@ from django.urls import reverse
 from main.copy import copy_and_link_compoundunit, copy_reset, copy_and_link_model, \
     copy_and_link_component, copy_and_link_variable
 from main.defines import MENU_OPTIONS, DISPLAY_DICT, LOCAL_DICT, FOREIGN_DICT
-from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm
+from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm, DeleteUnitForm
 from main.functions import load_model, get_edit_locals_form, get_item_upstream_attributes, copy_item, \
     delete_item, convert_to_cellml_model, get_item_downstream_attributes, draw_error_tree, draw_object_tree, \
     add_child_errors, draw_error_branch, draw_object_child_tree, get_local_error_messages, get_edit_form
@@ -710,6 +710,7 @@ def link_downstream(request, item_type, item_id, related_name):
 
 # ---------------------- DELETE VIEWS -------------------
 
+
 @login_required
 def link_remove(request):
     if request.method == "POST":
@@ -818,6 +819,33 @@ def delete(request, item_type, item_id):
 
     return render(request, 'main/form_modal.html', context)
 
+
+@login_required
+def delete_unit(request):
+
+    if request.method == 'POST':
+        form = DeleteUnitForm(request.POST)
+        if form.is_valid():
+            unit_id = form.cleaned_data["unit_id"]
+            unit = Unit.objects.get(id=unit_id)
+            if request.user.person != unit.owner:
+                messages.error(request, "You do not have the right permissions to remove this sub-unit")
+                return redirect(request.META.get('HTTP_REFERER'))
+            unit.delete()
+            return redirect(request.META.get("HTTP_REFERER"))
+
+    form = DeleteForm()
+    form.helper = FormHelper()
+    form.helper.form_action = reverse('main:delete_unit')
+    form.helper.attrs = {'target': '_top', 'id': 'modal_form_id'}
+    form.helper.form_method = 'POST'
+
+    context = {
+        'form': form,
+        'modal_text': "Are you sure you want to remove the sub-unit?"
+    }
+
+    return render(request, 'main/form_modal.html', context)
 
 # --------------------- DISPLAY VIEWS -------------------
 @login_required

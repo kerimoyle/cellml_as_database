@@ -170,3 +170,14 @@ class UnlinkForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_id = 'id-unlink_form'
         self.helper.form_class = 'blueForms'
+
+
+class DeleteUnitForm(forms.Form):
+    class Meta:
+        fields = ['unit_id']
+
+    def __init__(self, *args, **kwargs):
+        super(DeleteUnitForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_id = 'id-delete_unit_form'
+        self.helper.form_class = 'blueForms'

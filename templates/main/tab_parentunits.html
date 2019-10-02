@@ -1,0 +1,31 @@
+<div id="tab_{{ field_name }}" class="tab-pane fade">
+    <div class="col-md-12">
+        <br>
+        {% if objs.all %}
+            <table class="datatables display table table-hover" id="table-{{ obj_type }}{{ field_name }}"
+                   style="width:100%;">
+                <thead>
+                <th>Name</th>
+                <th>Symbol</th>
+                <th>Owner</th>
+                </thead>
+                <tbody class="rowlink" data-link="row">
+                {% for obj in objs %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'main:display' item_type=obj_type item_id=obj.parent_cu.id %}"></a>
+                            {{ obj.parent_cu.name }}
+                        </td>
+                        <td>
+                            <p class="symbol">{{ obj.parent_cu.symbol|safe }}</p>
+                        </td>
+                        <td>{{ obj.parent_cu.owner }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty">This compound unit item is not used in any other compound units.</p>
+        {% endif %}
+    </div>
+</div>

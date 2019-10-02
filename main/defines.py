@@ -110,9 +110,9 @@ DISPLAY_DICT = {
         'validity_template': 'main/tab_validity.html',
         'tabs': [
             {'field': 'product_of', 'obj_type': 'compoundunit', 'title': 'Product of',
-             'template': 'main/tab_units.html', 'related_name': 'parent_cu'},
+             'template': 'main/tab_childunits.html', 'related_name': 'parent_cu'},
             {'field': 'part_of', 'obj_type': 'compoundunit', 'title': 'Used in units',
-             'template': 'main/tab_compoundunits.html', 'related_name': 'child_cu'},
+             'template': 'main/tab_parentunits.html', 'related_name': 'child_cu'},
             {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Used in models',
              'template': 'main/tab_fyi.html', 'related_name': 'compoundunits'},
             # {'field': 'variables', 'obj_type': 'variable', 'title': 'Used by variables',
