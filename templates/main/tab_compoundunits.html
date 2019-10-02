@@ -1,54 +1,15 @@
 <div id="tab_{{ field_name }}" class="tab-pane fade">
-
-    {#    <div class="col-md-6">#}
-    {#        <br><br>#}
-    {#        <div class="is_standard_{{ item.is_standard }}"></div>#}
-    {#        {% if formula.count %}#}
-    {#            <div class="numerator"#}
-    {#                 style="font-family: 'Times New Roman'; font-size: x-large; font-style: italic; text-align: center;">#}
-    {#                {% if multiplier != 1 %}{{ multiplier }}{% endif %}#}
-    {#                {% for f in formula %}#}
-    {#                    {{ f|safe }}#}
-    {#                {% endfor %}#}
-    {#                <br>#}
-    {#            </div>#}
-    {#        {% else %}#}
-    {#            <div class="numerator"#}
-    {#                 style="font-family: 'Times New Roman'; font-size: x-large; font-style: italic; text-align: center;">#}
-    {#                {% if multiplier != 1 %}{{ multiplier }}{% endif %}#}
-    {#                {{ item.symbol|safe }}#}
-    {#                <br>#}
-    {#            </div>#}
-    {#        {% endif %}#}
-    {#        <p>{{ item.notes|linebreaksbr }}</p>#}
-    {#    </div>#}
-
     <div class="col-md-12 button_bar">
-        {#        <a onclick="LoadModalData('Include {{ field_name }}',#}
-        {#                '{% url 'main:link_downstream' item_type=item_type item_id=item.id related_name=field_name %}'#}
-        {#                );"#}
-        {#           data-toggle="modal"#}
-        {#           data-target="#formModal"#}
-        {#           style="text-decoration: none;">#}
-        {#            <button class="btn btn-default">#}
-        {#                <i class="fa fa-chain"></i> Include existing {{ obj_type }}#}
-        {#            </button>#}
-        {#        </a>#}
-
-
         <a onclick="LoadModalData('Create link to existing compound units',
                 '{% url 'main:link_downstream' item_type=item_type item_id=item.id related_name='compoundunits' %}'
                 );"
            data-toggle="modal"
            data-target="#formModal"
            style="text-decoration: none;">
-
-
             <button class="btn btn-default">
                 <i class="fa fa-chain"></i> Include existing compound unit
             </button>
         </a>
-
         <a href="{% url 'main:create' item_type=obj_type %}" target="_blank">
             <button id="add_new_{{ obj_type }}" class="btn btn-default">
                 <i class="fa fa-plus"></i> Create a new compound unit

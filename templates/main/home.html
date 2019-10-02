@@ -114,7 +114,7 @@
                             <tr class="validity_list_{{ item.is_valid }}">
                                 <td>
                                     <a href="{% url 'main:display' item_type='math' item_id=item.id %}"></a>
-                                    <b>{{ item.name }}</b><br>
+                                    <b>{{ item }}</b><br>
                                     <p>{{ item.notes|linebreaks }}</p>
                                 </td>
                                 <td>{{ item.privacy|title }}</td>

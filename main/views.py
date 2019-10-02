@@ -949,7 +949,6 @@ def display(request, item_type, item_id):
 
     breadcrumbs = get_breadcrumbs([], item, item_type)
 
-
     context = {
         'item': item,
         'item_type': item_type,
@@ -1402,7 +1401,8 @@ def set_privacy(request):
 
         # Check item for parents - if the item has upstream items then can't set its privacy independently
 
-        upstream = get_item_upstream_attributes(item)
+        upstream = get_item_upstream_attributes(item, ['owner', 'person', 'imported_from', 'depends_on', 'annotations',
+                                                       'errors'])
         if len(upstream):
             # then cannot set the privacy here, need to do it at the upstream item instead
             messages.error(request, "Privacy cannot be set for this item here, please set it at the "

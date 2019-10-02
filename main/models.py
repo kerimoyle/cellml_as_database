@@ -218,8 +218,10 @@ class Math(NamedCellMLEntity):
     def __str__(self):
         a = ""
         s = ""
-        for v in self.variables.all():
+        for v in self.variables.all()[0:5]:
             a += v.name + ", "
+        if self.variables.count() > 5:
+            a += " ...   "
         if a != "":
             a = a[:-2]
         if self.name:
