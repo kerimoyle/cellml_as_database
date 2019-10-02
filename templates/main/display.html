@@ -17,18 +17,23 @@
         {% if validity_tab %}
             <li><a id="tab_validity1" data-toggle="tab" href="#tab_validity">Validity and checking</a></li>
         {% endif %}
+        {% if plot_tab %}
+            <li><a id="tab_plot1" data-toggle="tab" href="#tab_plot">Plot equation</a></li>
+        {% endif %}
         {% for field, obj_type, objs, title, template in data %}
             <li><a id="tab_{{ field }}1" data-toggle="tab" href="#tab_{{ field }}">{{ title }}</a></li>
         {% endfor %}
     </ul>
 {% endblock tabs %}
 
-
 {% block content %}
     <div class="tab-content">
         {% include summary_tab %}
         {% if validity_tab %}
             {% include validity_tab %}
+        {% endif %}
+        {% if plot_tab %}
+            {% include plot_tab %}
         {% endif %}
         {% for field_name, obj_type, objs, title, template in data %}
             {% include template with field_name=field_name obj_type=obj_type objs=objs title=title %}

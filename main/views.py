@@ -134,7 +134,6 @@ def home(request):
     #
     # models =
 
-
     context = {
         'person': person,
         'models': CellModel.objects.filter(owner=person),
@@ -822,7 +821,6 @@ def delete(request, item_type, item_id):
 
 @login_required
 def delete_unit(request):
-
     if request.method == 'POST':
         form = DeleteUnitForm(request.POST)
         if form.is_valid():
@@ -846,6 +844,7 @@ def delete_unit(request):
     }
 
     return render(request, 'main/form_modal.html', context)
+
 
 # --------------------- DISPLAY VIEWS -------------------
 @login_required
@@ -957,7 +956,12 @@ def display(request, item_type, item_id):
         'validity_tab':
             None if DISPLAY_DICT[item_type]['summary_template'] is None
             else DISPLAY_DICT[item_type]['validity_template'],
-        'error_tree': None if item.error_tree is None else item.error_tree['tree_html'],
+        'plot_tab':
+            None if DISPLAY_DICT[item_type]['plot_template'] is None
+            else DISPLAY_DICT[item_type]['plot_template'],
+        'error_tree':
+            None if item.error_tree is None
+            else item.error_tree['tree_html'],
         'locals': fields,
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,

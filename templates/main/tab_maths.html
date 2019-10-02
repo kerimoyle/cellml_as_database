@@ -1,11 +1,8 @@
 <div id="tab_information" class="tab-pane fade in active">
-    <div class="todo"> Use the new generator to translate mathml2 into python for running here using trinket iframe
-    </div>
-    <div class="col-sm-6 mathml">
-        <div class="todo"> Make this editable</div>
-        {{ item.math_ml|linebreaksbr }}
-    </div>
     <div class="col-sm-6">
+        <div class="todo">
+            Render mathml here as proper math<br><br>
+        </div>
         <table class="datatables display table table-hover" id="table-variables"
                style="width:100%;">
             <thead>
@@ -26,5 +23,11 @@
             {% endfor %}
             </tbody>
         </table>
+    </div>
+    <div class="col-sm-6">
+        <div class="todo"> Make this editable</div>
+        <div class="mathml">
+            {{ item.math_ml|linebreaksbr }}
+        </div>
     </div>
 </div>

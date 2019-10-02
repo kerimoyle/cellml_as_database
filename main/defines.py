@@ -47,6 +47,7 @@ DISPLAY_DICT = {
     'component': {
         'summary_template': 'main/tab_summary_nochildren.html',
         'validity_template': 'main/tab_validity.html',
+        'plot_template': None,
         'tabs': [
             {'field': 'child_components', 'obj_type': 'component', 'title': 'Encapsulated components',
              'template': 'main/tab_default.html', 'related_name': 'parent_component'},
@@ -69,9 +70,10 @@ DISPLAY_DICT = {
     'math': {
         'summary_template': 'main/tab_maths.html',
         'validity_template': 'main/tab_validity.html',
+        'plot_template': 'main/tab_plot.html',
         'tabs': [
-            {'field': 'variables', 'obj_type': 'variable', 'title': 'Uses variables',
-             'template': 'main/tab_fyi.html', 'related_name': 'maths'},
+            # {'field': 'variables', 'obj_type': 'variable', 'title': 'Uses variables',
+            #  'template': 'main/tab_fyi.html', 'related_name': 'maths'},
             {'field': 'components', 'obj_type': 'component', 'title': 'Used in components',
              'template': 'main/tab_fyi.html', 'related_name': 'parent_component'},
         ],
@@ -86,6 +88,7 @@ DISPLAY_DICT = {
     'variable': {
         'summary_template': 'main/tab_summary_nochildren.html',
         'validity_template': 'main/tab_validity.html',
+        'plot_template': None,
         'tabs': [
             {'field': 'equivalent_variables', 'obj_type': 'variable', 'title': 'Equivalent variables',
              'template': 'main/tab_default.html', 'related_name': 'equivalent_variables'},
@@ -107,6 +110,7 @@ DISPLAY_DICT = {
     'reset': {
         'summary_template': 'main/tab_summary_nochildren.html',
         'validity_template': None,
+        'plot_template': None,
         'tabs': [],
         'present_in': [],
         'foreign_keys': [
@@ -121,6 +125,7 @@ DISPLAY_DICT = {
     'compoundunit': {
         'summary_template': 'main/tab_summary_nochildren.html',
         'validity_template': 'main/tab_validity.html',
+        'plot_template': None,
         'tabs': [
             {'field': 'product_of', 'obj_type': 'compoundunit', 'title': 'Product of',
              'template': 'main/tab_childunits.html', 'related_name': 'parent_cu'},
@@ -138,6 +143,7 @@ DISPLAY_DICT = {
     'cellmodel': {
         'summary_template': 'main/tab_summary_nochildren.html',
         'validity_template': 'main/tab_validity.html',
+        'plot_template': None,
         'tabs': [
             {'field': 'encapsulated_components', 'obj_type': 'component', 'title': 'Encapsulated components',
              'template': 'main/tab_default.html'},

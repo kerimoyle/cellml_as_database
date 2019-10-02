@@ -216,7 +216,16 @@ class Math(NamedCellMLEntity):
 
     # TODO how to make a parent fk to *either* model or reset - should be generic fk?
     def __str__(self):
-        return self.name
+        a = ""
+        s = ""
+        for v in self.variables.all():
+            a += v.name + ", "
+        if a != "":
+            a = a[:-2]
+        if self.name:
+            s = " "
+        n = "{n}{s}f({a})".format(n=self.name, s=s, a=a)
+        return n
 
 
 class Component(NamedCellMLEntity):
