@@ -1,16 +1,30 @@
 <div id="tab_information" class="tab-pane fade in active">
-    <div class="todo">
-        Use the new generator to translate mathml2 into python for running here using trinket iframe
+    <div class="todo"> Use the new generator to translate mathml2 into python for running here using trinket iframe
+    </div>
+    <div class="col-sm-6 mathml">
+        <div class="todo"> Make this editable</div>
+        {{ item.math_ml|linebreaksbr }}
     </div>
     <div class="col-sm-6">
-        <br>
-        <div class="mathml">
-            {{ item.math_ml|linebreaksbr }}
-        </div>
-    </div>
-    <div class="col-sm-6">
-        <iframe id="formModal_iframe" src="https://trinket.io/embed/python3/055c60f8a0" style="zoom:0.60;" width="99.6%" height="800px;">
-            <h3>Please wait ... loading data ...</h3>
-        </iframe>
+        <table class="datatables display table table-hover" id="table-variables"
+               style="width:100%;">
+            <thead>
+            <th></th>
+            <th>Name</th>
+            <th>Units</th>
+            </thead>
+            <tbody class="rowlink" data-link="row">
+            {% for obj in item.variables.all %}
+                <tr class="validity_list_{{ obj.is_valid }}">
+                    <td><span class="validity_icon_{{ obj.is_valid }}"></span></td>
+                    <td>
+                        <a href="{% url 'main:display' item_type='variable' item_id=obj.id %}"></a>
+                        {{ obj.name }}
+                    </td>
+                    <td class="symbol">{{ obj.compoundunit.symbol }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>

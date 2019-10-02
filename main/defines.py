@@ -70,6 +70,8 @@ DISPLAY_DICT = {
         'summary_template': 'main/tab_maths.html',
         'validity_template': 'main/tab_validity.html',
         'tabs': [
+            {'field': 'variables', 'obj_type': 'variable', 'title': 'Uses variables',
+             'template': 'main/tab_fyi.html', 'related_name': 'maths'},
             {'field': 'components', 'obj_type': 'component', 'title': 'Used in components',
              'template': 'main/tab_fyi.html', 'related_name': 'parent_component'},
         ],
