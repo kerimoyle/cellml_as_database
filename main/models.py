@@ -209,6 +209,8 @@ class Math(NamedCellMLEntity):
     components = ManyToManyField("Component", related_name="maths", blank=True)
     math_ml = TextField(blank=True, null=True)
 
+    variables = ManyToManyField("Variable", related_name="maths", blank=True)
+
     imported_from = ForeignKey('Math', related_name='imported_to', on_delete=DO_NOTHING, blank=True, null=True)
     depends_on = ForeignKey('Math', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 

@@ -212,22 +212,6 @@ iframe {
     font-family: "Courier New", Courier, monospace;
 }
 
-/*.validity_list_waiting {*/
-/*    color: #999999;*/
-/*    padding: 10px;*/
-/*    width: 100%;*/
-/*}*/
-
-/*.validity_list_waiting::before {*/
-/*    font-family: FontAwesome;*/
-/*    content: '\f017';*/
-/*}*/
-
-/*.validity_icon_waiting {*/
-/*    font-family: FontAwesome;*/
-/*    content: '\f017';*/
-/*}*/
-
 .validity_icon_True::after {
     font-style: normal;
     content: "\f00c";

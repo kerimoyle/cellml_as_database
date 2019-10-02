@@ -1,3 +1,5 @@
+import xml.etree.ElementTree as ElementTree
+
 import libcellml
 from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
@@ -399,15 +401,31 @@ def load_component(index, in_entity, out_parent, out_model, owner):
     for r in range(in_component.resetCount()):
         load_reset(r, in_component, out_component, owner)
 
+    mathml = in_component.math()
+
     # Load math in this component
-    if in_component.math():
+    if mathml:
         math = Math(
-            math_ml=in_component.math(),
+            math_ml=mathml,  # save raw mathml for printing later
             owner=owner,
         )
         math.save()
+
+        mathml_tree = ElementTree.fromstring(mathml)
+        var_set = [x[0] for x in out_component.variables.values_list('name')]
+
+        for raw_name in mathml_tree.itertext():
+            variable_name = ''.join(raw_name.split())
+            if variable_name != '' and variable_name in var_set:
+                try:
+                    v = out_component.variables.get(name=variable_name)
+                    math.variables.add(v)
+                except Exception as e:
+                    pass
+
         math.components.add(out_component)
 
+    # scan mathml for variable names to link
     for c in range(0, in_component.componentCount()):
         load_component(c, in_component, out_component, out_model, owner)
 
