@@ -23,10 +23,6 @@ DOWNSTREAM_VALIDATION_DICT = {
     'reset': []
 }
 
-
-
-
-
 LOCAL_DICT = {
     'cellmodel': ['name', 'cellml_id'],
     'component': ['name'],
@@ -56,7 +52,7 @@ DISPLAY_DICT = {
              'template': 'main/tab_default.html', 'related_name': 'parent_component'},
             {'field': 'variables', 'obj_type': 'variable', 'title': 'Variables',
              'template': 'main/tab_default.html', 'related_name': 'component'},
-            {'field': 'maths', 'obj_type': 'math', 'title': 'Maths', 'template': 'main/tab_maths.html',
+            {'field': 'maths', 'obj_type': 'math', 'title': 'Maths', 'template': 'main/tab_default.html',
              'related_name': 'component'},
             {'field': 'resets', 'obj_type': 'reset', 'title': 'Resets', 'template': 'main/tab_default.html',
              'related_name': 'component'},
@@ -67,6 +63,21 @@ DISPLAY_DICT = {
         ],
         'present_in': [
             # {'field': 'models', 'obj_type': 'cellmodel', 'title': 'Models'},
+        ]
+    },
+
+    'math': {
+        'summary_template': 'main/tab_maths.html',
+        'validity_template': 'main/tab_validity.html',
+        'tabs': [
+            {'field': 'components', 'obj_type': 'component', 'title': 'Parent components',
+             'template': 'main/tab_default.html', 'related_name': 'parent_component'},
+        ],
+        'foreign_keys': [
+
+        ],
+        'present_in': [
+            {'field': 'components', 'obj_type': 'component', 'title': 'parent component'},
         ]
     },
 

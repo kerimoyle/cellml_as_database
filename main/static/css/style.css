@@ -13,14 +13,14 @@ iframe {
 }
 
 .todo {
-    background: #bcc2c8;
-    color: #600000;
+    background: #fffaef;
+    color: #4f5d72;
     padding: 7px;
 }
 
 .todo::before {
     float: left;
-    content: "TODO: ";
+    content: "TODO:";
     font-weight: bold;
 }
 
@@ -205,6 +205,11 @@ iframe {
 .validity_list_false {
     color: darkred;
     padding: 10px;
+}
+
+.mathml {
+    white-space: pre;
+    font-family: "Courier New", Courier, monospace;
 }
 
 /*.validity_list_waiting {*/
