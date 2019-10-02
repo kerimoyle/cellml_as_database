@@ -412,19 +412,18 @@ def load_component(index, in_entity, out_parent, out_model, owner):
         )
         math.save()
 
-        mathml_tree = ElementTree.fromstring(mathml)
+        mathml_root = ElementTree.fromstring(mathml)
         var_set = [x[0] for x in out_component.variables.values_list('name')]
 
-        for raw_name in mathml_tree.itertext():
-            variable_name = ''.join(raw_name.split())
-            if variable_name != '' and variable_name in var_set:
+        variables = [x.split("</ci>")[0] for x in mathml.split("<ci>")[1:]]
+
+        for var in variables:
+            if var != '':
                 try:
-                    v = out_component.variables.get(name=variable_name)
+                    v = out_component.variables.get(name=var)
                     math.variables.add(v)
                 except Exception as e:
                     pass
-
-
 
     # scan mathml for variable names to link
     for c in range(0, in_component.componentCount()):

@@ -206,20 +206,12 @@ def validate_math(math):
     is_valid = True
     for e in math.errors.all():
         e.delete()
-    # Retrieve all variables inside the mathml
-    mathml_tree = ElementTree.fromstring(math.math_ml)
 
     # Compare list of local variables in this component with the ones used in the mathml
     available_variables = [x[0] for x in math.component.variables.values_list('name')]
-    referenced_variables = []
-
-    for raw_name in mathml_tree.itertext():
-        variable_name = ''.join(raw_name.split())
-        if variable_name != '':
-            referenced_variables.append(variable_name)
+    referenced_variables = [x.split("</ci>")[0] for x in math.math_ml.split("<ci>")[1:]]
 
     missing = set(referenced_variables) - set(available_variables)
-    unused = set(available_variables) - set(referenced_variables)
 
     for m in missing:
         n = "'{n}' ".format(math.name) if math.name != "" else ""
