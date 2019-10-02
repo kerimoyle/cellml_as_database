@@ -209,11 +209,11 @@ KIND_DICT = {
 }
 
 BREADCRUMB_DICT = {
-    'cellmodel': None,
-    'model': None,
-    'component': ['parent_component', 'cellmodel'],
-    'variable': ['component', 'cellmodel'],
-    'compoundunit': ['cellmodel'],
-    'reset': ['component', 'cellmodel'],
-    'encapsulation': ['cellmodel']
+    'cellmodel': [],
+    'model': [],
+    'math': ['component'],
+    'component': ['parent_component', 'parent_model'],
+    'variable': ['component'],
+    'compoundunit': [],
+    'reset': ['component'],
 }

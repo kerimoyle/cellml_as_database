@@ -7,7 +7,7 @@ from django.db.models import ForeignKey, ManyToManyField, AutoField, ManyToOneRe
 from django.forms import modelform_factory
 from django.shortcuts import redirect
 
-from main.defines import DOWNSTREAM_VALIDATION_DICT, LOCAL_DICT
+from main.defines import DOWNSTREAM_VALIDATION_DICT, LOCAL_DICT, BREADCRUMB_DICT
 from main.models import Variable, CellModel, Component, Reset, CompoundUnit, Unit, \
     Math, Prefix, Person
 
@@ -160,6 +160,20 @@ def draw_object_error_tree(item):
     return {'html': error_list, 'list_length': len(error_list)}
 
 
+def get_breadcrumbs(breadcrumbs, item, item_type):
+    # Get the parent type of the item
+    for parent_type in BREADCRUMB_DICT[item_type]:
+        parent = getattr(item, parent_type)
+        if parent:
+            breadcrumbs = get_breadcrumbs(breadcrumbs, parent, type(parent).__name__.lower())
+            breadcrumbs.append((type(parent).__name__.lower(), parent))
+            break
+        else:
+            pass
+
+    return breadcrumbs
+
+
 # -------------------------------- PREVIEW FUNCTIONS FOR CELLML ITEMS ----------------------------
 
 
@@ -281,6 +295,7 @@ def load_model(in_model, owner):
     # Note that components are loaded twice - once into the all_components field of the parent model, independently of
     # the encapsulation structure, and again into the encapsulated_components field, which reflects the hierarchy, if
     # present
+
     for component in model.encapsulated_components.all():
         connect_component_items(component, model, in_model, owner)
 

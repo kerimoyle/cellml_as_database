@@ -21,7 +21,8 @@ from main.defines import MENU_OPTIONS, DISPLAY_DICT, LOCAL_DICT, FOREIGN_DICT
 from main.forms import DownstreamLinkForm, UnlinkForm, LoginForm, RegistrationForm, CopyForm, DeleteForm, DeleteUnitForm
 from main.functions import load_model, get_edit_locals_form, get_item_upstream_attributes, copy_item, \
     delete_item, convert_to_cellml_model, get_item_downstream_attributes, draw_error_tree, draw_object_tree, \
-    add_child_errors, draw_error_branch, draw_object_child_tree, get_local_error_messages, get_edit_form
+    add_child_errors, draw_error_branch, draw_object_child_tree, get_local_error_messages, get_edit_form, \
+    get_breadcrumbs
 from main.models import Math, TemporaryStorage, CellModel, CompoundUnit, Person, Unit, Prefix, Reset, Component
 from main.validate import VALIDATE_SHALLOW_DICT, VALIDATE_DEEP_DICT
 
@@ -946,6 +947,8 @@ def display(request, item_type, item_id):
     item.child_list = draw_object_child_tree(item)
     item.save()
 
+    breadcrumbs = get_breadcrumbs([], item, item_type)
+
     context = {
         'item': item,
         'item_type': item_type,
@@ -966,6 +969,7 @@ def display(request, item_type, item_id):
         'menu': MENU_OPTIONS['display'],
         'can_edit': request.user.person == item.owner,
         'can_change_privacy': can_change_privacy,
+        'breadcrumbs': breadcrumbs,
     }
     return render(request, 'main/display.html', context)
 
@@ -1397,7 +1401,8 @@ def set_privacy(request):
 
         # Check item for parents - if the item has upstream items then can't set its privacy independently
 
-        upstream = get_item_upstream_attributes(item)
+        upstream = get_item_upstream_attributes(item, ['owner', 'person', 'imported_from', 'depends_on', 'annotations',
+                                                       'errors'])
         if len(upstream):
             # then cannot set the privacy here, need to do it at the upstream item instead
             messages.error(request, "Privacy cannot be set for this item here, please set it at the "

@@ -7,7 +7,11 @@
 {% block todo %}{% endblock todo %}
 
 {% block breadcrumbs %}
-    {{ breadcrumbs }}
+    {% for crumb_type, crumb in breadcrumbs %}
+        <a href="{% url 'main:display' item_type=crumb_type item_id=crumb.id %}">
+            {{ crumb }}
+        </a> /
+    {% endfor %}
 {% endblock breadcrumbs %}
 
 {% block tabs %}
