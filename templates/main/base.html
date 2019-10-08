@@ -95,9 +95,8 @@
 {% endif %}{% endblock messages %}</div>
 <div class="container-fluid" id="main_container">
     <div class="row">
-
-        <div class="col-sm-8">
-            <h2>{% block breadcrumbs %}{% endblock breadcrumbs %}{% block title %}{% endblock title %}</h2>
+        <div class="col-sm-10">
+            <h3>{% block breadcrumbs %}{% endblock breadcrumbs %}{% block title %}{% endblock title %}</h3>
             {% block subtitle %}{% endblock subtitle %}
             {% block privacy %}
                 {% if item %}
@@ -107,7 +106,7 @@
             {% endblock privacy %}
         </div>
 
-        <div class="col-sm-4 button_bar">
+        <div class="col-sm-2 button_bar">
             <div class="button_bar" style="padding-top:15px;">
                 {% block title_buttons %}
                     {% if item %}

@@ -2,7 +2,7 @@
     <div class="col-md-12">
         <div class="button_bar">
             <a onclick="LoadModalData('Include {{ field_name }}',
-                    '{% url 'main:link_downstream' item_type=item_type item_id=item.id related_name=field_name %}'
+                    '{% url 'main:link_upstream' item_type=item_type item_id=item.id related_name=related_name %}'
                     );"
                data-toggle="modal"
                data-target="#formModal"

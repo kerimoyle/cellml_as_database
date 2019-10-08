@@ -930,7 +930,8 @@ def display(request, item_type, item_id):
             tab['obj_type'],
             getattr(item, field).all(),
             tab['title'],
-            tab['template']
+            tab['template'],
+            tab['related_name'],
         ))
 
     present_in = []
