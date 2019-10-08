@@ -123,7 +123,10 @@ class Variable(NamedCellMLEntity):
     depends_on = ForeignKey('Variable', related_name='used_by', on_delete=DO_NOTHING, blank=True, null=True)
 
     def __str__(self):
-        return "{} ({})".format(self.name, self.component.name)
+        if self.compoundunit:
+            return "{} ({})".format(self.name, self.compoundunit.name)
+        else:
+            return self.name
 
 
 def get_default_prefix():

@@ -52,11 +52,11 @@ DISPLAY_DICT = {
             {'field': 'child_components', 'obj_type': 'component', 'title': 'Encapsulated components',
              'template': 'main/tab_default.html', 'related_name': 'parent_component'},
             {'field': 'variables', 'obj_type': 'variable', 'title': 'Variables',
-             'template': 'main/tab_default.html', 'related_name': 'component'},
+             'template': 'main/tab_default.html', 'related_name': 'variables'},
             {'field': 'maths', 'obj_type': 'math', 'title': 'Maths', 'template': 'main/tab_default.html',
-             'related_name': 'component'},
+             'related_name': 'maths'},
             {'field': 'resets', 'obj_type': 'reset', 'title': 'Resets', 'template': 'main/tab_default.html',
-             'related_name': 'component'},
+             'related_name': 'resets'},
         ],
         'foreign_keys': [
             {'field': 'parent_component', 'obj_type': 'component', 'title': 'parent encapsulating component'},
@@ -92,6 +92,7 @@ DISPLAY_DICT = {
         'tabs': [
             {'field': 'equivalent_variables', 'obj_type': 'variable', 'title': 'Equivalent variables',
              'template': 'main/tab_default.html', 'related_name': 'equivalent_variables'},
+
             {'field': 'reset_variables', 'obj_type': 'reset', 'title': 'Variable is reset by',
              'template': 'main/tab_reset.html', 'related_name': 'variable'},
             {'field': 'reset_test_variables', 'obj_type': 'reset', 'title': 'Variable will reset',
@@ -148,9 +149,9 @@ DISPLAY_DICT = {
         'plot_template': None,
         'tabs': [
             {'field': 'encapsulated_components', 'obj_type': 'component', 'title': 'Encapsulated components',
-             'template': 'main/tab_default.html'},
+             'template': 'main/tab_default.html', 'related_name': 'encapsulated_components'},
             {'field': 'compoundunits', 'obj_type': 'compoundunit', 'title': 'Units',
-             'template': 'main/tab_compoundunits.html'},
+             'template': 'main/tab_compoundunits.html', 'related_name': 'compoundunits'},
         ],
         'present_in': [],
         'foreign_keys': [],

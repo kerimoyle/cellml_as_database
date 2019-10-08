@@ -427,9 +427,6 @@ def load_component(index, in_entity, out_parent, out_model, owner):
         )
         math.save()
 
-        mathml_root = ElementTree.fromstring(mathml)
-        var_set = [x[0] for x in out_component.variables.values_list('name')]
-
         variables = [x.split("</ci>")[0] for x in mathml.split("<ci>")[1:]]
 
         for var in variables:

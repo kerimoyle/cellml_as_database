@@ -24,7 +24,7 @@
         {% if plot_tab %}
             <li><a id="tab_plot1" data-toggle="tab" href="#tab_plot">Plot equation</a></li>
         {% endif %}
-        {% for field, obj_type, objs, title, template in data %}
+        {% for field, obj_type, objs, title, template, related_name in data %}
             <li><a id="tab_{{ field }}1" data-toggle="tab" href="#tab_{{ field }}">{{ title }}</a></li>
         {% endfor %}
     </ul>
@@ -39,8 +39,8 @@
         {% if plot_tab %}
             {% include plot_tab %}
         {% endif %}
-        {% for field_name, obj_type, objs, title, template in data %}
-            {% include template with field_name=field_name obj_type=obj_type objs=objs title=title %}
+        {% for field_name, obj_type, objs, title, template, related_name in data %}
+            {% include template with field_name=field_name obj_type=obj_type objs=objs title=title related_name=related_name %}
         {% endfor %}
     </div>
 
