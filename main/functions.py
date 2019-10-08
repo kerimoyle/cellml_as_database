@@ -316,10 +316,10 @@ def connect_equivalent_variables(component, in_entity):
         for ev in range(0, in_variable.equivalentVariableCount()):
 
             in_equiv = in_variable.equivalentVariable(ev)
-            in_equiv_component = in_equiv.parentComponent()
-            in_equiv_grandparent = in_equiv_component.parentComponent()
+            in_equiv_component = in_equiv.parentAsComponent()
+            in_equiv_grandparent = in_equiv_component.parentAsComponent()
             if not in_equiv_grandparent:
-                in_equiv_grandparent = in_equiv_component.parentModel()
+                in_equiv_grandparent = in_equiv_component.parentAsModel()
 
             out_equiv_component = component.model.all_components.filter(name=in_equiv_component.name()).first()
 
