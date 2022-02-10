@@ -1,5 +1,5 @@
 
-django==2.2.8
+django==2.2.27
 django-crispy-forms==1.7.2
 django-bootstrap4==0.0.8
 lorem==0.1.1
